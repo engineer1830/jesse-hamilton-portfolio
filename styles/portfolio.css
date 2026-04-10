@@ -1,1 +1,226 @@
+/* ============================================================
+   DESIGN SYSTEM — PORTFOLIO THEME
+============================================================ */
 
+:root {
+    --surface: #faf8f6;
+    --surface-alt: #f0ece9;
+    --text: #2d2a26;
+    --text-muted: #6a6560;
+    --accent: #1a73e8;
+    --accent-hover: #155fc2;
+
+    --radius-s: 6px;
+    --radius-m: 10px;
+
+    --shadow-s: 0 2px 6px rgba(0,0,0,0.08);
+    --shadow-m: 0 4px 12px rgba(0,0,0,0.12);
+
+    --font-ui: "Inter", system-ui, sans-serif;
+}
+
+body.dark {
+    --surface: #1b1b1b;
+    --surface-alt: #242424;
+    --text: #e6e6e6;
+    --text-muted: #b5b5b5;
+    --accent: #9bbcff;
+    --accent-hover: #c2d5ff;
+}
+
+/* ============================================================
+   BASE
+============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-ui);
+    background: var(--surface);
+    color: var(--text);
+    line-height: 1.7;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3 {
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ============================================================
+   DARK MODE TOGGLE
+============================================================ */
+
+.dark-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    z-index: 1000;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.site-header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.75rem;
+}
+
+.nav a {
+    margin-left: 1.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav a:hover {
+    color: var(--accent);
+}
+
+/* ============================================================
+   HERO
+============================================================ */
+
+.hero {
+    padding: 5rem 2rem;
+    text-align: center;
+    background: var(--surface-alt);
+}
+
+.hero h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.hero p {
+    max-width: 700px;
+    margin: 0.5rem auto 2rem;
+    color: var(--text-muted);
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+
+.btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-s);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn.primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn.small {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.9rem;
+}
+
+.btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================================
+   PROJECTS
+============================================================ */
+
+.projects {
+    padding: 4rem 2rem;
+}
+
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.project-card {
+    background: var(--surface-alt);
+    padding: 1.5rem;
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-s);
+}
+
+.project-card h3 {
+    margin-bottom: 0.5rem;
+}
+
+.project-card p {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.project-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ============================================================
+   ABOUT
+============================================================ */
+
+.about {
+    padding: 4rem 2rem;
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+}
+
+.about p {
+    margin-top: 1rem;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   CONTACT
+============================================================ */
+
+.contact {
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.contact-links {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
