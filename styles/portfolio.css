@@ -4,11 +4,14 @@
 
 :root {
     --surface: #faf8f6;
-    --surface-alt: #f0ece9;
+    /* --surface-alt: #f0ece9; */
+    --surface-alt: #DDE7D1;
     --text: #2d2a26;
     --text-muted: #6a6560;
-    --accent: #1a73e8;
-    --accent-hover: #155fc2;
+    /* --accent: #1a73e8; */
+    --accent: #2F5D50;
+    /* --accent-hover: #155fc2; */
+    --accent-hover: #23463C;
 
     --radius-s: 6px;
     --radius-m: 10px;
