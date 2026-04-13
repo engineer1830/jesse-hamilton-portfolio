@@ -5,10 +5,13 @@
 :root
 {
     --surface: #faf8f6;
+    /* --surface-alt: #f0ece9; */
     --surface-alt: #DDE7D1;
     --text: #2d2a26;
     --text-muted: #6a6560;
+    /* --accent: #1a73e8; */
     --accent: #2F5D50;
+    /* --accent-hover: #155fc2; */
     --accent-hover: #23463C;
 
     --radius-s: 6px;
@@ -26,8 +29,8 @@ body.dark
     --surface-alt: #242424;
     --text: #e6e6e6;
     --text-muted: #b5b5b5;
-    --accent: #7FB8A6;
-    --accent-hover: #A3D1C2;
+    --accent: #9bbcff;
+    --accent-hover: #c2d5ff;
 }
 
 /* ============================================================
@@ -39,11 +42,6 @@ body.dark
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-html
-{
-    scroll-behavior: smooth;
 }
 
 body
@@ -61,16 +59,6 @@ h3
 {
     font-weight: 600;
     color: var(--text);
-}
-
-section
-{
-    margin-bottom: 4rem;
-}
-
-section h2
-{
-    margin-bottom: 1rem;
 }
 
 /* ============================================================
@@ -127,27 +115,13 @@ section h2
 {
     padding: 5rem 2rem;
     text-align: center;
-    background: linear-gradient(180deg, var(--surface-alt), var(--surface));
-}
-
-.hero-content
-{
-    max-width: 800px;
-    margin: auto;
+    background: var(--surface-alt);
 }
 
 .hero h2
 {
     font-size: 2rem;
     margin-bottom: 1rem;
-}
-
-@media (min-width: 900px)
-{
-    .hero h2
-    {
-        font-size: 2.5rem;
-    }
 }
 
 .hero p
@@ -231,21 +205,6 @@ section h2
     padding: 1.5rem;
     border-radius: var(--radius-m);
     box-shadow: var(--shadow-s);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.project-card:hover
-{
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-m);
-}
-
-.project-thumb
-{
-    width: 100%;
-    border-radius: var(--radius-s);
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow-s);
 }
 
 .project-card h3
@@ -299,16 +258,4 @@ section h2
     display: flex;
     justify-content: center;
     gap: 1rem;
-}
-
-/* ============================================================
-   FOOTER
-============================================================ */
-
-.site-footer
-{
-    padding: 2rem;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.9rem;
 }
