@@ -1,10 +1,125 @@
+/* -------------------------------------------------------
+   GLOBAL RESET & BASE STYLES
+------------------------------------------------------- */
+
+*
+{
+    box-sizing: border-box;
+}
+
 body
 {
+    display: flex;
+    margin: 0;
+    padding: 0;
     font-family: system-ui, sans-serif;
     background: #fafafa;
-    margin: 0;
-    padding: 2rem;
+    color: #222;
 }
+
+/* -------------------------------------------------------
+   SIDEBAR NAVIGATION
+------------------------------------------------------- */
+
+#sidebar
+{
+    width: 240px;
+    background: #f4f4f4;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+    height: 100vh;
+    position: fixed;
+    overflow-y: auto;
+}
+
+#sidebar h2
+{
+    margin-top: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+#album-nav a
+{
+    display: block;
+    padding: 8px 0;
+    color: #333;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+#album-nav a:hover
+{
+    color: #000;
+    font-weight: bold;
+}
+
+#album-nav a.active
+{
+    font-weight: bold;
+    color: #0077cc;
+}
+
+/* -------------------------------------------------------
+   ANIMATIONS
+------------------------------------------------------- */
+
+@keyframes fadeInUp
+{
+    from
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to
+    {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn
+{
+    from
+    {
+        opacity: 0;
+    }
+
+    to
+    {
+        opacity: 1;
+    }
+}
+
+/* -------------------------------------------------------
+   MAIN CONTENT LAYOUT
+------------------------------------------------------- */
+
+header.site-header,
+main
+{
+    margin-left: 240px;
+    padding: 20px;
+    width: calc(100% - 240px);
+}
+
+/* Back link on album page */
+.back-link
+{
+    text-decoration: none;
+    color: #0077cc;
+    font-size: 1rem;
+}
+
+.back-link:hover
+{
+    text-decoration: underline;
+}
+
+/* -------------------------------------------------------
+   ALBUM GRID (Homepage)
+------------------------------------------------------- */
 
 .album-grid
 {
@@ -21,6 +136,7 @@ body
     padding: 1rem;
     cursor: pointer;
     transition: transform 0.2s ease;
+    animation: fadeInUp 0.4s ease both;
 }
 
 .album-card:hover
@@ -34,6 +150,10 @@ body
     border-radius: 10px;
     margin-bottom: 1rem;
 }
+
+/* -------------------------------------------------------
+   PHOTO GRID (Album Page)
+------------------------------------------------------- */
 
 .photo-grid
 {
@@ -49,6 +169,7 @@ body
     border-radius: 10px;
     cursor: pointer;
     transition: transform 0.2s ease;
+    animation: fadeInUp 0.35s ease both;
 }
 
 .photo-thumb:hover
@@ -56,7 +177,10 @@ body
     transform: scale(1.03);
 }
 
-/* Lightbox */
+/* -------------------------------------------------------
+   LIGHTBOX
+------------------------------------------------------- */
+
 .lightbox
 {
     position: fixed;
@@ -78,6 +202,7 @@ body
     max-width: 90%;
     max-height: 90%;
     border-radius: 10px;
+    animation: fadeIn 0.3s ease;
 }
 
 .lightbox-close
@@ -115,4 +240,34 @@ body
 .lightbox-nav:hover
 {
     color: #ddd;
+}
+
+.album-card,
+.photo-thumb
+{
+    animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* -------------------------------------------------------
+   RESPONSIVE BEHAVIOR
+------------------------------------------------------- */
+
+@media (max-width: 700px)
+{
+
+    #sidebar
+    {
+        position: relative;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+    header.site-header,
+    main
+    {
+        margin-left: 0;
+        width: 100%;
+    }
 }

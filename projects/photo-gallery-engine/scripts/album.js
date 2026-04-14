@@ -17,6 +17,9 @@ albumPhotos.forEach((src, index) => {
     img.src = src;
     img.className = "photo-thumb";
 
+    // Animation index for staggered fade-in
+    img.style.setProperty("--i", index);
+
     img.addEventListener("click", () => openLightbox(src, index));
 
     grid.appendChild(img);
@@ -66,3 +69,4 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight") showNext();
     if (e.key === "ArrowLeft") showPrev();
 });
+
