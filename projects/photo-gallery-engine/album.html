@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Album</title>
+    <link rel="stylesheet" href="styles/gallery.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <a href="index.html" class="back-link">← Back to Albums</a>
+        <h1 id="album-title"></h1>
+    </header>
+
+    <main id="photo-grid" class="photo-grid"></main>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox hidden">
+        <span id="lightbox-close" class="lightbox-close">×</span>
+
+        <span id="lightbox-prev" class="lightbox-nav prev">‹</span>
+        <img id="lightbox-img" class="lightbox-img" src="" alt="">
+        <span id="lightbox-next" class="lightbox-nav next">›</span>
+    </div>
+
+    <script src="data/albums.js"></script>
+    <script src="data/photos.js"></script>
+    <script src="scripts/album.js"></script>
+</body>
+
+</html>

@@ -34,3 +34,85 @@ body
     border-radius: 10px;
     margin-bottom: 1rem;
 }
+
+.photo-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem 0;
+}
+
+.photo-thumb
+{
+    width: 100%;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.photo-thumb:hover
+{
+    transform: scale(1.03);
+}
+
+/* Lightbox */
+.lightbox
+{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.lightbox.hidden
+{
+    display: none;
+}
+
+.lightbox-img
+{
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+}
+
+.lightbox-close
+{
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    font-size: 2.5rem;
+    color: #fff;
+    cursor: pointer;
+}
+
+.lightbox-nav
+{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    padding: 0 1rem;
+}
+
+.lightbox-nav.prev
+{
+    left: 2rem;
+}
+
+.lightbox-nav.next
+{
+    right: 2rem;
+}
+
+.lightbox-nav:hover
+{
+    color: #ddd;
+}
