@@ -22,3 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
         container.appendChild(card);
     });
 });
+
+if (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    body.classList.add("dark");
+}

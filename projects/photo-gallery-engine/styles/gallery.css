@@ -17,6 +17,65 @@ body
     color: #222;
 }
 
+body.dark
+{
+    background: #111;
+    color: #eee;
+}
+
+/* -------------------------------------------------------
+   DARK MODE
+------------------------------------------------------- */
+
+body.dark #sidebar
+{
+    background: #1a1a1a;
+    border-right: 1px solid #333;
+}
+
+body.dark #album-nav a
+{
+    color: #ccc;
+}
+
+body.dark #album-nav a:hover
+{
+    color: #fff;
+}
+
+body.dark #album-nav a.active
+{
+    color: #4da3ff;
+}
+
+body.dark .album-card
+{
+    background: #1c1c1c;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .album-thumb
+{
+    opacity: 0.95;
+}
+
+body.dark .photo-thumb
+{
+    opacity: 0.95;
+}
+
+body.dark .lightbox
+{
+    background: rgba(0, 0, 0, 0.9);
+}
+
+body.dark #menu-toggle
+{
+    background: #222;
+    border-color: #444;
+    color: #eee;
+}
+
 /* -------------------------------------------------------
    SIDEBAR NAVIGATION
 ------------------------------------------------------- */
@@ -242,6 +301,22 @@ main
     color: #ddd;
 }
 
+#album-nav a
+{
+    line-height: 1.4;
+}
+
+#album-nav a
+{
+    color: #333;
+}
+
+#album-nav a .count
+{
+    color: #666;
+    font-size: 0.9em;
+}
+
 .album-card,
 .photo-thumb
 {
@@ -318,5 +393,14 @@ main
     {
         margin-left: 0;
         width: 100%;
+    }
+}
+
+@media (prefers-color-scheme: dark)
+{
+    body:not(.light)
+    {
+        background: #111;
+        color: #eee;
     }
 }

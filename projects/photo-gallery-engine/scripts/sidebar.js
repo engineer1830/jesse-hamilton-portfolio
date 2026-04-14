@@ -8,8 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     albums.forEach(album => {
         const link = document.createElement("a");
+        const count = (photos[album.slug] || []).length;
+
         link.href = `album.html?slug=${album.slug}`;
-        link.textContent = album.title;
+        link.innerHTML = `${album.title} <span class="count">(${count})</span>`;
 
         // Highlight the active album
         if (album.slug === currentSlug) {
@@ -19,3 +21,4 @@ document.addEventListener("DOMContentLoaded", () => {
         nav.appendChild(link);
     });
 });
+
