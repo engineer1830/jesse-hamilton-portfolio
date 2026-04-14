@@ -14,8 +14,10 @@ const albumPhotos = photos[slug] || [];
 
 albumPhotos.forEach((src, index) => {
     const img = document.createElement("img");
-    img.src = src;
+    img.src = photo.src;
+    img.alt = photo.alt || "";
     img.className = "photo-thumb";
+    img.loading = "lazy";
 
     // Animation index for staggered fade-in
     img.style.setProperty("--i", index);
@@ -70,3 +72,16 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") showPrev();
 });
 
+// Fade-in on scroll using IntersectionObserver
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1 });
+
+document.querySelectorAll(".photo-thumb").forEach(img => {
+    observer.observe(img);
+});

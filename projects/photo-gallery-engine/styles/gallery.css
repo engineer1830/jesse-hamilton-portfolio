@@ -24,6 +24,21 @@ body.dark
 }
 
 /* -------------------------------------------------------
+   PAGE TRANSITIONS
+------------------------------------------------------- */
+
+body
+{
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+body.fade-in
+{
+    opacity: 1;
+}
+
+/* -------------------------------------------------------
    DARK MODE
 ------------------------------------------------------- */
 
@@ -227,8 +242,14 @@ main
     width: 100%;
     border-radius: 10px;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.2s ease;
     animation: fadeInUp 0.35s ease both;
+}
+
+.photo-thumb.visible
+{
+    opacity: 1;
 }
 
 .photo-thumb:hover

@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
         card.style.setProperty("--i", i);
 
         card.innerHTML = `
-            <img class="album-thumb" src="${album.cover}" alt="${album.title}">
+            <img class="album-thumb" src="${album.cover}" alt="${album.title}" loading="lazy">
             <h3>${album.title}</h3>
             <p>${album.count} photos</p>
         `;
