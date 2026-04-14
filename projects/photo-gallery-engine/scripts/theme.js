@@ -8,6 +8,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body.classList.add("dark");
     }
 
+    // Apply system preference if no saved preference
+    if (!saved && window.matchMedia("prefers-color-scheme: dark").matches) {
+        body.classList.add("dark");
+    }    
+
     toggle.addEventListener("click", () => {
         body.classList.toggle("dark");
 
@@ -17,6 +22,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-if (!saved && window.matchMedia("prefers-color-scheme: dark").matches) {
-    body.classList.add("dark");
-}
