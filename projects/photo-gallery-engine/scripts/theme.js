@@ -16,3 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("theme", mode);
     });
 });
+
+if (!saved && window.matchMedia("prefers-color-scheme: dark").matches) {
+    body.classList.add("dark");
+}
