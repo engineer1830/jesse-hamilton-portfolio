@@ -97,3 +97,4 @@ document.querySelectorAll(".photo-thumb").forEach(img => {
     observer.observe(img);
 });
 
+
