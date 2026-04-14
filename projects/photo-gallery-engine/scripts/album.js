@@ -5,10 +5,9 @@ const slug = params.get("slug");
 // Get album metadata
 const album = albums.find(a => a.slug === slug);
 
-// Update title
+// Update title + breadcrumb
 document.getElementById("album-title").textContent = album?.title || "Album";
 document.getElementById("breadcrumb-album").textContent = album.title;
-
 
 // Load photos
 const grid = document.getElementById("photo-grid");
@@ -16,8 +15,10 @@ const albumPhotos = photos[slug] || [];
 
 albumPhotos.forEach((src, index) => {
     const img = document.createElement("img");
-    img.src = photo.src;
-    img.alt = photo.alt || "";
+
+    // Your photos array contains strings, not objects
+    img.src = src;
+    img.alt = "";
     img.className = "photo-thumb";
     img.loading = "lazy";
 
@@ -25,10 +26,6 @@ albumPhotos.forEach((src, index) => {
     img.style.setProperty("--i", index);
 
     img.addEventListener("click", () => openLightbox(src, index));
-
-    document.getElementById("lightbox-back").style.display = "block";
-    document.getElementById("lightbox-back").style.display = "none";
-
 
     grid.appendChild(img);
 });
@@ -39,6 +36,7 @@ const lightboxImg = document.getElementById("lightbox-img");
 const closeBtn = document.getElementById("lightbox-close");
 const prevBtn = document.getElementById("lightbox-prev");
 const nextBtn = document.getElementById("lightbox-next");
+const backLink = document.getElementById("lightbox-back");
 
 let currentIndex = 0;
 
@@ -46,10 +44,16 @@ function openLightbox(src, index) {
     currentIndex = index;
     lightboxImg.src = src;
     lightbox.classList.remove("hidden");
+
+    // Show back link when lightbox is open
+    if (backLink) backLink.style.display = "block";
 }
 
 function closeLightbox() {
     lightbox.classList.add("hidden");
+
+    // Hide back link when lightbox closes
+    if (backLink) backLink.style.display = "none";
 }
 
 function showNext() {
@@ -88,6 +92,8 @@ const observer = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.1 });
 
+// Observe all thumbnails AFTER they exist
 document.querySelectorAll(".photo-thumb").forEach(img => {
     observer.observe(img);
 });
+
