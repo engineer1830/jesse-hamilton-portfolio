@@ -39,6 +39,52 @@ body.fade-in
 }
 
 /* -------------------------------------------------------
+   BREADCRUMBS
+------------------------------------------------------- */
+
+#breadcrumbs
+{
+    font-size: 0.9em;
+    margin: 10px 0 20px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#breadcrumbs a
+{
+    color: #4da3ff;
+    text-decoration: none;
+}
+
+#breadcrumbs a:hover
+{
+    text-decoration: underline;
+}
+
+#breadcrumbs .divider
+{
+    color: #999;
+}
+
+/* Dark mode */
+body.dark #breadcrumbs
+{
+    color: #aaa;
+}
+
+body.dark #breadcrumbs a
+{
+    color: #7bbdff;
+}
+
+body.dark #breadcrumbs .divider
+{
+    color: #666;
+}
+
+/* -------------------------------------------------------
    DARK MODE
 ------------------------------------------------------- */
 

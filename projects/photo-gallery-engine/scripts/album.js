@@ -7,6 +7,8 @@ const album = albums.find(a => a.slug === slug);
 
 // Update title
 document.getElementById("album-title").textContent = album?.title || "Album";
+document.getElementById("breadcrumb-album").textContent = album.title;
+
 
 // Load photos
 const grid = document.getElementById("photo-grid");
@@ -23,6 +25,10 @@ albumPhotos.forEach((src, index) => {
     img.style.setProperty("--i", index);
 
     img.addEventListener("click", () => openLightbox(src, index));
+
+    document.getElementById("lightbox-back").style.display = "block";
+    document.getElementById("lightbox-back").style.display = "none";
+
 
     grid.appendChild(img);
 });

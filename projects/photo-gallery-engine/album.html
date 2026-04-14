@@ -17,6 +17,12 @@
     <header class="site-header">
         <a href="index.html" class="back-link">← Back to Albums</a>
         <h1 id="album-title"></h1>
+        <nav id="breadcrumbs">
+            <a href="index.html">Home</a>
+            <span class="divider">›</span>
+            <span id="breadcrumb-album"></span>
+        </nav>
+        
     </header>
     <button id="theme-toggle" aria-label="Toggle Dark Mode">🌙</button>
 
@@ -25,6 +31,7 @@
 
     <!-- Lightbox -->
     <div id="lightbox" class="lightbox hidden">
+        <a id="lightbox-back" href="#" style="display:none;">Back to Album</a>
         <span id="lightbox-close" class="lightbox-close">×</span>
 
         <span id="lightbox-prev" class="lightbox-nav prev">‹</span>
