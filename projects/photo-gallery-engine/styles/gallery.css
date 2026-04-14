@@ -271,6 +271,31 @@ main
     margin-bottom: 1rem;
 }
 
+#album-meta
+{
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 6px;
+}
+
+#album-description
+{
+    font-size: 0.95em;
+    color: #555;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+body.dark #album-meta
+{
+    color: #aaa;
+}
+
+body.dark #album-description
+{
+    color: #ccc;
+}
+
 /* -------------------------------------------------------
    PHOTO GRID (Album Page)
 ------------------------------------------------------- */

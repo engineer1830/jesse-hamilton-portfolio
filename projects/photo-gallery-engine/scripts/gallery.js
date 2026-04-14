@@ -10,10 +10,18 @@ document.addEventListener("DOMContentLoaded", () => {
         card.style.setProperty("--i", i);
 
         card.innerHTML = `
-            <img class="album-thumb" src="${album.cover}" alt="${album.title}" loading="lazy">
-            <h3>${album.title}</h3>
-            <p>${album.count} photos</p>
-        `;
+        <img class="album-thumb" src="${album.cover}" alt="${album.title}" loading="lazy">
+        <h3>${album.title}</h3>
+    
+        <p class="album-meta">
+            ${album.date ? `<span>${album.date}</span>` : ""}
+            ${album.location ? `<span>• ${album.location}</span>` : ""}
+            <span>• ${album.count} photos</span>
+        </p>
+    
+        ${album.description ? `<p class="album-description">${album.description}</p>` : ""}
+    `;
+    
 
         card.addEventListener("click", () => {
             window.location.href = `album.html?slug=${album.slug}`;

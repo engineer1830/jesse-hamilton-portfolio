@@ -9,6 +9,17 @@ const album = albums.find(a => a.slug === slug);
 document.getElementById("album-title").textContent = album?.title || "Album";
 document.getElementById("breadcrumb-album").textContent = album.title;
 
+// Album metadata
+const meta = [];
+
+if (album.date) meta.push(album.date);
+if (album.location) meta.push(album.location);
+meta.push(`${album.count} photos`);
+
+document.getElementById("album-meta").textContent = meta.join(" • ");
+document.getElementById("album-description").textContent = album.description || "";
+
+
 // Load photos
 const grid = document.getElementById("photo-grid");
 const albumPhotos = photos[slug] || [];
