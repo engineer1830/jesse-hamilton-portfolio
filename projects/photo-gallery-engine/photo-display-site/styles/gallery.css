@@ -1,0 +1,36 @@
+body
+{
+    font-family: system-ui, sans-serif;
+    background: #fafafa;
+    margin: 0;
+    padding: 2rem;
+}
+
+.album-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+}
+
+.album-card
+{
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.album-card:hover
+{
+    transform: translateY(-4px);
+}
+
+.album-thumb
+{
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
