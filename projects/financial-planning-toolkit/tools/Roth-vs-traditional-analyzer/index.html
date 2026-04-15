@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="../../styles/shared.css">
     <link rel="stylesheet" href="tool.css">
 
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -54,7 +53,7 @@
 
                 <label>
                     Retirement Tax Rate (%)
-                    <input id="retireTax" type="number" value="15" step="0.01" min="0" autocomplete="off">
+                    <input id="retireTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
                 </label>
 
                 <label>
@@ -77,9 +76,59 @@
                 <label>
                     Monte Carlo Simulations
                     <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
-                    <small class="note">Set > 0 to run Monte Carlo</small>
+                    <small class="note">Set &gt; 0 to run Monte Carlo</small>
+                </label>
+            </div>
+
+            <h3>Retirement &amp; Social Security (for auto tax estimate)</h3>
+
+            <div class="input-grid">
+                <label>
+                    Current Age
+                    <input id="currentAge" type="number" value="60" min="0">
                 </label>
 
+                <label>
+                    Planned Retirement Age
+                    <input id="retirementAge" type="number" value="65" min="0">
+                </label>
+
+                <label>
+                    Planned Work Stoppage Age
+                    <input id="workStopAge" type="number" value="65" min="0">
+                </label>
+
+                <label>
+                    Social Security Annual Benefit (statement estimate)
+                    <input id="ssAnnual" type="number" value="40000" min="0">
+                </label>
+
+                <label>
+                    Claiming Age
+                    <select id="claimAge">
+                        <option value="62">62</option>
+                        <option value="67" selected>FRA (67)</option>
+                        <option value="70">70</option>
+                    </select>
+                </label>
+
+                <label>
+                    Filing Status
+                    <select id="filingStatus">
+                        <option value="married" selected>Married</option>
+                        <option value="single">Single</option>
+                    </select>
+                </label>
+
+                <label>
+                    Annual Spending Need at Retirement (optional)
+                    <input id="spendingNeed" type="number" value="0" min="0">
+                </label>
+
+                <label class="checkbox-inline">
+                    <input id="autoTax" type="checkbox">
+                    Estimate retirement tax rate automatically
+                </label>
             </div>
 
             <button id="runBtn" class="btn btn-primary">Analyze</button>
@@ -109,7 +158,7 @@
 
     </main>
 
-    <script type="module" src="tool.js"></script>
+    <script type="module" src="scripts/tool.js"></script>
 
 </body>
 

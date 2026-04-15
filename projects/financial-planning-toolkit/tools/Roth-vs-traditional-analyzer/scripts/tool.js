@@ -1,6 +1,7 @@
-import { Finance } from "../../scripts/engine.js";
-import { getHistoricalPrices, getMultipleTickers } from "../../scripts/data.js";
-import { calculateCAGR, priceSeriesToDailyReturns } from "../../scripts/transforms.js";
+import { Finance } from "../../../scripts/engine.js";
+import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.js";
+import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
+import { estimateRetirementTaxRate } from "./retirement.js";
 
 const $ = id => document.getElementById(id);
 
@@ -26,12 +27,22 @@ $("runBtn").addEventListener("click", async () => {
     const years = parseInt($("years").value) || 0;
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
-    const retireTax = (parseFloat($("retireTax").value) || 0) / 100;
+    let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
     const ticker = $("ticker").value.trim().toUpperCase();
     const portfolioStr = $("portfolio").value.trim();
     const mcRuns = parseInt($("mcRuns").value) || 0;
+
+    const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
+
+    const currentAge = $("currentAge") ? (parseInt($("currentAge").value) || 60) : 60;
+    const retirementAge = $("retirementAge") ? (parseInt($("retirementAge").value) || (currentAge + years)) : (currentAge + years);
+    const workStopAge = $("workStopAge") ? (parseInt($("workStopAge").value) || retirementAge) : retirementAge;
+    const ssAnnualStatement = $("ssAnnual") ? (parseFloat($("ssAnnual").value) || 0) : 0;
+    const claimAge = $("claimAge") ? (parseInt($("claimAge").value) || 67) : 67;
+    const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
+    const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
     let rate = growth;
     let mode = "synthetic";
@@ -55,6 +66,29 @@ $("runBtn").addEventListener("click", async () => {
             rate = calculateCAGR(prices);
             mode = "real-market";
         }
+    }
+
+    /* ---------------------------------------------------
+       AUTO TAX ESTIMATION (IF ENABLED)
+    --------------------------------------------------- */
+    let retirementTaxDetails = null;
+
+    if (useAutoTax) {
+        const yearsToRetirement = retirementAge - currentAge;
+        const yearsFromRetirementToRMD = Math.max(73 - retirementAge, 0);
+
+        retirementTaxDetails = estimateRetirementTaxRate({
+            currentTrad,
+            yearsToRetirement,
+            yearsFromRetirementToRMD,
+            growth: rate,
+            ssAnnual: ssAnnualStatement,
+            claimAge,
+            filingStatus,
+            spendingNeed
+        });
+
+        retireTax = retirementTaxDetails.estimatedRate;
     }
 
     /* ---------------------------------------------------
@@ -150,7 +184,8 @@ $("runBtn").addEventListener("click", async () => {
         breakEvenTaxRate: Finance.round(currentTax * 100, 2) + "%",
         currentRoth,
         currentTrad,
-        monteCarlo
+        monteCarlo,
+        retirementTaxDetails
     };
 
     renderSummary(result);
@@ -437,7 +472,8 @@ function renderSummary(result) {
         breakEvenTaxRate,
         currentRoth,
         currentTrad,
-        monteCarlo
+        monteCarlo,
+        retirementTaxDetails
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -482,6 +518,35 @@ function renderSummary(result) {
             </tr>
         </table>
     `;
+
+    if (retirementTaxDetails) {
+        const t = retirementTaxDetails;
+        html += `
+            <h3>Retirement Tax Estimate</h3>
+            <table class="summary-table">
+                <tr>
+                    <td>Estimated RMD at 73</td>
+                    <td>$${t.rmd.toLocaleString()}</td>
+                </tr>
+                <tr>
+                    <td>Estimated Social Security (at claim age)</td>
+                    <td>$${t.ssAtClaimAge.toLocaleString()}</td>
+                </tr>
+                <tr>
+                    <td>Estimated Taxable Social Security</td>
+                    <td>$${t.taxableSS.toLocaleString()}</td>
+                </tr>
+                <tr>
+                    <td>Estimated Taxable Income</td>
+                    <td>$${t.taxableIncome.toLocaleString()}</td>
+                </tr>
+                <tr>
+                    <td>Estimated Retirement Tax Rate</td>
+                    <td>${(t.estimatedRate * 100).toFixed(1)}%</td>
+                </tr>
+            </table>
+        `;
+    }
 
     if (monteCarlo) {
         html += `
