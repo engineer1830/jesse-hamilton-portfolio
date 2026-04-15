@@ -827,14 +827,25 @@ function renderProInsights(result) {
         taxTrajectory,
         safeConversionMin,
         safeConversionMax,
-        conversionImpact  
+        conversionImpact
     } = computeProInsights(result);
 
+    // -------------------------------------------------------
+    // START HTML
+    // -------------------------------------------------------
     let html = `
         <div class="pro-insights-card">
             <div class="pro-insights-header">
                 <div class="pro-insights-title">Pro Insights</div>
                 <div class="pro-insights-tag">Advanced</div>
+            </div>
+
+            <!-- Custom Conversion Slider -->
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Custom Conversion Amount</div>
+                <input id="conversionSlider" type="range" min="0" max="100000" step="1000" value="0" />
+                <div id="conversionSliderValue">$0 per year</div>
+                <div id="conversion-simulation"></div>
             </div>
 
             <!-- Diversification Score -->
@@ -846,6 +857,7 @@ function renderProInsights(result) {
                 </div>
             </div>
     `;
+
 
     /* -------------------------------------------------------
        RMD PRESSURE SCORE
