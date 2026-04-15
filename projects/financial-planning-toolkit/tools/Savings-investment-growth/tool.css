@@ -1,0 +1,80 @@
+.input-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+input
+{
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+input:focus
+{
+    outline: 2px solid #2b6cb0;
+    border-radius: 4px;
+}
+
+.primary-btn
+{
+    padding: 0.75rem 1.5rem;
+    background: #2b6cb0;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.primary-btn:hover
+{
+    background: #2c5282;
+}
+
+pre
+{
+    background: #f4f4f4;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+body.dark pre
+{
+    background: #1e1e1e;
+}
+
+/* Helper note under ticker input */
+.note
+{
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+body.dark .note
+{
+    color: #ccc;
+}
+
+/* Loading indicator */
+.loading
+{
+    padding: 0.75rem 1rem;
+    background: #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+body.dark .loading
+{
+    background: #2d3748;
+    color: #e2e8f0;
+}

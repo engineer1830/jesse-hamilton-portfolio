@@ -1,0 +1,175 @@
+/* -------------------------------------------------------
+   RESET & BASE
+------------------------------------------------------- */
+
+*
+{
+    box-sizing: border-box;
+}
+
+body
+{
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, sans-serif;
+    background: #fafafa;
+    color: #222;
+    line-height: 1.6;
+}
+
+body.dark
+{
+    background: #111;
+    color: #eee;
+}
+
+h1,
+h2,
+h3
+{
+    margin-top: 0;
+    font-weight: 600;
+}
+
+a
+{
+    color: inherit;
+    text-decoration: none;
+}
+
+/* -------------------------------------------------------
+   LAYOUT
+------------------------------------------------------- */
+
+.site-header
+{
+    text-align: center;
+    padding: 2.5rem 1rem 1rem;
+}
+
+.subtitle
+{
+    margin-top: 0.5rem;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+body.dark .subtitle
+{
+    color: #aaa;
+}
+
+main
+{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 3rem;
+}
+
+/* -------------------------------------------------------
+   SECTION HEADERS
+------------------------------------------------------- */
+
+section
+{
+    margin-bottom: 3rem;
+}
+
+.section-desc
+{
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
+    color: #555;
+}
+
+body.dark .section-desc
+{
+    color: #bbb;
+}
+
+/* -------------------------------------------------------
+   TOOL GRID
+------------------------------------------------------- */
+
+.tool-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+/* -------------------------------------------------------
+   TOOL CARDS
+------------------------------------------------------- */
+
+.tool-card
+{
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.tool-card:hover
+{
+    transform: translateY(-4px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.tool-card h3
+{
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+}
+
+.tool-card p
+{
+    margin: 0;
+    color: #555;
+}
+
+body.dark .tool-card
+{
+    background: #1c1c1c;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .tool-card p
+{
+    color: #ccc;
+}
+
+/* -------------------------------------------------------
+   FUTURE / DISABLED CARDS
+------------------------------------------------------- */
+
+.tool-card.disabled
+{
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+}
+
+.tool-grid.future .tool-card
+{
+    border: 1px dashed #ccc;
+}
+
+body.dark .tool-grid.future .tool-card
+{
+    border-color: #444;
+}
+
+/* -------------------------------------------------------
+   RESPONSIVE
+------------------------------------------------------- */
+
+@media (max-width: 600px)
+{
+    .site-header
+    {
+        padding: 1.5rem 1rem 0.5rem;
+    }
+}

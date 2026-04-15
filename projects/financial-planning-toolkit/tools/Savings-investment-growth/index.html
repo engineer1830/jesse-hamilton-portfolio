@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings & Investment Growth</title>
+
+    <link rel="stylesheet" href="../../styles/shared.css">
+    <link rel="stylesheet" href="tool.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <h1>Savings & Investment Growth</h1>
+        <p class="subtitle">Project long-term growth using assumptions or real market data</p>
+    </header>
+
+    <main>
+
+        <section>
+            <h2>Inputs</h2>
+
+            <div class="input-grid">
+
+                <label>
+                    Initial Amount
+                    <input id="initial" type="number" value="10000" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Annual Contribution
+                    <input id="contribution" type="number" value="6000" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Years
+                    <input id="years" type="number" value="30" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Assumed Growth Rate (%)
+                    <input id="rate" type="number" value="7" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Inflation Rate (%)
+                    <input id="inflation" type="number" value="2" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Optional Ticker (e.g., VTI)
+                    <input id="ticker" type="text" placeholder="VTI" autocomplete="off">
+                    <small class="note">Leave blank to use assumed growth rate</small>
+                </label>
+
+            </div>
+
+            <button id="runBtn" class="primary-btn">Run Projection</button>
+        </section>
+
+        <section>
+            <h2>Results</h2>
+            <div id="loading" class="loading" style="display:none;">Loading...</div>
+            <pre id="output"></pre>
+        </section>
+
+    </main>
+
+    <script type="module" src="tool.js"></script>
+
+</body>
+
+</html>
