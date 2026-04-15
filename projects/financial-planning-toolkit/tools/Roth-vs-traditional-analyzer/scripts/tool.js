@@ -660,6 +660,8 @@ function computeProInsights(result) {
     let bracketFillAmount = null;
     let bracketFillRate = null;
     let taxTrajectory = null;
+    let safeConversionMin = null;
+    let safeConversionMax = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -729,6 +731,24 @@ function computeProInsights(result) {
         irmaaRiskScore = Math.min(100, band * 20);
 
         // -------------------------------------------------------
+        // SAFE CONVERSION RANGE (BRACKET + IRMAA AWARE)
+        // -------------------------------------------------------
+        let irmaaHeadroom = null;
+        const nextIrmaa = irmaaThresholds.find(t => magi < t);
+        if (nextIrmaa) {
+            irmaaHeadroom = Math.max(nextIrmaa - magi, 0);
+        }
+
+        if (bracketFillAmount !== null) {
+            const maxByBracket = bracketFillAmount;
+            const maxByIrmaa = irmaaHeadroom !== null ? irmaaHeadroom : maxByBracket;
+            const safeMax = Math.max(0, Math.min(maxByBracket, maxByIrmaa));
+
+            safeConversionMin = 0;
+            safeConversionMax = Finance.round(safeMax);
+        }
+
+        // -------------------------------------------------------
         // TAX TRAJECTORY (CURRENT → RETIREMENT)
         // -------------------------------------------------------
         taxTrajectory = {
@@ -749,7 +769,9 @@ function computeProInsights(result) {
         irmaaRiskScore,
         bracketFillAmount,
         bracketFillRate,
-        taxTrajectory
+        taxTrajectory,
+        safeConversionMin,
+        safeConversionMax
     };
 }
 
@@ -770,7 +792,9 @@ function renderProInsights(result) {
         irmaaRiskScore,
         bracketFillAmount,
         bracketFillRate,
-        taxTrajectory
+        taxTrajectory,
+        safeConversionMin,
+        safeConversionMax 
     } = computeProInsights(result);
 
     let html = `
@@ -831,6 +855,19 @@ function renderProInsights(result) {
             </div>
         `;
     }
+
+    /* -------------------------------------------------------
+    SAFE CONVERSION RANGE
+ ------------------------------------------------------- */
+    if (safeConversionMax !== null && safeConversionMax > 0) {
+        html += `
+         <div class="pro-insights-metric">
+             <div class="pro-insights-label">Safe Conversion Range</div>
+             <div>You can likely convert up to $${safeConversionMax.toLocaleString()} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
+         </div>
+     `;
+    }
+
 
     /* -------------------------------------------------------
        TAX TRAJECTORY
