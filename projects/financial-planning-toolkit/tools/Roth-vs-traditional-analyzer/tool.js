@@ -16,10 +16,18 @@ $("runBtn").addEventListener("click", async () => {
     summary.innerHTML = "";
     loading.style.display = "block";
 
+    /* ---------------------------------------------------
+       INPUTS
+    --------------------------------------------------- */
+    const currentRoth = parseFloat($("currentRoth").value) || 0;
+    const currentTrad = parseFloat($("currentTrad").value) || 0;
+
     const contribution = parseFloat($("contribution").value) || 0;
     const years = parseInt($("years").value) || 0;
+
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     const retireTax = (parseFloat($("retireTax").value) || 0) / 100;
+
     const growth = (parseFloat($("growth").value) || 0) / 100;
     const ticker = $("ticker").value.trim().toUpperCase();
     const portfolioStr = $("portfolio").value.trim();
@@ -29,7 +37,7 @@ $("runBtn").addEventListener("click", async () => {
     let mode = "synthetic";
 
     /* ---------------------------------------------------
-       Optional: Portfolio or Single Ticker → Real CAGR
+       OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
     --------------------------------------------------- */
     if (portfolioStr) {
         const { tickers, weights } = parsePortfolio(portfolioStr);
@@ -50,35 +58,55 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-       Deterministic Roth & Traditional
+       GROW CURRENT BALANCES FORWARD
+    --------------------------------------------------- */
+    const rothStartingFuture = currentRoth * Math.pow(1 + rate, years);
+
+    const tradStartingFuturePreTax = currentTrad * Math.pow(1 + rate, years);
+    const tradStartingFutureAfterTax = tradStartingFuturePreTax * (1 - retireTax);
+
+    /* ---------------------------------------------------
+       100% OF CONTRIBUTIONS ARE TREATED AS ROTH CONTRIBUTIONS
+       WHEN MODELING THE ROTH SCENARIO.
     --------------------------------------------------- */
     const rothContribution = contribution * (1 - currentTax);
 
-    const rothFinal = Finance.compoundWithContributions({
+    /* ---------------------------------------------------
+       FUTURE CONTRIBUTIONS
+    --------------------------------------------------- */
+    const rothFuture = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: rothContribution,
         rate,
         years
     });
 
-    const tradFinalPreTax = Finance.compoundWithContributions({
+    const tradFuturePreTax = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: contribution,
         rate,
         years
     });
 
-    const tradFinalAfterTax = tradFinalPreTax * (1 - retireTax);
+    const tradFutureAfterTax = tradFuturePreTax * (1 - retireTax);
 
     /* ---------------------------------------------------
-       Year-by-year curves for chart
+       FINAL TOTALS
+    --------------------------------------------------- */
+    const rothFinal = rothStartingFuture + rothFuture;
+    const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
+
+    /* ---------------------------------------------------
+       YEAR-BY-YEAR CURVES FOR CHART
     --------------------------------------------------- */
     const yearly = buildYearlyCurves({
         contribution,
         rothContribution,
         rate,
         years,
-        retireTax
+        retireTax,
+        currentRoth,
+        currentTrad
     });
 
     renderGrowthChart(yearly);
@@ -91,7 +119,7 @@ $("runBtn").addEventListener("click", async () => {
     });
 
     /* ---------------------------------------------------
-       Monte Carlo (optional)
+       MONTE CARLO (OPTIONAL)
     --------------------------------------------------- */
     let monteCarlo = null;
     if (mcRuns > 0 && (ticker || portfolioStr)) {
@@ -103,21 +131,25 @@ $("runBtn").addEventListener("click", async () => {
             years,
             currentTax,
             retireTax,
-            runs: mcRuns
+            runs: mcRuns,
+            currentRoth,
+            currentTrad
         });
     }
 
     /* ---------------------------------------------------
-       Result Object
+       RESULT OBJECT
     --------------------------------------------------- */
     const result = {
         mode,
         assumedGrowthRate: Finance.round(rate * 100, 2) + "%",
         rothFinal: Finance.round(rothFinal),
-        traditionalFinal: Finance.round(tradFinalAfterTax),
-        difference: Finance.round(rothFinal - tradFinalAfterTax),
-        betterOption: rothFinal > tradFinalAfterTax ? "Roth" : "Traditional",
+        traditionalFinal: Finance.round(tradFinal),
+        difference: Finance.round(rothFinal - tradFinal),
+        betterOption: rothFinal > tradFinal ? "Roth" : "Traditional",
         breakEvenTaxRate: Finance.round(currentTax * 100, 2) + "%",
+        currentRoth,
+        currentTrad,
         monteCarlo
     };
 
@@ -127,7 +159,7 @@ $("runBtn").addEventListener("click", async () => {
 });
 
 /* -------------------------------------------------------
-   Portfolio Parsing & Weighted CAGR
+   PORTFOLIO PARSING & WEIGHTED CAGR
 ------------------------------------------------------- */
 
 function parsePortfolio(str) {
@@ -165,15 +197,15 @@ async function computeWeightedCAGR(data, tickers, weights) {
 }
 
 /* -------------------------------------------------------
-   Yearly Curves for Chart
+   YEARLY CURVES FOR CHART
 ------------------------------------------------------- */
 
-function buildYearlyCurves({ contribution, rothContribution, rate, years, retireTax }) {
+function buildYearlyCurves({ contribution, rothContribution, rate, years, retireTax, currentRoth, currentTrad }) {
     const roth = [];
     const trad = [];
 
-    let rothBal = 0;
-    let tradBal = 0;
+    let rothBal = currentRoth;
+    let tradBal = currentTrad;
 
     for (let year = 1; year <= years; year++) {
         rothBal = rothBal * (1 + rate) + rothContribution;
@@ -187,7 +219,7 @@ function buildYearlyCurves({ contribution, rothContribution, rate, years, retire
 }
 
 /* -------------------------------------------------------
-   Charts
+   CHARTS
 ------------------------------------------------------- */
 
 function renderGrowthChart({ roth, trad }) {
@@ -295,7 +327,7 @@ function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
 }
 
 /* -------------------------------------------------------
-   Monte Carlo (simple, return-based)
+   MONTE CARLO SIMULATION
 ------------------------------------------------------- */
 
 async function runMonteCarlo({
@@ -306,7 +338,9 @@ async function runMonteCarlo({
     years,
     currentTax,
     retireTax,
-    runs
+    runs,
+    currentRoth,
+    currentTrad
 }) {
     let dailyReturns = [];
 
@@ -314,13 +348,13 @@ async function runMonteCarlo({
         const { tickers, weights } = parsePortfolio(portfolioStr);
         const data = await getMultipleTickers(tickers, "10y", "1d");
 
-        // Build weighted daily returns
         const series = [];
         for (const t of tickers) {
             const prices = data[t] || [];
             if (!prices.length) continue;
             series.push(priceSeriesToDailyReturns(prices));
         }
+
         const len = Math.min(...series.map(s => s.length));
         for (let i = 0; i < len; i++) {
             let r = 0;
@@ -343,8 +377,8 @@ async function runMonteCarlo({
     const tradResults = [];
 
     for (let run = 0; run < runs; run++) {
-        let rothBal = 0;
-        let tradBal = 0;
+        let rothBal = currentRoth;
+        let tradBal = currentTrad;
 
         for (let day = 0; day < totalDays; day++) {
             const r = dailyReturns[Math.floor(Math.random() * dailyReturns.length)];
@@ -352,7 +386,6 @@ async function runMonteCarlo({
             rothBal *= (1 + r);
             tradBal *= (1 + r);
 
-            // Approx monthly contributions
             if (day % 21 === 0) {
                 rothBal += rothContribution / 12;
                 tradBal += contribution / 12;
@@ -388,7 +421,7 @@ async function runMonteCarlo({
 }
 
 /* -------------------------------------------------------
-   Summary Renderer
+   SUMMARY RENDERER
 ------------------------------------------------------- */
 
 function renderSummary(result) {
@@ -402,6 +435,8 @@ function renderSummary(result) {
         difference,
         betterOption,
         breakEvenTaxRate,
+        currentRoth,
+        currentTrad,
         monteCarlo
     } = result;
 
@@ -414,6 +449,11 @@ function renderSummary(result) {
                 <th>Metric</th>
                 <th>Roth</th>
                 <th>Traditional</th>
+            </tr>
+            <tr>
+                <td>Starting Balance</td>
+                <td>$${currentRoth.toLocaleString()}</td>
+                <td>$${currentTrad.toLocaleString()}</td>
             </tr>
             <tr>
                 <td>Final After-Tax Value</td>

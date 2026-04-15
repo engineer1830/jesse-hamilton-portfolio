@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../../styles/shared.css">
     <link rel="stylesheet" href="tool.css">
 
-    <!-- Chart.js CDN -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -26,6 +26,16 @@
             <h2>Inputs</h2>
 
             <div class="input-grid">
+
+                <label>
+                    Current Roth Balance
+                    <input id="currentRoth" type="number" value="0" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Current Traditional Balance
+                    <input id="currentTrad" type="number" value="0" min="0" autocomplete="off">
+                </label>
 
                 <label>
                     Annual Contribution
