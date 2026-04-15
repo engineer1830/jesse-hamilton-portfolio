@@ -956,6 +956,12 @@ function renderProInsights(result) {
 
     html += `</div>`;
     el.innerHTML = html;
+    
+    const slider = document.getElementById("conversionSlider");
+    if (slider && safeConversionMax !== null) {
+        slider.max = safeConversionMax;
+    }
+
 }
 
 /* -------------------------------------------------------
@@ -1061,4 +1067,71 @@ function renderSummary(result) {
     ------------------------------------------------------- */
 
     renderProInsights(result);
+
+    // -------------------------------------------------------
+    // CONVERSION SLIDER LISTENER
+    // -------------------------------------------------------
+    const slider = document.getElementById("conversionSlider");
+    const sliderValue = document.getElementById("conversionSliderValue");
+
+    if (slider) {
+        slider.oninput = () => {
+            const val = parseInt(slider.value);
+            sliderValue.textContent = `$${val.toLocaleString()} per year`;
+            renderConversionSimulation(result, val);
+        };
+    }
+
 }
+
+function renderConversionSimulation(result, annualConversion) {
+    const el = document.getElementById("conversion-simulation");
+    if (!el) return;
+
+    const {
+        currentTrad,
+        retirementTaxDetails,
+        taxContext
+    } = result;
+
+    if (!retirementTaxDetails || !taxContext) {
+        el.innerHTML = `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Conversion Simulation</div>
+                <div>Enable automatic tax estimation to simulate conversions.</div>
+            </div>
+        `;
+        return;
+    }
+
+    const { rmd, estimatedRate } = retirementTaxDetails;
+    const { filingStatus, currentTax, retirementAge } = taxContext;
+
+    const sim = simulateRothConversions({
+        currentTrad,
+        startAge: retirementAge,
+        endAge: 73,
+        annualConversion,
+        growthRate: estimatedRate,
+        filingStatus,
+        baseTaxRate: currentTax
+    });
+
+    const rmdAfter = Finance.round(sim.rmdAt73);
+    const rmdReduction = Finance.round(rmd - sim.rmdAt73);
+
+    el.innerHTML = `
+        <div class="pro-insights-metric">
+            <div class="pro-insights-label">Conversion Simulation</div>
+            <div>
+                Converting $${annualConversion.toLocaleString()} per year until age 73
+                reduces your RMD from 
+                $${rmd.toLocaleString()} 
+                to 
+                $${rmdAfter.toLocaleString()} 
+                (a reduction of $${rmdReduction.toLocaleString()}).
+            </div>
+        </div>
+    `;
+}
+
