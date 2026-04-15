@@ -662,6 +662,7 @@ function computeProInsights(result) {
     let taxTrajectory = null;
     let safeConversionMin = null;
     let safeConversionMax = null;
+    let conversionImpact = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -751,7 +752,6 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
         // -------------------------------------------------------
-        let conversionImpact = null;
 
         if (safeConversionMax !== null && safeConversionMax > 0) {
             const startAge = retirementAge;     // conversions begin at retirement
@@ -956,7 +956,7 @@ function renderProInsights(result) {
 
     html += `</div>`;
     el.innerHTML = html;
-    
+
     const slider = document.getElementById("conversionSlider");
     if (slider && safeConversionMax !== null) {
         slider.max = safeConversionMax;
