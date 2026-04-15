@@ -3,6 +3,90 @@ import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.j
 import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
 import { estimateRetirementTaxRate } from "./retirement.js";
 
+// -------------------------------------------------------
+// TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
+// -------------------------------------------------------
+
+function getBracketThresholds({ filingStatus }) {
+    // 2024 simplified brackets (good enough for modeling)
+    if (filingStatus === "single") {
+        return {
+            stdDeduction: 14600,
+            brackets: [
+                { rate: 0.10, top: 11600 },
+                { rate: 0.12, top: 47150 },
+                { rate: 0.22, top: 100525 },
+                { rate: 0.24, top: 191950 }
+            ]
+        };
+    }
+
+    // Married Filing Jointly
+    return {
+        stdDeduction: 29200,
+        brackets: [
+            { rate: 0.10, top: 23200 },
+            { rate: 0.12, top: 94300 },
+            { rate: 0.22, top: 201050 },
+            { rate: 0.24, top: 383900 }
+        ]
+    };
+}
+
+function getIrmaaThresholds({ filingStatus }) {
+    // MAGI thresholds (simplified)
+    if (filingStatus === "single") {
+        return [103000, 129000, 161000, 193000, 500000];
+    }
+
+    // Married Filing Jointly
+    return [206000, 258000, 322000, 386000, 750000];
+}
+
+/* -------------------------------------------------------
+   ROTH CONVERSION SIMULATION ENGINE (STEP 5)
+------------------------------------------------------- */
+
+function simulateRothConversions({
+    currentTrad,
+    startAge,
+    endAge,
+    annualConversion,
+    growthRate,
+    filingStatus,
+    baseTaxRate
+}) {
+    let age = startAge;
+    let trad = currentTrad;
+    let totalConverted = 0;
+    let totalTaxOnConversions = 0;
+
+    while (age < endAge) {
+        // grow before converting
+        trad *= (1 + growthRate);
+
+        // amount to convert this year
+        const convert = Math.min(annualConversion, trad);
+        trad -= convert;
+        totalConverted += convert;
+
+        // simple tax model for now (can be bracket-aware later)
+        totalTaxOnConversions += convert * baseTaxRate;
+
+        age++;
+    }
+
+    // compute RMD at 73 using IRS divisor 26.5 (approx)
+    const rmdAt73 = trad / 26.5;
+
+    return {
+        tradAfterConversions: trad,
+        totalConverted,
+        totalTaxOnConversions,
+        rmdAt73
+    };
+}
+
 const $ = id => document.getElementById(id);
 
 let growthChart = null;
@@ -174,6 +258,18 @@ $("runBtn").addEventListener("click", async () => {
     /* ---------------------------------------------------
        RESULT OBJECT
     --------------------------------------------------- */
+    const taxContext = retirementTaxDetails ? {
+        currentTax,               // your current marginal rate
+        retireTax,                // auto-tax estimated retirement rate
+        filingStatus,
+        currentAge,
+        retirementAge,
+        rmd: retirementTaxDetails.rmd,
+        taxableIncome: retirementTaxDetails.taxableIncome,
+        grossIncome: retirementTaxDetails.grossIncome
+    } : null;
+
+
     const result = {
         mode,
         assumedGrowthRate: Finance.round(rate * 100, 2) + "%",
@@ -186,7 +282,8 @@ $("runBtn").addEventListener("click", async () => {
         currentTrad,
         years,
         monteCarlo,
-        retirementTaxDetails
+        retirementTaxDetails,
+        taxContext
     };
 
     renderSummary(result);
@@ -539,30 +636,52 @@ function computeProInsights(result) {
     const {
         currentRoth,
         currentTrad,
-        retirementTaxDetails
+        retirementTaxDetails,
+        taxContext
     } = result;
 
     const total = currentRoth + currentTrad || 1;
-
     const rothShare = currentRoth / total;
 
+    // -------------------------------------------------------
+    // TAX DIVERSIFICATION SCORE
+    // -------------------------------------------------------
     const diversificationScore = Math.round(
         100 * (1 - Math.abs(rothShare - 0.5) / 0.5)
     );
 
+    // -------------------------------------------------------
+    // DEFAULTS FOR ADVANCED METRICS
+    // -------------------------------------------------------
     let rmdPressureScore = null;
     let conversionWindow = null;
     let conversionComment = null;
+    let irmaaRiskScore = null;
+    let bracketFillAmount = null;
+    let bracketFillRate = null;
+    let taxTrajectory = null;
 
-    if (retirementTaxDetails) {
+    // -------------------------------------------------------
+    // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
+    // -------------------------------------------------------
+    if (retirementTaxDetails && taxContext) {
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
+        const {
+            filingStatus,
+            taxableIncome,
+            grossIncome,
+            currentTax,
+            retireTax
+        } = taxContext;
 
+        // -------------------------------------------------------
+        // RMD PRESSURE SCORE
+        // -------------------------------------------------------
         const rmdFactor = Math.min(rmd / 100000, 2);
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
         const taxFactor = estimatedRate / 0.22;
 
         const raw = (rmdFactor + tradFactor + taxFactor) / 3;
-
         rmdPressureScore = Math.round(
             Math.max(0, Math.min(100, raw * 60))
         );
@@ -570,21 +689,70 @@ function computeProInsights(result) {
         conversionWindow = "Ages 60–73";
 
         if (rmdPressureScore >= 70) {
-            conversionComment = "High RMD pressure. Consider steady annual Roth conversions to reduce future RMDs and taxable income.";
+            conversionComment =
+                "High RMD pressure. Consider steady annual Roth conversions to reduce future RMDs and taxable income.";
         } else if (rmdPressureScore >= 40) {
-            conversionComment = "Moderate RMD pressure. Targeted Roth conversions in lower-income years can improve flexibility.";
+            conversionComment =
+                "Moderate RMD pressure. Targeted Roth conversions in lower-income years can improve flexibility.";
         } else {
-            conversionComment = "Low RMD pressure. Roth conversions are optional and may be most useful for legacy or flexibility goals.";
+            conversionComment =
+                "Low RMD pressure. Roth conversions are optional and may be most useful for legacy or flexibility goals.";
         }
+
+        // -------------------------------------------------------
+        // BRACKET FILL OPPORTUNITY
+        // -------------------------------------------------------
+        const { stdDeduction, brackets } = getBracketThresholds({ filingStatus });
+
+        const taxable = Math.max(taxableIncome, 0);
+        const currentBracket = brackets.find(b => taxable <= b.top) || brackets[brackets.length - 1];
+        const nextBracketIndex = brackets.indexOf(currentBracket) + 1;
+        const nextBracket = brackets[nextBracketIndex];
+
+        if (nextBracket) {
+            const space = Math.max(nextBracket.top - taxable, 0);
+            bracketFillAmount = Finance.round(space);
+            bracketFillRate = currentBracket.rate;
+        }
+
+        // -------------------------------------------------------
+        // IRMAA RISK SCORE
+        // -------------------------------------------------------
+        const irmaaThresholds = getIrmaaThresholds({ filingStatus });
+        const magi = grossIncome; // rough proxy
+
+        let band = 0;
+        for (let i = 0; i < irmaaThresholds.length; i++) {
+            if (magi > irmaaThresholds[i]) band = i + 1;
+        }
+
+        irmaaRiskScore = Math.min(100, band * 20);
+
+        // -------------------------------------------------------
+        // TAX TRAJECTORY (CURRENT → RETIREMENT)
+        // -------------------------------------------------------
+        taxTrajectory = {
+            currentRate: currentTax,
+            retireRate: retireTax,
+            rmdRate: retireTax // placeholder for future refinement
+        };
     }
 
+    // -------------------------------------------------------
+    // RETURN ALL INSIGHTS
+    // -------------------------------------------------------
     return {
         diversificationScore,
         rmdPressureScore,
         conversionWindow,
-        conversionComment
+        conversionComment,
+        irmaaRiskScore,
+        bracketFillAmount,
+        bracketFillRate,
+        taxTrajectory
     };
 }
+
 
 /* -------------------------------------------------------
    PRO INSIGHTS (RENDERER)
@@ -598,7 +766,11 @@ function renderProInsights(result) {
         diversificationScore,
         rmdPressureScore,
         conversionWindow,
-        conversionComment
+        conversionComment,
+        irmaaRiskScore,
+        bracketFillAmount,
+        bracketFillRate,
+        taxTrajectory
     } = computeProInsights(result);
 
     let html = `
@@ -608,6 +780,7 @@ function renderProInsights(result) {
                 <div class="pro-insights-tag">Advanced</div>
             </div>
 
+            <!-- Diversification Score -->
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Tax Diversification Score</div>
                 <div>${diversificationScore}/100</div>
@@ -617,6 +790,9 @@ function renderProInsights(result) {
             </div>
     `;
 
+    /* -------------------------------------------------------
+       RMD PRESSURE SCORE
+    ------------------------------------------------------- */
     if (rmdPressureScore !== null) {
         html += `
             <div class="pro-insights-metric">
@@ -626,7 +802,56 @@ function renderProInsights(result) {
                     <div class="pro-insights-score-fill" style="width:${rmdPressureScore}%;"></div>
                 </div>
             </div>
+        `;
+    }
 
+    /* -------------------------------------------------------
+       IRMAA RISK SCORE
+    ------------------------------------------------------- */
+    if (irmaaRiskScore !== null) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">IRMAA Risk Score</div>
+                <div>${irmaaRiskScore}/100</div>
+                <div class="pro-insights-score-bar">
+                    <div class="pro-insights-score-fill" style="width:${irmaaRiskScore}%;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    /* -------------------------------------------------------
+       BRACKET FILL OPPORTUNITY
+    ------------------------------------------------------- */
+    if (bracketFillAmount !== null && bracketFillAmount > 0) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Bracket Fill Opportunity</div>
+                <div>You can convert about $${bracketFillAmount.toLocaleString()} at roughly ${(bracketFillRate * 100).toFixed(0)}% before reaching the next bracket.</div>
+            </div>
+        `;
+    }
+
+    /* -------------------------------------------------------
+       TAX TRAJECTORY
+    ------------------------------------------------------- */
+    if (taxTrajectory) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Tax Trajectory</div>
+                <div>
+                    Current: ${(taxTrajectory.currentRate * 100).toFixed(1)}% →
+                    Retirement: ${(taxTrajectory.retireRate * 100).toFixed(1)}%
+                </div>
+            </div>
+        `;
+    }
+
+    /* -------------------------------------------------------
+       ROTH CONVERSION STRATEGY
+    ------------------------------------------------------- */
+    if (rmdPressureScore !== null) {
+        html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Roth Conversion Strategy</div>
                 <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
