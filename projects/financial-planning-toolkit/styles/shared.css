@@ -7,20 +7,32 @@
     box-sizing: border-box;
 }
 
+:root
+{
+    --bg: #fafafa;
+    --text: #222;
+    --muted: #666;
+    --card-bg: #fff;
+    --card-shadow: rgba(0, 0, 0, 0.08);
+}
+
+body.dark
+{
+    --bg: #111;
+    --text: #eee;
+    --muted: #aaa;
+    --card-bg: #1c1c1c;
+    --card-shadow: rgba(0, 0, 0, 0.5);
+}
+
 body
 {
     margin: 0;
     padding: 0;
     font-family: system-ui, sans-serif;
-    background: #fafafa;
-    color: #222;
+    background: var(--bg);
+    color: var(--text);
     line-height: 1.6;
-}
-
-body.dark
-{
-    background: #111;
-    color: #eee;
 }
 
 h1,
@@ -38,7 +50,31 @@ a
 }
 
 /* -------------------------------------------------------
-   LAYOUT
+   LAYOUT UTILITIES
+------------------------------------------------------- */
+
+.container
+{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 3rem;
+}
+
+.flex
+{
+    display: flex;
+    gap: 1rem;
+}
+
+.flex-between
+{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* -------------------------------------------------------
+   HEADER
 ------------------------------------------------------- */
 
 .site-header
@@ -51,23 +87,11 @@ a
 {
     margin-top: 0.5rem;
     font-size: 1.1rem;
-    color: #666;
-}
-
-body.dark .subtitle
-{
-    color: #aaa;
-}
-
-main
-{
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 1rem 1.5rem 3rem;
+    color: var(--muted);
 }
 
 /* -------------------------------------------------------
-   SECTION HEADERS
+   SECTIONS
 ------------------------------------------------------- */
 
 section
@@ -79,12 +103,7 @@ section
 {
     margin-top: -0.5rem;
     margin-bottom: 1.5rem;
-    color: #555;
-}
-
-body.dark .section-desc
-{
-    color: #bbb;
+    color: var(--muted);
 }
 
 /* -------------------------------------------------------
@@ -104,10 +123,10 @@ body.dark .section-desc
 
 .tool-card
 {
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 10px;
     padding: 1.25rem;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 14px var(--card-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
 }
@@ -115,7 +134,7 @@ body.dark .section-desc
 .tool-card:hover
 {
     transform: translateY(-4px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 18px var(--card-shadow);
 }
 
 .tool-card h3
@@ -127,22 +146,11 @@ body.dark .section-desc
 .tool-card p
 {
     margin: 0;
-    color: #555;
-}
-
-body.dark .tool-card
-{
-    background: #1c1c1c;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
-
-body.dark .tool-card p
-{
-    color: #ccc;
+    color: var(--muted);
 }
 
 /* -------------------------------------------------------
-   FUTURE / DISABLED CARDS
+   DISABLED / FUTURE CARDS
 ------------------------------------------------------- */
 
 .tool-card.disabled
@@ -160,6 +168,42 @@ body.dark .tool-card p
 body.dark .tool-grid.future .tool-card
 {
     border-color: #444;
+}
+
+/* -------------------------------------------------------
+   GENERIC CARD UTILITY (Reusable Across Tools)
+------------------------------------------------------- */
+
+.card
+{
+    background: var(--card-bg);
+    padding: 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px var(--card-shadow);
+}
+
+/* -------------------------------------------------------
+   BUTTONS
+------------------------------------------------------- */
+
+.btn
+{
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-primary
+{
+    background: #2b6cb0;
+    color: white;
+}
+
+.btn-primary:hover
+{
+    background: #2c5282;
 }
 
 /* -------------------------------------------------------
