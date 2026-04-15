@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roth vs. Traditional Analyzer</title>
+
+    <link rel="stylesheet" href="../../styles/shared.css">
+    <link rel="stylesheet" href="tool.css">
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <header class="site-header">
+        <h1>Roth vs. Traditional Analyzer</h1>
+        <p class="subtitle">Compare long-term after-tax outcomes</p>
+    </header>
+
+    <main class="container">
+
+        <section>
+            <h2>Inputs</h2>
+
+            <div class="input-grid">
+
+                <label>
+                    Annual Contribution
+                    <input id="contribution" type="number" value="6000" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Years Until Retirement
+                    <input id="years" type="number" value="30" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Current Tax Rate (%)
+                    <input id="currentTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Retirement Tax Rate (%)
+                    <input id="retireTax" type="number" value="15" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Expected Growth Rate (%)
+                    <input id="growth" type="number" value="7" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Optional Ticker (e.g., VTI)
+                    <input id="ticker" type="text" placeholder="VTI" autocomplete="off">
+                    <small class="note">Leave blank to use assumed growth rate</small>
+                </label>
+
+                <label>
+                    Optional Portfolio (e.g., VTI:60,VXUS:20,BND:20)
+                    <input id="portfolio" type="text" placeholder="VTI:60,VXUS:20,BND:20" autocomplete="off">
+                    <small class="note">Overrides single ticker if provided</small>
+                </label>
+
+                <label>
+                    Monte Carlo Simulations
+                    <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
+                    <small class="note">Set > 0 to run Monte Carlo</small>
+                </label>
+
+            </div>
+
+            <button id="runBtn" class="btn btn-primary">Analyze</button>
+        </section>
+
+        <section>
+            <h2>Summary</h2>
+            <div id="loading" class="loading" style="display:none;">Calculating...</div>
+            <div id="summary" class="card"></div>
+        </section>
+
+        <section>
+            <h2>Growth Curve</h2>
+            <canvas id="growthChart"></canvas>
+        </section>
+
+        <section>
+            <h2>Tax Rate Sensitivity</h2>
+            <p class="section-desc">How after-tax Traditional value changes with retirement tax rate.</p>
+            <canvas id="taxChart"></canvas>
+        </section>
+
+        <section>
+            <h2>Raw Output</h2>
+            <pre id="output"></pre>
+        </section>
+
+    </main>
+
+    <script type="module" src="tool.js"></script>
+
+</body>
+
+</html>
