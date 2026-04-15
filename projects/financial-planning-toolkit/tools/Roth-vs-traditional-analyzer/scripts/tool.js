@@ -184,6 +184,7 @@ $("runBtn").addEventListener("click", async () => {
         breakEvenTaxRate: Finance.round(currentTax * 100, 2) + "%",
         currentRoth,
         currentTrad,
+        years,
         monteCarlo,
         retirementTaxDetails
     };
@@ -465,8 +466,6 @@ function generateGuidance(result) {
         currentRoth,
         currentTrad,
         breakEvenTaxRate,
-        betterOption,
-        difference,
         years,
         retirementTaxDetails
     } = result;
@@ -487,7 +486,6 @@ function generateGuidance(result) {
 
     const currentTaxRate = parseFloat(breakEvenTaxRate);
 
-    // 1. Traditional-heavy portfolio
     if (currentTrad > currentRoth * 2) {
         items.push({
             type: "warning",
@@ -495,7 +493,6 @@ function generateGuidance(result) {
         });
     }
 
-    // 2. Retirement tax rate higher than current
     if (estimatedRate * 100 > currentTaxRate) {
         items.push({
             type: "info",
@@ -503,7 +500,6 @@ function generateGuidance(result) {
         });
     }
 
-    // 3. Short time horizon
     if (years < 10) {
         items.push({
             type: "neutral",
@@ -511,7 +507,6 @@ function generateGuidance(result) {
         });
     }
 
-    // 4. Large RMDs
     if (rmd > 100000) {
         items.push({
             type: "warning",
@@ -519,7 +514,6 @@ function generateGuidance(result) {
         });
     }
 
-    // 5. High spending need
     if (otherWithdrawals > 0) {
         items.push({
             type: "neutral",
@@ -527,7 +521,6 @@ function generateGuidance(result) {
         });
     }
 
-    // 6. Early Social Security
     if (ssAtClaimAge < 40000) {
         items.push({
             type: "info",
@@ -538,78 +531,119 @@ function generateGuidance(result) {
     return items;
 }
 
+/* -------------------------------------------------------
+   PRO INSIGHTS (COMPUTATION)
+------------------------------------------------------- */
 
-// function generateGuidance(result) {
-//     const g = [];
+function computeProInsights(result) {
+    const {
+        currentRoth,
+        currentTrad,
+        retirementTaxDetails
+    } = result;
 
-//     const {
-//         currentRoth,
-//         currentTrad,
-//         breakEvenTaxRate,
-//         betterOption,
-//         difference,
-//         years,
-//         retirementTaxDetails
-//     } = result;
+    const total = currentRoth + currentTrad || 1;
 
-//     if (!retirementTaxDetails) return ["No guidance available."];
+    const rothShare = currentRoth / total;
 
-//     const {
-//         rmd,
-//         ssAtClaimAge,
-//         taxableIncome,
-//         estimatedRate,
-//         otherWithdrawals
-//     } = retirementTaxDetails;
+    const diversificationScore = Math.round(
+        100 * (1 - Math.abs(rothShare - 0.5) / 0.5)
+    );
 
-//     const currentTaxRate = parseFloat(breakEvenTaxRate);
+    let rmdPressureScore = null;
+    let conversionWindow = null;
+    let conversionComment = null;
 
-//     // 1. Traditional-heavy portfolio
-//     if (currentTrad > currentRoth * 2) {
-//         g.push("You already have a large Traditional IRA. This means future RMDs will be significant and will drive most of your taxable income in retirement.");
-//     }
+    if (retirementTaxDetails) {
+        const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
 
-//     // 2. Retirement tax rate higher than current
-//     if (estimatedRate * 100 > currentTaxRate) {
-//         g.push("Your retirement tax rate is higher than your current tax rate. Paying taxes now (Roth) can be more efficient than paying more taxes later.");
-//     }
+        const rmdFactor = Math.min(rmd / 100000, 2);
+        const tradFactor = Math.min(tradAt73 / 2000000, 2);
+        const taxFactor = estimatedRate / 0.22;
 
-//     // 3. Short time horizon
-//     if (years < 10) {
-//         g.push("You are close to retirement, so Roth contributions have limited time to grow. Traditional contributions often produce higher after-tax value in short time horizons.");
-//     }
+        const raw = (rmdFactor + tradFactor + taxFactor) / 3;
 
-//     // 4. Large RMDs
-//     if (rmd > 100000) {
-//         g.push("Your Required Minimum Distributions (RMDs) are large enough to push you into higher tax brackets. This reduces the benefit of Traditional contributions.");
-//     }
+        rmdPressureScore = Math.round(
+            Math.max(0, Math.min(100, raw * 60))
+        );
 
-//     // 5. High spending need
-//     if (otherWithdrawals > 0) {
-//         g.push("Your spending needs exceed your RMD, which means you will withdraw additional taxable income each year.");
-//     }
+        conversionWindow = "Ages 60–73";
 
-//     // 6. Early Social Security
-//     if (ssAtClaimAge < 40000) {
-//         g.push("Claiming Social Security early reduces your benefit and increases the percentage that becomes taxable.");
-//     }
+        if (rmdPressureScore >= 70) {
+            conversionComment = "High RMD pressure. Consider steady annual Roth conversions to reduce future RMDs and taxable income.";
+        } else if (rmdPressureScore >= 40) {
+            conversionComment = "Moderate RMD pressure. Targeted Roth conversions in lower-income years can improve flexibility.";
+        } else {
+            conversionComment = "Low RMD pressure. Roth conversions are optional and may be most useful for legacy or flexibility goals.";
+        }
+    }
 
-//     // 7. Clear winner
-//     if (betterOption === "Traditional" && Math.abs(difference) > 50000) {
-//         g.push("Traditional contributions produce significantly higher after-tax value in this scenario.");
-//     }
+    return {
+        diversificationScore,
+        rmdPressureScore,
+        conversionWindow,
+        conversionComment
+    };
+}
 
-//     if (betterOption === "Roth" && Math.abs(difference) > 50000) {
-//         g.push("Roth contributions produce significantly higher after-tax value in this scenario.");
-//     }
+/* -------------------------------------------------------
+   PRO INSIGHTS (RENDERER)
+------------------------------------------------------- */
 
-//     // 8. Close call
-//     if (Math.abs(difference) < 50000) {
-//         g.push("Roth and Traditional produce similar outcomes. This is a good opportunity to diversify your tax exposure.");
-//     }
+function renderProInsights(result) {
+    const el = document.getElementById("pro-insights");
+    if (!el) return;
 
-//     return g;
-// }
+    const {
+        diversificationScore,
+        rmdPressureScore,
+        conversionWindow,
+        conversionComment
+    } = computeProInsights(result);
+
+    let html = `
+        <div class="pro-insights-card">
+            <div class="pro-insights-header">
+                <div class="pro-insights-title">Pro Insights</div>
+                <div class="pro-insights-tag">Advanced</div>
+            </div>
+
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Tax Diversification Score</div>
+                <div>${diversificationScore}/100</div>
+                <div class="pro-insights-score-bar">
+                    <div class="pro-insights-score-fill" style="width:${diversificationScore}%;"></div>
+                </div>
+            </div>
+    `;
+
+    if (rmdPressureScore !== null) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">RMD Pressure Score</div>
+                <div>${rmdPressureScore}/100</div>
+                <div class="pro-insights-score-bar">
+                    <div class="pro-insights-score-fill" style="width:${rmdPressureScore}%;"></div>
+                </div>
+            </div>
+
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Roth Conversion Strategy</div>
+                <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">RMD & Roth Conversion</div>
+                <div>Turn on the automatic retirement tax estimate to unlock RMD pressure and Roth conversion insights.</div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    el.innerHTML = html;
+}
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
@@ -637,68 +671,27 @@ function renderSummary(result) {
     let html = `
         <h3>Comparison</h3>
         <table class="summary-table">
-            <tr>
-                <th>Metric</th>
-                <th>Roth</th>
-                <th>Traditional</th>
-            </tr>
-            <tr>
-                <td>Starting Balance</td>
-                <td>$${currentRoth.toLocaleString()}</td>
-                <td>$${currentTrad.toLocaleString()}</td>
-            </tr>
-            <tr>
-                <td>Final After-Tax Value</td>
-                <td>$${rothFinal.toLocaleString()}</td>
-                <td>$${traditionalFinal.toLocaleString()}</td>
-            </tr>
-            <tr>
-                <td>Better Option</td>
-                <td colspan="2">${betterOption}</td>
-            </tr>
-            <tr>
-                <td>${diffLabel}</td>
-                <td colspan="2">$${Math.abs(difference).toLocaleString()}</td>
-            </tr>
-            <tr>
-                <td>Assumed Growth Rate</td>
-                <td colspan="2">${assumedGrowthRate}</td>
-            </tr>
-            <tr>
-                <td>Break-Even Tax Rate</td>
-                <td colspan="2">${breakEvenTaxRate}</td>
-            </tr>
-            <tr>
-                <td>Mode</td>
-                <td colspan="2">${mode}</td>
-            </tr>
+            <tr><th>Metric</th><th>Roth</th><th>Traditional</th></tr>
+            <tr><td>Starting Balance</td><td>$${currentRoth.toLocaleString()}</td><td>$${currentTrad.toLocaleString()}</td></tr>
+            <tr><td>Final After-Tax Value</td><td>$${rothFinal.toLocaleString()}</td><td>$${traditionalFinal.toLocaleString()}</td></tr>
+            <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
+            <tr><td>${diffLabel}</td><td colspan="2">$${Math.abs(difference).toLocaleString()}</td></tr>
+            <tr><td>Assumed Growth Rate</td><td colspan="2">${assumedGrowthRate}</td></tr>
+            <tr><td>Break-Even Tax Rate</td><td colspan="2">${breakEvenTaxRate}</td></tr>
+            <tr><td>Mode</td><td colspan="2">${mode}</td></tr>
         </table>
     `;
+
     if (retirementTaxDetails) {
         const t = retirementTaxDetails;
         html += `
             <h3>Retirement Tax Estimate</h3>
             <table class="summary-table">
-                <tr>
-                    <td>Estimated RMD at 73</td>
-                    <td>$${t.rmd.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Estimated Social Security (at claim age)</td>
-                    <td>$${t.ssAtClaimAge.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Estimated Taxable Social Security</td>
-                    <td>$${t.taxableSS.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Estimated Taxable Income</td>
-                    <td>$${t.taxableIncome.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Estimated Retirement Tax Rate</td>
-                    <td>${(t.estimatedRate * 100).toFixed(1)}%</td>
-                </tr>
+                <tr><td>Estimated RMD at 73</td><td>$${t.rmd.toLocaleString()}</td></tr>
+                <tr><td>Estimated Social Security (at claim age)</td><td>$${t.ssAtClaimAge.toLocaleString()}</td></tr>
+                <tr><td>Estimated Taxable Social Security</td><td>$${t.taxableSS.toLocaleString()}</td></tr>
+                <tr><td>Estimated Taxable Income</td><td>$${t.taxableIncome.toLocaleString()}</td></tr>
+                <tr><td>Estimated Retirement Tax Rate</td><td>${(t.estimatedRate * 100).toFixed(1)}%</td></tr>
             </table>
         `;
     }
@@ -707,39 +700,22 @@ function renderSummary(result) {
         html += `
             <h3>Monte Carlo Summary (${monteCarlo.runs} runs)</h3>
             <table class="summary-table">
-                <tr>
-                    <th></th>
-                    <th>10th %ile</th>
-                    <th>Median</th>
-                    <th>90th %ile</th>
-                </tr>
-                <tr>
-                    <td>Roth</td>
-                    <td>$${monteCarlo.roth.p10.toLocaleString()}</td>
-                    <td>$${monteCarlo.roth.p50.toLocaleString()}</td>
-                    <td>$${monteCarlo.roth.p90.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Traditional</td>
-                    <td>$${monteCarlo.traditional.p10.toLocaleString()}</td>
-                    <td>$${monteCarlo.traditional.p50.toLocaleString()}</td>
-                    <td>$${monteCarlo.traditional.p90.toLocaleString()}</td>
-                </tr>
-                <tr>
-                    <td>Roth Win Probability</td>
-                    <td colspan="3">${monteCarlo.rothWinProbability}</td>
-                </tr>
+                <tr><th></th><th>10th %ile</th><th>Median</th><th>90th %ile</th></tr>
+                <tr><td>Roth</td><td>$${monteCarlo.roth.p10.toLocaleString()}</td><td>$${monteCarlo.roth.p50.toLocaleString()}</td><td>$${monteCarlo.roth.p90.toLocaleString()}</td></tr>
+                <tr><td>Traditional</td><td>$${monteCarlo.traditional.p10.toLocaleString()}</td><td>$${monteCarlo.traditional.p50.toLocaleString()}</td><td>$${monteCarlo.traditional.p90.toLocaleString()}</td></tr>
+                <tr><td>Roth Win Probability</td><td colspan="3">${monteCarlo.rothWinProbability}</td></tr>
             </table>
         `;
     }
 
-    // ⭐ FIRST: Render the summary
     el.innerHTML = html;
 
-    // Generate guidance items
+    /* -------------------------------------------------------
+       GUIDANCE RENDERING
+    ------------------------------------------------------- */
+
     const guidanceItems = generateGuidance(result);
 
-    // Build guidance HTML
     let guidanceHtml = "";
 
     for (const item of guidanceItems) {
@@ -751,16 +727,12 @@ function renderSummary(result) {
         `;
     }
 
-    // Add recommendation
     guidanceHtml += `
         <div class="guidance-recommendation">
             📈 <strong>${betterOption} contributions are the stronger choice for the remainder of your working years.</strong><br>
             This recommendation is based on your balances, time horizon, and projected retirement tax rate.
         </div>
-    `;
 
-    // Add next steps
-    guidanceHtml += `
         <h4>Next Steps</h4>
         <ul>
             <li>Explore Roth conversions between ages 60–73</li>
@@ -770,17 +742,10 @@ function renderSummary(result) {
     `;
 
     document.getElementById("guidance").innerHTML = guidanceHtml;
-    
 
-    // // ⭐ THEN: Generate guidance
-    // const guidance = generateGuidance(result);
+    /* -------------------------------------------------------
+       PRO INSIGHTS RENDER CALL
+    ------------------------------------------------------- */
 
-    // let guidanceHtml = "<ul>";
-    // for (const line of guidance) {
-    //     guidanceHtml += `<li>${line}</li>`;
-    // }
-    // guidanceHtml += "</ul>";
-
-    // document.getElementById("guidance").innerHTML = guidanceHtml;
+    renderProInsights(result);
 }
-    
