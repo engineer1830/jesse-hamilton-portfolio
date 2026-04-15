@@ -454,6 +454,162 @@ async function runMonteCarlo({
         rothWinProbability: Finance.round(rothWinProb, 1) + "%"
     };
 }
+/* -------------------------------------------------------
+   GENERATE GUIDANCE
+------------------------------------------------------- */
+
+function generateGuidance(result) {
+    const items = [];
+
+    const {
+        currentRoth,
+        currentTrad,
+        breakEvenTaxRate,
+        betterOption,
+        difference,
+        years,
+        retirementTaxDetails
+    } = result;
+
+    if (!retirementTaxDetails) {
+        return [{
+            type: "neutral",
+            text: "No guidance available for this scenario."
+        }];
+    }
+
+    const {
+        rmd,
+        ssAtClaimAge,
+        estimatedRate,
+        otherWithdrawals
+    } = retirementTaxDetails;
+
+    const currentTaxRate = parseFloat(breakEvenTaxRate);
+
+    // 1. Traditional-heavy portfolio
+    if (currentTrad > currentRoth * 2) {
+        items.push({
+            type: "warning",
+            text: "Your Traditional IRA is much larger than your Roth. This means future RMDs will be significant and will drive most of your taxable income in retirement."
+        });
+    }
+
+    // 2. Retirement tax rate higher than current
+    if (estimatedRate * 100 > currentTaxRate) {
+        items.push({
+            type: "info",
+            text: "Your retirement tax rate is higher than your current tax rate. Paying taxes now (Roth) is normally more efficient — but your short time horizon changes the math."
+        });
+    }
+
+    // 3. Short time horizon
+    if (years < 10) {
+        items.push({
+            type: "neutral",
+            text: "You are close to retirement, so Roth contributions have limited time to grow. Traditional contributions often produce higher after-tax value in short horizons."
+        });
+    }
+
+    // 4. Large RMDs
+    if (rmd > 100000) {
+        items.push({
+            type: "warning",
+            text: "Your Required Minimum Distributions (RMDs) will be large enough to push you into higher tax brackets."
+        });
+    }
+
+    // 5. High spending need
+    if (otherWithdrawals > 0) {
+        items.push({
+            type: "neutral",
+            text: "Your spending needs exceed your RMD, which means you will withdraw additional taxable income each year."
+        });
+    }
+
+    // 6. Early Social Security
+    if (ssAtClaimAge < 40000) {
+        items.push({
+            type: "info",
+            text: "Claiming Social Security early reduces your benefit and increases the percentage that becomes taxable."
+        });
+    }
+
+    return items;
+}
+
+
+// function generateGuidance(result) {
+//     const g = [];
+
+//     const {
+//         currentRoth,
+//         currentTrad,
+//         breakEvenTaxRate,
+//         betterOption,
+//         difference,
+//         years,
+//         retirementTaxDetails
+//     } = result;
+
+//     if (!retirementTaxDetails) return ["No guidance available."];
+
+//     const {
+//         rmd,
+//         ssAtClaimAge,
+//         taxableIncome,
+//         estimatedRate,
+//         otherWithdrawals
+//     } = retirementTaxDetails;
+
+//     const currentTaxRate = parseFloat(breakEvenTaxRate);
+
+//     // 1. Traditional-heavy portfolio
+//     if (currentTrad > currentRoth * 2) {
+//         g.push("You already have a large Traditional IRA. This means future RMDs will be significant and will drive most of your taxable income in retirement.");
+//     }
+
+//     // 2. Retirement tax rate higher than current
+//     if (estimatedRate * 100 > currentTaxRate) {
+//         g.push("Your retirement tax rate is higher than your current tax rate. Paying taxes now (Roth) can be more efficient than paying more taxes later.");
+//     }
+
+//     // 3. Short time horizon
+//     if (years < 10) {
+//         g.push("You are close to retirement, so Roth contributions have limited time to grow. Traditional contributions often produce higher after-tax value in short time horizons.");
+//     }
+
+//     // 4. Large RMDs
+//     if (rmd > 100000) {
+//         g.push("Your Required Minimum Distributions (RMDs) are large enough to push you into higher tax brackets. This reduces the benefit of Traditional contributions.");
+//     }
+
+//     // 5. High spending need
+//     if (otherWithdrawals > 0) {
+//         g.push("Your spending needs exceed your RMD, which means you will withdraw additional taxable income each year.");
+//     }
+
+//     // 6. Early Social Security
+//     if (ssAtClaimAge < 40000) {
+//         g.push("Claiming Social Security early reduces your benefit and increases the percentage that becomes taxable.");
+//     }
+
+//     // 7. Clear winner
+//     if (betterOption === "Traditional" && Math.abs(difference) > 50000) {
+//         g.push("Traditional contributions produce significantly higher after-tax value in this scenario.");
+//     }
+
+//     if (betterOption === "Roth" && Math.abs(difference) > 50000) {
+//         g.push("Roth contributions produce significantly higher after-tax value in this scenario.");
+//     }
+
+//     // 8. Close call
+//     if (Math.abs(difference) < 50000) {
+//         g.push("Roth and Traditional produce similar outcomes. This is a good opportunity to diversify your tax exposure.");
+//     }
+
+//     return g;
+// }
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
@@ -518,7 +674,6 @@ function renderSummary(result) {
             </tr>
         </table>
     `;
-
     if (retirementTaxDetails) {
         const t = retirementTaxDetails;
         html += `
@@ -578,5 +733,54 @@ function renderSummary(result) {
         `;
     }
 
+    // ⭐ FIRST: Render the summary
     el.innerHTML = html;
+
+    // Generate guidance items
+    const guidanceItems = generateGuidance(result);
+
+    // Build guidance HTML
+    let guidanceHtml = "";
+
+    for (const item of guidanceItems) {
+        guidanceHtml += `
+            <div class="guidance-item ${item.type}">
+                ${item.type === "warning" ? "⚠️" : item.type === "info" ? "💡" : "⏳"} 
+                ${item.text}
+            </div>
+        `;
+    }
+
+    // Add recommendation
+    guidanceHtml += `
+        <div class="guidance-recommendation">
+            📈 <strong>${betterOption} contributions are the stronger choice for the remainder of your working years.</strong><br>
+            This recommendation is based on your balances, time horizon, and projected retirement tax rate.
+        </div>
+    `;
+
+    // Add next steps
+    guidanceHtml += `
+        <h4>Next Steps</h4>
+        <ul>
+            <li>Explore Roth conversions between ages 60–73</li>
+            <li>Consider delaying Social Security to reduce taxable income</li>
+            <li>Revisit Roth contributions if income drops or tax laws change</li>
+        </ul>
+    `;
+
+    document.getElementById("guidance").innerHTML = guidanceHtml;
+    
+
+    // // ⭐ THEN: Generate guidance
+    // const guidance = generateGuidance(result);
+
+    // let guidanceHtml = "<ul>";
+    // for (const line of guidance) {
+    //     guidanceHtml += `<li>${line}</li>`;
+    // }
+    // guidanceHtml += "</ul>";
+
+    // document.getElementById("guidance").innerHTML = guidanceHtml;
 }
+    
