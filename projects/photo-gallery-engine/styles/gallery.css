@@ -91,11 +91,6 @@ body.dark #breadcrumbs .divider
     display: flex;
 }
 
-#album-search
-{
-    flex: 1;
-}
-
 /* -------------------------------------------------------
    DARK MODE
 ------------------------------------------------------- */
@@ -308,28 +303,56 @@ body.dark #album-description
     color: #ccc;
 }
 
+.album-toolbar
+{
+    max-width: 960px;
+    margin: 0 auto 1.5rem;
+    padding: 0 1rem;
+    display: flex;
+}
+
 #album-search
 {
-    width: 100%;
-    max-width: 360px;
-    padding: 0.6rem 0.75rem;
+    flex: 1;
+    max-width: 420px;
+    padding: 0.65rem 0.85rem;
     font-size: 1rem;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #ccc;
     background: #fff;
     color: #222;
-}
-
-body.dark #album-search
-{
-    background: #1a1a1a;
-    border-color: #444;
-    color: #eee;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
 }
 
 #album-search::placeholder
 {
     color: #888;
+}
+
+#album-search:focus
+{
+    border-color: #4da3ff;
+    box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.25);
+    outline: none;
+}
+
+/* Dark mode */
+body.dark #album-search
+{
+    background: #1a1a1a;
+    border-color: #444;
+    color: #eee;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+body.dark #album-search:focus
+{
+    border-color: #7bbdff;
+    box-shadow: 0 0 0 3px rgba(123, 189, 255, 0.25);
 }
 
 /* -------------------------------------------------------
