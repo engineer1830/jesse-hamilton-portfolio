@@ -84,6 +84,52 @@ body.dark #breadcrumbs .divider
     color: #666;
 }
 
+.album-toolbar
+{
+    max-width: 960px;
+    margin: 0 auto 1.5rem;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+#album-search
+{
+    width: 100%;
+    max-width: 360px;
+    padding: 0.6rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #444);
+    background: var(--bg-elevated, #1a1a1a);
+    color: var(--text-color, #eee);
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+body.light #album-search
+{
+    background: #fff;
+    color: #222;
+    border-color: #ccc;
+}
+
+#album-search::placeholder
+{
+    color: #888;
+}
+
+#album-search:focus
+{
+    border-color: #66aaff;
+    background: var(--bg-elevated-focus, #222);
+}
+
+body.light #album-search:focus
+{
+    background: #fafafa;
+}
+
 /* -------------------------------------------------------
    DARK MODE
 ------------------------------------------------------- */
