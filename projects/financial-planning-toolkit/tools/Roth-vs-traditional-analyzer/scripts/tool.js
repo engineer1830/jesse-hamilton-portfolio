@@ -749,6 +749,37 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
+        // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
+        // -------------------------------------------------------
+        let conversionImpact = null;
+
+        if (safeConversionMax !== null && safeConversionMax > 0) {
+            const startAge = retirementAge;     // conversions begin at retirement
+            const endAge = 73;                  // RMD age
+            const annualConversion = safeConversionMax;
+            const growthRate = estimatedRate;   // same growth used in tax engine
+            const baseTaxRate = currentTax;     // simple model for now
+
+            const sim = simulateRothConversions({
+                currentTrad,
+                startAge,
+                endAge,
+                annualConversion,
+                growthRate,
+                filingStatus,
+                baseTaxRate
+            });
+
+            conversionImpact = {
+                annualConversion,
+                tradAfter: Finance.round(sim.tradAfterConversions),
+                rmdAfter: Finance.round(sim.rmdAt73),
+                rmdBefore: Finance.round(rmd),
+                rmdReduction: Finance.round(rmd - sim.rmdAt73)
+            };
+        }
+
+        // -------------------------------------------------------
         // TAX TRAJECTORY (CURRENT → RETIREMENT)
         // -------------------------------------------------------
         taxTrajectory = {
@@ -771,7 +802,8 @@ function computeProInsights(result) {
         bracketFillRate,
         taxTrajectory,
         safeConversionMin,
-        safeConversionMax
+        safeConversionMax,
+        conversionImpact
     };
 }
 
@@ -794,7 +826,8 @@ function renderProInsights(result) {
         bracketFillRate,
         taxTrajectory,
         safeConversionMin,
-        safeConversionMax 
+        safeConversionMax,
+        conversionImpact  
     } = computeProInsights(result);
 
     let html = `
@@ -868,6 +901,24 @@ function renderProInsights(result) {
      `;
     }
 
+    /* -------------------------------------------------------
+    CONVERSION IMPACT (SIMULATION)
+ ------------------------------------------------------- */
+    if (conversionImpact) {
+        html += `
+         <div class="pro-insights-metric">
+             <div class="pro-insights-label">Conversion Impact (Simulation)</div>
+             <div>
+                 Converting $${conversionImpact.annualConversion.toLocaleString()} per year until age 73
+                 reduces your RMD from 
+                 $${conversionImpact.rmdBefore.toLocaleString()} 
+                 to 
+                 $${conversionImpact.rmdAfter.toLocaleString()} 
+                 (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
+             </div>
+         </div>
+     `;
+    }
 
     /* -------------------------------------------------------
        TAX TRAJECTORY
