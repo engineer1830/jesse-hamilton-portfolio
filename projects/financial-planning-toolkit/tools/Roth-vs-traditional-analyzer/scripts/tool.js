@@ -684,6 +684,8 @@ function computeProInsights(result) {
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
         const taxFactor = estimatedRate / 0.22;
 
+        const retirementAge = taxContext.retirementAge;
+
         const raw = (rmdFactor + tradFactor + taxFactor) / 3;
         rmdPressureScore = Math.round(
             Math.max(0, Math.min(100, raw * 60))
@@ -758,7 +760,10 @@ function computeProInsights(result) {
             const startAge = result.retirementAge;     // conversions begin at retirement
             const endAge = 73;                  // RMD age
             const annualConversion = safeConversionMax;
-            const growthRate = estimatedRate;   // same growth used in tax engine
+            
+            const growthRate =
+                parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+
             const baseTaxRate = currentTax;     // simple model for now
 
             const sim = simulateRothConversions({
@@ -934,23 +939,32 @@ function renderProInsights(result) {
     }
 
     /* -------------------------------------------------------
-    CONVERSION IMPACT (SIMULATION)
+    SAFE CONVERSION IMPACT (STATIC)
  ------------------------------------------------------- */
     if (conversionImpact) {
         html += `
          <div class="pro-insights-metric">
-             <div class="pro-insights-label">Conversion Impact (Simulation)</div>
+             <div class="pro-insights-label">Safe Conversion Impact</div>
+ 
              <div>
-                 Converting $${conversionImpact.annualConversion.toLocaleString()} per year until age 73
+                 Converting your <strong>safe maximum</strong> of 
+                 $${conversionImpact.annualConversion.toLocaleString()} per year until age 73 
                  reduces your RMD from 
                  $${conversionImpact.rmdBefore.toLocaleString()} 
                  to 
                  $${conversionImpact.rmdAfter.toLocaleString()} 
                  (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
              </div>
+ 
+             <div class="pro-insights-note">
+                 This scenario uses your calculated safe conversion limit 
+                 (bracket + IRMAA aware).  
+                 Use the slider above to explore custom conversion amounts.
+             </div>
          </div>
      `;
     }
+ 
 
     /* -------------------------------------------------------
        TAX TRAJECTORY
@@ -1175,6 +1189,3 @@ if (slider) {
     });
 }
  }
- 
-
-
