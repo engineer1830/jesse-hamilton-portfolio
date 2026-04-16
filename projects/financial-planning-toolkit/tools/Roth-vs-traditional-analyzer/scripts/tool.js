@@ -1130,12 +1130,12 @@ if (slider) {
         sliderValue.textContent = `$${amount.toLocaleString()} per year`;
 
         // Unified conversion window
-        const startAge = retirementAge;
+        const startAge = result.taxContext.retirementAge;
         const endAge = 73;
 
         // Run slider simulation
         const sim = simulateRothConversions({
-            currentTrad,
+            currentTrad: result.currentTrad,
             startAge,
             endAge,
             annualConversion: amount,
