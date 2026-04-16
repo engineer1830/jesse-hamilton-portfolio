@@ -663,7 +663,13 @@ function computeProInsights(result) {
     let safeConversionMin = null;
     let safeConversionMax = null;
     let conversionImpact = null;
-    let maxConversion = null;   // <-- must be declared here
+    let maxConversion = null;
+    let currentBracketFill = null;
+    let nextBracketFill = null;
+    let currentBracketRate = null;
+    let nextBracketRate = null;
+    let taxJump = null;
+
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -723,12 +729,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
         // -------------------------------------------------------
-        let currentBracketFill = null;
-        let nextBracketFill = null;
-        let nextBracketRate = null;
-        let currentBracketRate = null;
-        let taxJump = null;
-
+       
         if (currentBracket) {
             currentBracketRate = currentBracket.rate;
 
