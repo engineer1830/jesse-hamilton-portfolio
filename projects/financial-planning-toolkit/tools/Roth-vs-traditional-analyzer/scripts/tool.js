@@ -663,6 +663,7 @@ function computeProInsights(result) {
     let safeConversionMin = null;
     let safeConversionMax = null;
     let conversionImpact = null;
+    let maxConversion = null;   // <-- must be declared here
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -674,7 +675,8 @@ function computeProInsights(result) {
             taxableIncome,
             grossIncome,
             currentTax,
-            retireTax
+            retireTax,
+            retirementAge
         } = taxContext;
 
         // -------------------------------------------------------
@@ -684,15 +686,12 @@ function computeProInsights(result) {
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
         const taxFactor = estimatedRate / 0.22;
 
-        const retirementAge = taxContext.retirementAge;
-
         const raw = (rmdFactor + tradFactor + taxFactor) / 3;
         rmdPressureScore = Math.round(
             Math.max(0, Math.min(100, raw * 60))
         );
 
         conversionWindow = `${retirementAge}–73`;
-        
 
         if (rmdPressureScore >= 70) {
             conversionComment =
@@ -708,7 +707,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // BRACKET FILL OPPORTUNITY
         // -------------------------------------------------------
-        const { stdDeduction, brackets } = getBracketThresholds({ filingStatus });
+        const { brackets } = getBracketThresholds({ filingStatus });
 
         const taxable = Math.max(taxableIncome, 0);
         const currentBracket = brackets.find(b => taxable <= b.top) || brackets[brackets.length - 1];
@@ -725,7 +724,7 @@ function computeProInsights(result) {
         // IRMAA RISK SCORE
         // -------------------------------------------------------
         const irmaaThresholds = getIrmaaThresholds({ filingStatus });
-        const magi = grossIncome; // rough proxy
+        const magi = grossIncome;
 
         let band = 0;
         for (let i = 0; i < irmaaThresholds.length; i++) {
@@ -755,16 +754,15 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
         // -------------------------------------------------------
-
         if (safeConversionMax !== null && safeConversionMax > 0) {
-            const startAge = result.retirementAge;     // conversions begin at retirement
-            const endAge = 73;                  // RMD age
+            const startAge = retirementAge;
+            const endAge = 73;
             const annualConversion = safeConversionMax;
-            
+
             const growthRate =
                 parseFloat(result.assumedGrowthRate) / 100 || 0.07;
 
-            const baseTaxRate = currentTax;     // simple model for now
+            const baseTaxRate = currentTax;
 
             const sim = simulateRothConversions({
                 currentTrad,
@@ -786,12 +784,21 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // TAX TRAJECTORY (CURRENT → RETIREMENT)
+        // MAXIMUM ALLOWABLE CONVERSION (BEFORE CROSSING BRACKET/IRMAA)
+        // -------------------------------------------------------
+        if (bracketFillAmount !== null) {
+            const maxByBracket = bracketFillAmount;
+            const maxByIrmaa = irmaaHeadroom !== null ? irmaaHeadroom : maxByBracket;
+            maxConversion = Math.max(maxByBracket, maxByIrmaa);
+        }
+
+        // -------------------------------------------------------
+        // TAX TRAJECTORY
         // -------------------------------------------------------
         taxTrajectory = {
             currentRate: currentTax,
             retireRate: retireTax,
-            rmdRate: retireTax // placeholder for future refinement
+            rmdRate: retireTax
         };
     }
 
@@ -809,14 +816,12 @@ function computeProInsights(result) {
         taxTrajectory,
         safeConversionMin,
         safeConversionMax,
-        conversionImpact
+        conversionImpact,
+        maxConversion
     };
 }
 
 
-/* -------------------------------------------------------
-   PRO INSIGHTS (RENDERER)
-------------------------------------------------------- */
 
 function renderProInsights(result) {
     const el = document.getElementById("pro-insights");
@@ -833,15 +838,12 @@ function renderProInsights(result) {
         taxTrajectory,
         safeConversionMin,
         safeConversionMax,
-        conversionImpact
+        conversionImpact,
+        maxConversion
     } = computeProInsights(result);
 
     const retirementAge = result.taxContext?.retirementAge;
 
-
-    // -------------------------------------------------------
-    // START HTML
-    // -------------------------------------------------------
     let html = `
     <div class="pro-insights-card">
         <div class="pro-insights-header">
@@ -855,13 +857,12 @@ function renderProInsights(result) {
             <input id="conversionSlider" type="range" min="0" max="100000" step="1000" value="0" />
             <div id="conversionSliderValue">$0 per year</div>
             <div id="conversion-simulation"></div>
-        </div>   <!-- ✅ properly closed -->
+        </div>
 
+        <!-- Assumption Note -->
         <div class="pro-insights-note">
             <em>Assumption:</em> Roth conversions are modeled from your retirement age
-            (age ${retirementAge}) until age 73, the start of Required Minimum 
-            Distributions. This reflects the typical low‑tax window used for Roth 
-            conversion planning.
+            (age ${retirementAge}) until age 73.
         </div>
 
         <!-- Warning Box -->
@@ -871,22 +872,8 @@ function renderProInsights(result) {
             than your current tax rate. Consider limiting conversions to your retirement 
             window or adjusting the annual amount.
         </div>
+    `;
 
-        <!-- Diversification Score -->
-        <div class="pro-insights-metric">
-            <div class="pro-insights-label">Tax Diversification Score</div>
-            <div>${diversificationScore}/100</div>
-            <div class="pro-insights-score-bar">
-                <div class="pro-insights-score-fill" style="width:${diversificationScore}%;"></div>
-            </div>
-        </div>
-`;
-
-
-
-    /* -------------------------------------------------------
-       RMD PRESSURE SCORE
-    ------------------------------------------------------- */
     if (rmdPressureScore !== null) {
         html += `
             <div class="pro-insights-metric">
@@ -899,9 +886,6 @@ function renderProInsights(result) {
         `;
     }
 
-    /* -------------------------------------------------------
-       IRMAA RISK SCORE
-    ------------------------------------------------------- */
     if (irmaaRiskScore !== null) {
         html += `
             <div class="pro-insights-metric">
@@ -914,9 +898,6 @@ function renderProInsights(result) {
         `;
     }
 
-    /* -------------------------------------------------------
-       BRACKET FILL OPPORTUNITY
-    ------------------------------------------------------- */
     if (bracketFillAmount !== null && bracketFillAmount > 0) {
         html += `
             <div class="pro-insights-metric">
@@ -926,49 +907,39 @@ function renderProInsights(result) {
         `;
     }
 
-    /* -------------------------------------------------------
-    SAFE CONVERSION RANGE
- ------------------------------------------------------- */
     if (safeConversionMax !== null && safeConversionMax > 0) {
         html += `
-         <div class="pro-insights-metric">
-             <div class="pro-insights-label">Safe Conversion Range</div>
-             <div>You can likely convert up to $${safeConversionMax.toLocaleString()} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
-         </div>
-     `;
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Safe Conversion Range</div>
+                <div>You can likely convert up to $${safeConversionMax.toLocaleString()} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
+            </div>
+        `;
     }
 
-    /* -------------------------------------------------------
-    SAFE CONVERSION IMPACT (STATIC)
- ------------------------------------------------------- */
     if (conversionImpact) {
         html += `
-         <div class="pro-insights-metric">
-             <div class="pro-insights-label">Safe Conversion Impact</div>
- 
-             <div>
-                 Converting your <strong>safe maximum</strong> of 
-                 $${conversionImpact.annualConversion.toLocaleString()} per year until age 73 
-                 reduces your RMD from 
-                 $${conversionImpact.rmdBefore.toLocaleString()} 
-                 to 
-                 $${conversionImpact.rmdAfter.toLocaleString()} 
-                 (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
-             </div>
- 
-             <div class="pro-insights-note">
-                 This scenario uses your calculated safe conversion limit 
-                 (bracket + IRMAA aware).  
-                 Use the slider above to explore custom conversion amounts.
-             </div>
-         </div>
-     `;
-    }
- 
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Safe Conversion Impact</div>
 
-    /* -------------------------------------------------------
-       TAX TRAJECTORY
-    ------------------------------------------------------- */
+                <div>
+                    Converting your <strong>safe maximum</strong> of 
+                    $${conversionImpact.annualConversion.toLocaleString()} per year until age 73 
+                    reduces your RMD from 
+                    $${conversionImpact.rmdBefore.toLocaleString()} 
+                    to 
+                    $${conversionImpact.rmdAfter.toLocaleString()} 
+                    (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
+                </div>
+
+                <div class="pro-insights-note">
+                    This scenario uses your calculated safe conversion limit 
+                    (bracket + IRMAA aware).  
+                    Use the slider above to explore custom conversion amounts.
+                </div>
+            </div>
+        `;
+    }
+
     if (taxTrajectory) {
         html += `
             <div class="pro-insights-metric">
@@ -981,9 +952,6 @@ function renderProInsights(result) {
         `;
     }
 
-    /* -------------------------------------------------------
-       ROTH CONVERSION STRATEGY
-    ------------------------------------------------------- */
     if (rmdPressureScore !== null) {
         html += `
             <div class="pro-insights-metric">
@@ -991,39 +959,21 @@ function renderProInsights(result) {
                 <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
             </div>
         `;
-    } else {
-        html += `
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">RMD & Roth Conversion</div>
-                <div>Turn on the automatic retirement tax estimate to unlock RMD pressure and Roth conversion insights.</div>
-            </div>
-        `;
     }
 
     html += `</div>`;
     el.innerHTML = html;
 
+    // -------------------------------------------------------
+    // SET SLIDER MAX TO TRUE MAX CONVERSION
+    // -------------------------------------------------------
     const slider = document.getElementById("conversionSlider");
-    if (slider && safeConversionMax !== null) {
-        slider.max = safeConversionMax;
+    if (slider && maxConversion !== null) {
+        slider.max = maxConversion;
     }
-
 }
 
-function renderConversionSimulation(impact) {
-    const el = document.getElementById("conversion-simulation");
-    if (!el) return;
 
-    el.innerHTML = `
-        <div class="conversion-impact">
-            Converting $${impact.annualConversion.toLocaleString()} per year 
-            from age ${impact.startAge} to 73 reduces your RMD from 
-            $${impact.rmdBefore.toLocaleString()} to 
-            $${impact.rmdAfter.toLocaleString()} 
-            (a reduction of $${impact.rmdReduction.toLocaleString()}).
-        </div>
-    `;
-}
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
@@ -1128,64 +1078,57 @@ function renderSummary(result) {
    PRO INSIGHTS RENDER CALL
 ------------------------------------------------------- */
 
-renderProInsights(result);
+    renderProInsights(result);
 
-// -------------------------------------------------------
-// CONVERSION SLIDER LISTENER
-// -------------------------------------------------------
-const slider = document.getElementById("conversionSlider");
-const sliderValue = document.getElementById("conversionSliderValue");
+    // -------------------------------------------------------
+    // CUSTOM CONVERSION SLIDER LISTENER
+    // -------------------------------------------------------
+    const slider = document.getElementById("conversionSlider");
+    const sliderValue = document.getElementById("conversionSliderValue");
+    const warningBox = document.getElementById("conversion-warning");
 
-if (slider) {
-    slider.addEventListener("input", () => {
-        const amount = Number(slider.value);
+    if (slider) {
+        slider.addEventListener("input", () => {
+            const annualConversion = parseInt(slider.value) || 0;
 
-        // Update label
-        sliderValue.textContent = `$${amount.toLocaleString()} per year`;
+            // Update label
+            sliderValue.textContent = `$${annualConversion.toLocaleString()} per year`;
 
-        // Unified conversion window
-        const startAge = result.taxContext.retirementAge;
-        const endAge = 73;
+            // Pull needed values from result
+            const { currentTrad } = result;
+            const { filingStatus, currentTax, retirementAge, rmd } = result.taxContext;
 
-        const growthRate =
-            parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+            // Growth rate (corrected)
+            const growthRate =
+                parseFloat(result.assumedGrowthRate) / 100 || 0.07;
 
+            // Run simulation
+            const sim = simulateRothConversions({
+                currentTrad,
+                startAge: retirementAge,
+                endAge: 73,
+                annualConversion,
+                growthRate,
+                filingStatus,
+                baseTaxRate: currentTax
+            });
 
-        // Run slider simulation
-        const sim = simulateRothConversions({
-            currentTrad: result.currentTrad,
-            startAge,
-            endAge,
-            annualConversion: amount,
-            growthRate,
-            filingStatus: result.taxContext.filingStatus,
-            baseTaxRate: result.taxContext.currentTax
+            // Render simulation impact
+            renderConversionSimulation({
+                annualConversion,
+                startAge: retirementAge,
+                rmdBefore: rmd,
+                rmdAfter: Finance.round(sim.rmdAt73),
+                rmdReduction: Finance.round(rmd - sim.rmdAt73)
+            });
+
+            // Warning logic
+            if (currentTax < result.taxContext.retireTax && annualConversion > 0) {
+                warningBox.style.display = "block";
+            } else {
+                warningBox.style.display = "none";
+            }
         });
-
-        const conversionImpactSlider = {
-            annualConversion: amount,
-            startAge,
-            rmdBefore: Finance.round(result.retirementTaxDetails.rmd),
-            rmdAfter: Finance.round(sim.rmdAt73),
-            rmdReduction: Finance.round(result.retirementTaxDetails.rmd - sim.rmdAt73)
-        };
-
-        // Render slider simulation block
-        renderConversionSimulation(conversionImpactSlider);
-
-        // Warning logic
-        const warningEl = document.getElementById("conversion-warning");
-
-        if (
-            conversionImpactSlider.rmdReduction < 0 &&
-            conversionImpact &&
-            conversionImpact.rmdReduction > 0 &&
-            result.taxContext.retireTax > result.taxContext.currentTax
-        ) {
-            warningEl.style.display = "block";
-        } else {
-            warningEl.style.display = "none";
-        }
-    });
+    }
 }
- }
+
