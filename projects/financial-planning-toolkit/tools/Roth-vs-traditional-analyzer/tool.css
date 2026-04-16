@@ -214,3 +214,23 @@ body.dark .summary-table th
     border-radius: 999px;
     background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
 }
+
+.warning-box
+{
+    background: #4a2a2a;
+    border-left: 4px solid #ffb347;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 4px;
+    color: #ffd9b3;
+    font-size: 0.9rem;
+}
+
+.pro-insights-note
+{
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 6px;
+    margin-bottom: 12px;
+    font-style: italic;
+}

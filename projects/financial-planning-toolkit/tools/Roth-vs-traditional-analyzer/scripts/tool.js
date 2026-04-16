@@ -689,7 +689,8 @@ function computeProInsights(result) {
             Math.max(0, Math.min(100, raw * 60))
         );
 
-        conversionWindow = "Ages 60–73";
+        conversionWindow = `${result.retirementAge}–73`;
+        
 
         if (rmdPressureScore >= 70) {
             conversionComment =
@@ -754,7 +755,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
 
         if (safeConversionMax !== null && safeConversionMax > 0) {
-            const startAge = retirementAge;     // conversions begin at retirement
+            const startAge = result.retirementAge;     // conversions begin at retirement
             const endAge = 73;                  // RMD age
             const annualConversion = safeConversionMax;
             const growthRate = estimatedRate;   // same growth used in tax engine
@@ -834,29 +835,45 @@ function renderProInsights(result) {
     // START HTML
     // -------------------------------------------------------
     let html = `
-        <div class="pro-insights-card">
-            <div class="pro-insights-header">
-                <div class="pro-insights-title">Pro Insights</div>
-                <div class="pro-insights-tag">Advanced</div>
-            </div>
+    <div class="pro-insights-card">
+        <div class="pro-insights-header">
+            <div class="pro-insights-title">Pro Insights</div>
+            <div class="pro-insights-tag">Advanced</div>
+        </div>
 
-            <!-- Custom Conversion Slider -->
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">Custom Conversion Amount</div>
-                <input id="conversionSlider" type="range" min="0" max="100000" step="1000" value="0" />
-                <div id="conversionSliderValue">$0 per year</div>
-                <div id="conversion-simulation"></div>
-            </div>
+        <!-- Custom Conversion Slider -->
+        <div class="pro-insights-metric">
+            <div class="pro-insights-label">Custom Conversion Amount</div>
+            <input id="conversionSlider" type="range" min="0" max="100000" step="1000" value="0" />
+            <div id="conversionSliderValue">$0 per year</div>
+            <div id="conversion-simulation"></div>
+        </div>   <!-- ✅ properly closed -->
 
-            <!-- Diversification Score -->
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">Tax Diversification Score</div>
-                <div>${diversificationScore}/100</div>
-                <div class="pro-insights-score-bar">
-                    <div class="pro-insights-score-fill" style="width:${diversificationScore}%;"></div>
-                </div>
+        <div class="pro-insights-note">
+            <em>Assumption:</em> Roth conversions are modeled from your retirement age
+            (age ${result.retirementAge}) until age 73, the start of Required Minimum 
+            Distributions. This reflects the typical low‑tax window used for Roth 
+            conversion planning.
+        </div>
+
+        <!-- Warning Box -->
+        <div id="conversion-warning" class="warning-box" style="display:none;">
+            <strong>Warning:</strong> Converting this amount from age ${result.retirementAge} until age 73 may 
+            <em>increase</em> your future RMDs because your retirement tax rate is higher 
+            than your current tax rate. Consider limiting conversions to your retirement 
+            window or adjusting the annual amount.
+        </div>
+
+        <!-- Diversification Score -->
+        <div class="pro-insights-metric">
+            <div class="pro-insights-label">Tax Diversification Score</div>
+            <div>${diversificationScore}/100</div>
+            <div class="pro-insights-score-bar">
+                <div class="pro-insights-score-fill" style="width:${diversificationScore}%;"></div>
             </div>
-    `;
+        </div>
+`;
+
 
 
     /* -------------------------------------------------------
@@ -994,7 +1011,8 @@ function renderSummary(result) {
         currentRoth,
         currentTrad,
         monteCarlo,
-        retirementTaxDetails
+        retirementTaxDetails,
+        conversionImpact
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -1075,26 +1093,67 @@ function renderSummary(result) {
     document.getElementById("guidance").innerHTML = guidanceHtml;
 
     /* -------------------------------------------------------
-       PRO INSIGHTS RENDER CALL
-    ------------------------------------------------------- */
+   PRO INSIGHTS RENDER CALL
+------------------------------------------------------- */
 
-    renderProInsights(result);
+renderProInsights(result);
 
-    // -------------------------------------------------------
-    // CONVERSION SLIDER LISTENER
-    // -------------------------------------------------------
-    const slider = document.getElementById("conversionSlider");
-    const sliderValue = document.getElementById("conversionSliderValue");
+// -------------------------------------------------------
+// CONVERSION SLIDER LISTENER
+// -------------------------------------------------------
+const slider = document.getElementById("conversionSlider");
+const sliderValue = document.getElementById("conversionSliderValue");
 
-    if (slider) {
-        slider.oninput = () => {
-            const val = parseInt(slider.value);
-            sliderValue.textContent = `$${val.toLocaleString()} per year`;
-            renderConversionSimulation(result, val);
+if (slider) {
+    slider.addEventListener("input", () => {
+        const amount = Number(slider.value);
+
+        // Update label
+        sliderValue.textContent = `$${amount.toLocaleString()} per year`;
+
+        // Unified conversion window
+        const startAge = result.retirementAge;
+        const endAge = 73;
+
+        // Run slider simulation
+        const sim = simulateRothConversions({
+            currentTrad,
+            startAge,
+            endAge,
+            annualConversion: amount,
+            growthRate: result.retirementTaxDetails.estimatedRate,
+            filingStatus: result.taxContext.filingStatus,
+            baseTaxRate: result.taxContext.currentTax
+        });
+
+        const conversionImpactSlider = {
+            annualConversion: amount,
+            rmdBefore: Finance.round(result.retirementTaxDetails.rmd),
+            rmdAfter: Finance.round(sim.rmdAt73),
+            rmdReduction: Finance.round(result.retirementTaxDetails.rmd - sim.rmdAt73)
         };
-    }
 
+        // Render slider simulation block
+        renderConversionSimulation(conversionImpactSlider);
+
+        // Warning logic
+        const warningEl = document.getElementById("conversion-warning");
+
+        if (
+            conversionImpactSlider.rmdReduction < 0 &&
+            conversionImpact &&
+            conversionImpact.rmdReduction > 0 &&
+            result.taxContext.retireTax > result.taxContext.currentTax
+        ) {
+            warningEl.style.display = "block";
+        } else {
+            warningEl.style.display = "none";
+        }
+    });
 }
+
+ }
+ 
 
 function renderConversionSimulation(result, annualConversion) {
     const el = document.getElementById("conversion-simulation");
