@@ -936,26 +936,39 @@ function renderProInsights(result) {
     }
 
     if (bracketFillAmount !== null && bracketFillAmount > 0) {
+        const totalRoom = nextBracketFill;
+        const roomInCurrent = currentBracketFill;
+        const roomInNext = nextBracketFill - currentBracketFill;
+
         html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Bracket Fill Opportunity</div>
-                <div>You can convert about $${bracketFillAmount.toLocaleString()} at roughly ${(bracketFillRate * 100).toFixed(0)}% before reaching the next bracket.</div>
+                <div>
+                    <strong>Total space before you spill into the next tax bracket:</strong>
+                    $${totalRoom.toLocaleString()}
+                </div>
+    
+                <div class="pro-insights-note">
+                    The first $${roomInCurrent.toLocaleString()} fills the rest of the 
+                    <strong>${(currentBracketRate * 100).toFixed(0)}% bucket</strong>.<br>
+                    The remaining $${roomInNext.toLocaleString()} fills the 
+                    <strong>${(nextBracketRate * 100).toFixed(0)}% bucket</strong>.
+                </div>
             </div>
-
-            <!-- Bracket Insight Block -->
+    
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Tax Bracket Insights</div>
-
+    
                 <div>
-                    <strong>Room in current bracket (${(currentBracketRate * 100).toFixed(0)}%):</strong>
-                    $${currentBracketFill.toLocaleString()}
+                    <strong>Room left in the ${(currentBracketRate * 100).toFixed(0)}% bracket:</strong>
+                    $${roomInCurrent.toLocaleString()}
                 </div>
-
+    
                 <div>
-                    <strong>Room until next bracket (${(nextBracketRate * 100).toFixed(0)}%):</strong>
-                    $${nextBracketFill.toLocaleString()}
+                    <strong>Additional room in the ${(nextBracketRate * 100).toFixed(0)}% bracket:</strong>
+                    $${roomInNext.toLocaleString()}
                 </div>
-
+    
                 <div class="pro-insights-note">
                     Crossing into the next bracket increases your marginal rate from 
                     ${(currentBracketRate * 100).toFixed(0)}% to 
@@ -963,7 +976,6 @@ function renderProInsights(result) {
                     (a +${(taxJump * 100).toFixed(0)}% jump).
                 </div>
             </div>
-
         `;
     }
 
