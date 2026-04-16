@@ -1133,13 +1133,17 @@ if (slider) {
         const startAge = result.taxContext.retirementAge;
         const endAge = 73;
 
+        const growthRate =
+            parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+
+
         // Run slider simulation
         const sim = simulateRothConversions({
             currentTrad: result.currentTrad,
             startAge,
             endAge,
             annualConversion: amount,
-            growthRate: result.retirementTaxDetails.estimatedRate,
+            growthRate,
             filingStatus: result.taxContext.filingStatus,
             baseTaxRate: result.taxContext.currentTax
         });
