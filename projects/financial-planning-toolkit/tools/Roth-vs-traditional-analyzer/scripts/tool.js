@@ -871,7 +871,12 @@ function renderProInsights(result) {
         safeConversionMin,
         safeConversionMax,
         conversionImpact,
-        maxConversion
+        maxConversion,
+        currentBracketFill,
+        nextBracketFill,
+        currentBracketRate,
+        nextBracketRate,
+        taxJump
     } = computeProInsights(result);
 
     const retirementAge = result.taxContext?.retirementAge;
