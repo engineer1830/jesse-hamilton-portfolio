@@ -721,6 +721,32 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
+        // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
+        // -------------------------------------------------------
+        let currentBracketFill = null;
+        let nextBracketFill = null;
+        let nextBracketRate = null;
+        let currentBracketRate = null;
+        let taxJump = null;
+
+        if (currentBracket) {
+            currentBracketRate = currentBracket.rate;
+
+            // Room left in the CURRENT bracket
+            currentBracketFill = Math.max(currentBracket.top - taxable, 0);
+
+            // Room left until the NEXT bracket top
+            if (nextBracket) {
+                nextBracketFill = Math.max(nextBracket.top - taxable, 0);
+                nextBracketRate = nextBracket.rate;
+
+                // Tax jump (e.g., 22% → 24%)
+                taxJump = nextBracketRate - currentBracketRate;
+            }
+        }
+
+
+        // -------------------------------------------------------
         // IRMAA RISK SCORE
         // -------------------------------------------------------
         const irmaaThresholds = getIrmaaThresholds({ filingStatus });
@@ -817,7 +843,12 @@ function computeProInsights(result) {
         safeConversionMin,
         safeConversionMax,
         conversionImpact,
-        maxConversion
+        maxConversion,
+        currentBracketFill,
+        nextBracketFill,
+        currentBracketRate,
+        nextBracketRate,
+        taxJump
     };
 }
 
@@ -904,6 +935,29 @@ function renderProInsights(result) {
                 <div class="pro-insights-label">Bracket Fill Opportunity</div>
                 <div>You can convert about $${bracketFillAmount.toLocaleString()} at roughly ${(bracketFillRate * 100).toFixed(0)}% before reaching the next bracket.</div>
             </div>
+
+            <!-- Bracket Insight Block -->
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Tax Bracket Insights</div>
+
+                <div>
+                    <strong>Room in current bracket (${(currentBracketRate * 100).toFixed(0)}%):</strong>
+                    $${currentBracketFill.toLocaleString()}
+                </div>
+
+                <div>
+                    <strong>Room until next bracket (${(nextBracketRate * 100).toFixed(0)}%):</strong>
+                    $${nextBracketFill.toLocaleString()}
+                </div>
+
+                <div class="pro-insights-note">
+                    Crossing into the next bracket increases your marginal rate from 
+                    ${(currentBracketRate * 100).toFixed(0)}% to 
+                    ${(nextBracketRate * 100).toFixed(0)}% 
+                    (a +${(taxJump * 100).toFixed(0)}% jump).
+                </div>
+            </div>
+
         `;
     }
 
