@@ -689,7 +689,7 @@ function computeProInsights(result) {
             Math.max(0, Math.min(100, raw * 60))
         );
 
-        conversionWindow = `${result.retirementAge}–73`;
+        conversionWindow = `${retirementAge}–73`;
         
 
         if (rmdPressureScore >= 70) {
@@ -831,7 +831,8 @@ function renderProInsights(result) {
         conversionImpact
     } = computeProInsights(result);
 
-    const retirementAge = result.retirementAge;
+    const retirementAge = result.taxContext?.retirementAge;
+
 
     // -------------------------------------------------------
     // START HTML
@@ -853,14 +854,14 @@ function renderProInsights(result) {
 
         <div class="pro-insights-note">
             <em>Assumption:</em> Roth conversions are modeled from your retirement age
-            (age ${result.retirementAge}) until age 73, the start of Required Minimum 
+            (age ${retirementAge}) until age 73, the start of Required Minimum 
             Distributions. This reflects the typical low‑tax window used for Roth 
             conversion planning.
         </div>
 
         <!-- Warning Box -->
         <div id="conversion-warning" class="warning-box" style="display:none;">
-            <strong>Warning:</strong> Converting this amount from age ${result.retirementAge} until age 73 may 
+            <strong>Warning:</strong> Converting this amount from age ${retirementAge} until age 73 may 
             <em>increase</em> your future RMDs because your retirement tax rate is higher 
             than your current tax rate. Consider limiting conversions to your retirement 
             window or adjusting the annual amount.
@@ -1129,7 +1130,7 @@ if (slider) {
         sliderValue.textContent = `$${amount.toLocaleString()} per year`;
 
         // Unified conversion window
-        const startAge = result.retirementAge;
+        const startAge = retirementAge;
         const endAge = 73;
 
         // Run slider simulation
