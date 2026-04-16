@@ -831,6 +831,8 @@ function renderProInsights(result) {
         conversionImpact
     } = computeProInsights(result);
 
+    const retirementAge = result.retirementAge;
+
     // -------------------------------------------------------
     // START HTML
     // -------------------------------------------------------
@@ -993,6 +995,21 @@ function renderProInsights(result) {
 
 }
 
+function renderConversionSimulation(impact) {
+    const el = document.getElementById("conversion-simulation");
+    if (!el) return;
+
+    el.innerHTML = `
+        <div class="conversion-impact">
+            Converting $${impact.annualConversion.toLocaleString()} per year 
+            from age ${impact.startAge} to 73 reduces your RMD from 
+            $${impact.rmdBefore.toLocaleString()} to 
+            $${impact.rmdAfter.toLocaleString()} 
+            (a reduction of $${impact.rmdReduction.toLocaleString()}).
+        </div>
+    `;
+}
+
 /* -------------------------------------------------------
    SUMMARY RENDERER
 ------------------------------------------------------- */
@@ -1128,6 +1145,7 @@ if (slider) {
 
         const conversionImpactSlider = {
             annualConversion: amount,
+            startAge,
             rmdBefore: Finance.round(result.retirementTaxDetails.rmd),
             rmdAfter: Finance.round(sim.rmdAt73),
             rmdReduction: Finance.round(result.retirementTaxDetails.rmd - sim.rmdAt73)
@@ -1151,58 +1169,7 @@ if (slider) {
         }
     });
 }
-
  }
  
 
-function renderConversionSimulation(result, annualConversion) {
-    const el = document.getElementById("conversion-simulation");
-    if (!el) return;
-
-    const {
-        currentTrad,
-        retirementTaxDetails,
-        taxContext
-    } = result;
-
-    if (!retirementTaxDetails || !taxContext) {
-        el.innerHTML = `
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">Conversion Simulation</div>
-                <div>Enable automatic tax estimation to simulate conversions.</div>
-            </div>
-        `;
-        return;
-    }
-
-    const { rmd, estimatedRate } = retirementTaxDetails;
-    const { filingStatus, currentTax, retirementAge } = taxContext;
-
-    const sim = simulateRothConversions({
-        currentTrad,
-        startAge: retirementAge,
-        endAge: 73,
-        annualConversion,
-        growthRate: estimatedRate,
-        filingStatus,
-        baseTaxRate: currentTax
-    });
-
-    const rmdAfter = Finance.round(sim.rmdAt73);
-    const rmdReduction = Finance.round(rmd - sim.rmdAt73);
-
-    el.innerHTML = `
-        <div class="pro-insights-metric">
-            <div class="pro-insights-label">Conversion Simulation</div>
-            <div>
-                Converting $${annualConversion.toLocaleString()} per year until age 73
-                reduces your RMD from 
-                $${rmd.toLocaleString()} 
-                to 
-                $${rmdAfter.toLocaleString()} 
-                (a reduction of $${rmdReduction.toLocaleString()}).
-            </div>
-        </div>
-    `;
-}
 
