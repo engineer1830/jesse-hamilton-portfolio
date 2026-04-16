@@ -944,7 +944,7 @@ function renderProInsights(result) {
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Bracket Fill Opportunity</div>
                 <div>
-                    <strong>Total space before you spill into the next tax bracket:</strong>
+                    <strong>Total space before you spill beyond the next tax bracket:</strong>
                     $${totalRoom.toLocaleString()}
                 </div>
     
