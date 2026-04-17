@@ -6,6 +6,8 @@ export default async function handler(req, res) {
         interval = "1d"
     } = req.query;
 
+    console.log("YAHOO API CALL:", { ticker, range, interval });
+
     if (!ticker) {
         return res.status(400).json({ error: "Ticker is required" });
     }
