@@ -208,14 +208,16 @@ $("runBtn").addEventListener("click", async () => {
             const data = await getMultipleTickers(tickers, "10y", "1d");
             const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
             if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                rate = weightedCagr;
+                // rate = weightedCagr; updated 
+                expectedReturn = weightedCagr;
                 mode = "real-market-portfolio";
             }
         }
     } else if (ticker) {
         const prices = await getHistoricalPrices(ticker, "10y", "1d");
         if (prices.length) {
-            rate = calculateCAGR(prices);
+            // rate = calculateCAGR(prices); updated
+            expectedReturn = calculateCAGR(prices);
             mode = "real-market";
         }
     }
@@ -233,7 +235,8 @@ $("runBtn").addEventListener("click", async () => {
             currentTrad,
             yearsToRetirement,
             yearsFromRetirementToRMD,
-            growth: rate,
+            // growth: rate, updated
+            growth: expectedReturn,
             ssAnnual: ssAnnualStatement,
             claimAge,
             filingStatus,
@@ -246,9 +249,11 @@ $("runBtn").addEventListener("click", async () => {
     /* ---------------------------------------------------
        GROW CURRENT BALANCES FORWARD
     --------------------------------------------------- */
-    const rothStartingFuture = currentRoth * Math.pow(1 + rate, years);
+    // const rothStartingFuture = currentRoth * Math.pow(1 + rate, years); updated
+    const rothStartingFuture = currentRoth * Math.pow(1 + expectedReturn, years);
 
-    const tradStartingFuturePreTax = currentTrad * Math.pow(1 + rate, years);
+    // const tradStartingFuturePreTax = currentTrad * Math.pow(1 + rate, years); updated
+    const tradStartingFuturePreTax = currentTrad * Math.pow(1 + expectedReturn, years);
     const tradStartingFutureAfterTax = tradStartingFuturePreTax * (1 - retireTax);
 
     /* ---------------------------------------------------
@@ -263,14 +268,16 @@ $("runBtn").addEventListener("click", async () => {
     const rothFuture = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: rothContribution,
-        rate,
+        // rate, updated
+        expectedReturn,
         years
     });
 
     const tradFuturePreTax = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: contribution,
-        rate,
+        // rate, updated
+        expectedReturn,
         years
     });
 
@@ -288,7 +295,8 @@ $("runBtn").addEventListener("click", async () => {
     const yearly = buildYearlyCurves({
         contribution,
         rothContribution,
-        rate,
+        // rate, updated
+        expectedReturn,
         years,
         retireTax,
         currentRoth,
@@ -298,7 +306,8 @@ $("runBtn").addEventListener("click", async () => {
     renderGrowthChart(yearly);
     renderTaxChart({
         contribution,
-        rate,
+        // rate, updated
+        expectedReturn,
         years,
         currentTax,
         rothFinal
@@ -405,7 +414,7 @@ async function computeWeightedCAGR(data, tickers, weights) {
    YEARLY CURVES FOR CHART
 ------------------------------------------------------- */
 
-function buildYearlyCurves({ contribution, rothContribution, rate, years, retireTax, currentRoth, currentTrad }) {
+function buildYearlyCurves({ contribution, rothContribution, expectedReturn, years, retireTax, currentRoth, currentTrad }) {
     const roth = [];
     const trad = [];
 
@@ -413,8 +422,11 @@ function buildYearlyCurves({ contribution, rothContribution, rate, years, retire
     let tradBal = currentTrad;
 
     for (let year = 1; year <= years; year++) {
-        rothBal = rothBal * (1 + rate) + rothContribution;
-        tradBal = tradBal * (1 + rate) + contribution;
+        // rothBal = rothBal * (1 + rate) + rothContribution; updated (and the variable in the function a few lines up)
+        // tradBal = tradBal * (1 + rate) + contribution; updated
+
+        rothBal = rothBal * (1 + expectedReturn) + rothContribution;
+        tradBal = tradBal * (1 + expectedReturn) + contribution;
 
         roth.push({ year, balance: rothBal });
         trad.push({ year, balance: tradBal * (1 - retireTax) });
@@ -473,7 +485,7 @@ function renderGrowthChart({ roth, trad }) {
     });
 }
 
-function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
+function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
 
     const labels = [];
@@ -484,7 +496,8 @@ function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
         let tradBal = 0;
 
         for (let year = 1; year <= years; year++) {
-            tradBal = tradBal * (1 + rate) + contribution;
+            // tradBal = tradBal * (1 + rate) + contribution; and the function call a few lines up
+            tradBal = tradBal * (1 + expectedReturn) + contribution;
         }
 
         const afterTax = tradBal * (1 - retireTax);
