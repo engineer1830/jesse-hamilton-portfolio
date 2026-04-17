@@ -167,10 +167,12 @@ $("runBtn").addEventListener("click", async () => {
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
-    // const ticker = $("ticker").value.trim().toUpperCase();
-    const portfolioStr = $("portfolio").value.trim();
-    const mcRuns = parseInt($("mcRuns").value) || 0;
 
+    // Sanitize portfolio string
+    let portfolioStr = $("portfolio").value;
+    portfolioStr = portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "");
+
+    const mcRuns = parseInt($("mcRuns").value) || 0;
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
 
     const currentAge = $("currentAge") ? (parseInt($("currentAge").value) || 60) : 60;
@@ -182,85 +184,87 @@ $("runBtn").addEventListener("click", async () => {
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
     let mode = "synthetic";
-
-    /* ---------------------------------------------------
-    LIVE RETURN + VOLATILITY (or override)
- --------------------------------------------------- */
-
     let expectedReturn;
     let stockVol;
 
-    // 1. Determine expected return (portfolio only)
-    if (portfolioStr && portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "") {
+    /* ---------------------------------------------------
+       REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
+    --------------------------------------------------- */
 
-        const ticker = $("ticker").value.trim().toUpperCase(); // ⭐ add this
+    if (portfolioStr !== "") {
+        // Portfolio mode
+        const { tickers, weights } = parsePortfolio(portfolioStr);
 
+        if (tickers.length) {
+            try {
+                const data = await getMultipleTickers(tickers, "max", "1d");
+                const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
+                const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+
+                if (!isNaN(weightedCagr) && weightedCagr > 0) {
+                    expectedReturn = weightedCagr;
+                    stockVol = weightedVol;
+                    mode = "real-market-portfolio";
+                }
+            } catch (err) {
+                console.warn("Portfolio real-market fetch failed:", err);
+            }
+        }
+
+    } else {
+        // Single ticker mode
+        const ticker = $("ticker").value.trim().toUpperCase();
+        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+
+        if (ticker !== "") {
+            try {
+                const prices = await getHistoricalPrices(ticker, "max", "1d");
+                if (prices.length) {
+                    expectedReturn = calculateCAGR(prices);
+                    mode = "real-market";
+                }
+            } catch (err) {
+                console.warn("Single-ticker real-market fetch failed:", err);
+            }
+        }
+    }
+
+    /* ---------------------------------------------------
+       LIVE RETURN FALLBACK (ONLY IF REAL-MARKET FAILED)
+    --------------------------------------------------- */
+    if (expectedReturn === undefined) {
         try {
+            const ticker = $("ticker").value.trim().toUpperCase();
             const prices = await fetchHistoricalPrices(ticker || "VTI");
             const stats = computeReturnStats(prices);
             expectedReturn = stats.annualReturn;
         } catch (err) {
-            console.warn("Live return failed, using manual growth rate:", err);
-            expectedReturn = parseFloat($("growth").value) / 100;
+            console.warn("Live return fallback failed:", err);
+            expectedReturn = growth; // manual fallback
         }
     }
 
-    // 2. Determine volatility
+    /* ---------------------------------------------------
+       VOLATILITY (override or live)
+    --------------------------------------------------- */
     const overrideVol = $("overrideVolToggle").checked;
 
     if (overrideVol) {
         stockVol = Number($("customStockVol").value) / 100;
-    } else {
-
-        const ticker = $("ticker").value.trim().toUpperCase(); // ⭐ add this
-
+    } else if (stockVol === undefined) {
         try {
+            const ticker = $("ticker").value.trim().toUpperCase();
             const prices = await fetchHistoricalPrices(ticker || "VTI");
             const stats = computeReturnStats(prices);
             stockVol = stats.annualVol;
         } catch (err) {
-            console.warn("Live volatility failed, using fallback:", err);
+            console.warn("Volatility fetch failed, using fallback:", err);
             stockVol = 0.15;
         }
     }
- 
 
     /* ---------------------------------------------------
-    OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
- --------------------------------------------------- */
-    // if (portfolioStr) {
-    if (portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "") {
-        const { tickers, weights } = parsePortfolio(portfolioStr);
-
-        if (tickers.length) {
-            const data = await getMultipleTickers(tickers, "max", "1d");
-
-            const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
-            const weightedVol = await computeWeightedVolatility(data, tickers, weights);
-
-            if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                expectedReturn = weightedCagr;
-                stockVol = weightedVol;
-                mode = "real-market-portfolio";
-            }
-        }
-
-    } else {
-        // ⭐ Re-read ticker HERE — this is the correct place
-        const ticker = $("ticker").value.trim().toUpperCase();
-        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
-
-        if (ticker && ticker.trim() !== "") {
-            const prices = await getHistoricalPrices(ticker, "max", "1d");
-            if (prices.length) {
-                expectedReturn = calculateCAGR(prices);
-                mode = "real-market";
-            }
-        }
-    }
-
-    /* ---------------------------------------------------
-       AUTO TAX ESTIMATION (IF ENABLED)
+       AUTO TAX ESTIMATION
     --------------------------------------------------- */
     let retirementTaxDetails = null;
 
@@ -272,7 +276,6 @@ $("runBtn").addEventListener("click", async () => {
             currentTrad,
             yearsToRetirement,
             yearsFromRetirementToRMD,
-            // growth: rate, updated
             growth: expectedReturn,
             ssAnnual: ssAnnualStatement,
             claimAge,
@@ -284,28 +287,17 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-       GROW CURRENT BALANCES FORWARD
+       GROWTH CALCULATIONS
     --------------------------------------------------- */
-    // const rothStartingFuture = currentRoth * Math.pow(1 + rate, years); updated
     const rothStartingFuture = currentRoth * Math.pow(1 + expectedReturn, years);
-
-    // const tradStartingFuturePreTax = currentTrad * Math.pow(1 + rate, years); updated
     const tradStartingFuturePreTax = currentTrad * Math.pow(1 + expectedReturn, years);
     const tradStartingFutureAfterTax = tradStartingFuturePreTax * (1 - retireTax);
 
-    /* ---------------------------------------------------
-       100% OF CONTRIBUTIONS ARE TREATED AS ROTH CONTRIBUTIONS
-       WHEN MODELING THE ROTH SCENARIO.
-    --------------------------------------------------- */
     const rothContribution = contribution * (1 - currentTax);
 
-    /* ---------------------------------------------------
-       FUTURE CONTRIBUTIONS
-    --------------------------------------------------- */
     const rothFuture = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: rothContribution,
-        // rate, updated
         expectedReturn,
         years
     });
@@ -313,26 +305,21 @@ $("runBtn").addEventListener("click", async () => {
     const tradFuturePreTax = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: contribution,
-        // rate, updated
         expectedReturn,
         years
     });
 
     const tradFutureAfterTax = tradFuturePreTax * (1 - retireTax);
 
-    /* ---------------------------------------------------
-       FINAL TOTALS
-    --------------------------------------------------- */
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
     /* ---------------------------------------------------
-       YEAR-BY-YEAR CURVES FOR CHART
+       CHARTS
     --------------------------------------------------- */
     const yearly = buildYearlyCurves({
         contribution,
         rothContribution,
-        // rate, updated
         expectedReturn,
         years,
         retireTax,
@@ -343,7 +330,6 @@ $("runBtn").addEventListener("click", async () => {
     renderGrowthChart(yearly);
     renderTaxChart({
         contribution,
-        // rate, updated
         expectedReturn,
         years,
         currentTax,
@@ -351,12 +337,14 @@ $("runBtn").addEventListener("click", async () => {
     });
 
     /* ---------------------------------------------------
-       MONTE CARLO (OPTIONAL)
+       MONTE CARLO
     --------------------------------------------------- */
     let monteCarlo = null;
-    if (mcRuns > 0 && (ticker || portfolioStr)) {
+    const mcTicker = $("ticker").value.trim().toUpperCase();
+
+    if (mcRuns > 0 && (mcTicker || portfolioStr)) {
         monteCarlo = await runMonteCarlo({
-            ticker,
+            ticker: mcTicker,
             portfolioStr,
             contribution,
             rothContribution,
@@ -375,8 +363,8 @@ $("runBtn").addEventListener("click", async () => {
        RESULT OBJECT
     --------------------------------------------------- */
     const taxContext = retirementTaxDetails ? {
-        currentTax,               // your current marginal rate
-        retireTax,                // auto-tax estimated retirement rate
+        currentTax,
+        retireTax,
         filingStatus,
         currentAge,
         retirementAge,
@@ -384,7 +372,6 @@ $("runBtn").addEventListener("click", async () => {
         taxableIncome: retirementTaxDetails.taxableIncome,
         grossIncome: retirementTaxDetails.grossIncome
     } : null;
-
 
     const result = {
         mode,
