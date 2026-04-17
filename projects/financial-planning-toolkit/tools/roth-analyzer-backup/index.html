@@ -18,8 +18,15 @@
         <h1>Roth vs. Traditional Analyzer</h1>
         <p class="subtitle">Compare long-term after-tax outcomes</p>
     </header>
-
+    
+    <div class="guide-btn-fixed">
+        <button onclick="window.open('guide.html', '_blank')" class="guide-btn">
+            Help / Service Guide
+        </button>
+        </div>
+    
     <main class="container">
+    
 
         <section>
             <h2>Inputs</h2>
@@ -68,11 +75,20 @@
                 </label>
 
                 <label>
-                    Optional Portfolio (e.g., VTI:60,VXUS:20,BND:20)
+                    Optional Portfolio (e.g., VTI:0.60,VXUS:0.20,BND:0.20)
                     <input id="portfolio" type="text" placeholder="VTI:60,VXUS:20,BND:20" autocomplete="off">
                     <small class="note">Overrides single ticker if provided</small>
                 </label>
-
+                <label>
+                    <input type="checkbox" id="overrideVolToggle">
+                    Use custom volatility
+                </label>
+                
+                <div id="customVolInputs" style="display:none;">
+                    <label>Stock Volatility (%): <input id="customStockVol" type="number" value="15"></label>
+                    <label>Bond Volatility (%): <input id="customBondVol" type="number" value="5"></label>
+                </div>
+                  
                 <label>
                     Monte Carlo Simulations
                     <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
@@ -144,13 +160,14 @@
             <h2>Guidance</h2>
             <div id="guidance" class="card guidance-card"></div>
         </section>
+        
         <section id="pro-insights"></section>
         
         <section>
             <h2>Growth Curve</h2>
             <canvas id="growthChart"></canvas>
         </section>
-
+        
         <section>
             <h2>Tax Rate Sensitivity</h2>
             <p class="section-desc">How after-tax Traditional value changes with retirement tax rate.</p>

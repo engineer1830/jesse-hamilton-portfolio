@@ -19,6 +19,49 @@ input:focus
     border-radius: 4px;
 }
 
+.guide-btn-fixed
+{
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    /* stays above charts, modals, etc. */
+}
+.guide-btn
+{
+    padding: 8px 14px;
+    /* background: #0ea5e9; */
+    /* background: #38bdf8; softer sky blue */
+    /* background: #0ea5e9; */
+    background: #008080;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.guide-btn:hover
+{
+    /* background: #0284c7; */
+    /* background: #0ea5e9; */
+    /* background: #045D5D; */
+    /* background: #b91c1c; */
+    background: #facc15;
+        /* warm gold */
+    color: #1e293b;
+        /* slate text */
+}
+
+.guide-btn:active
+{
+    transform: scale(0.97);
+}
+
+
 .note
 {
     display: block;
@@ -213,4 +256,24 @@ body.dark .summary-table th
     height: 100%;
     border-radius: 999px;
     background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+}
+
+.warning-box
+{
+    background: #4a2a2a;
+    border-left: 4px solid #ffb347;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 4px;
+    color: #ffd9b3;
+    font-size: 0.9rem;
+}
+
+.pro-insights-note
+{
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 6px;
+    margin-bottom: 12px;
+    font-style: italic;
 }

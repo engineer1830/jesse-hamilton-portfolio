@@ -1,7 +1,144 @@
+function limitToLastNYears(prices, years = 10) {
+    if (!prices || prices.length === 0) return prices;
+
+    const lastDate = new Date(prices[prices.length - 1].date);
+    const cutoff = new Date(lastDate);
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+
+    return prices.filter(p => {
+        const d = new Date(p.date);
+        return d >= cutoff && p.close > 0;
+    });
+}
+  
+
 import { Finance } from "../../../scripts/engine.js";
 import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.js";
 import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
 import { estimateRetirementTaxRate } from "./retirement.js";
+
+// -------------------------------------------------------
+// TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
+// -------------------------------------------------------
+
+function getBracketThresholds({ filingStatus }) {
+    // 2024 simplified brackets (good enough for modeling)
+    if (filingStatus === "single") {
+        return {
+            stdDeduction: 14600,
+            brackets: [
+                { rate: 0.10, top: 11600 },
+                { rate: 0.12, top: 47150 },
+                { rate: 0.22, top: 100525 },
+                { rate: 0.24, top: 191950 }
+            ]
+        };
+    }
+
+    // Married Filing Jointly
+    return {
+        stdDeduction: 29200,
+        brackets: [
+            { rate: 0.10, top: 23200 },
+            { rate: 0.12, top: 94300 },
+            { rate: 0.22, top: 201050 },
+            { rate: 0.24, top: 383900 }
+        ]
+    };
+}
+
+function getIrmaaThresholds({ filingStatus }) {
+    // MAGI thresholds (simplified)
+    if (filingStatus === "single") {
+        return [103000, 129000, 161000, 193000, 500000];
+    }
+
+    // Married Filing Jointly
+    return [206000, 258000, 322000, 386000, 750000];
+}
+
+async function fetchHistoricalPrices(ticker = "VTI") {
+    const url = `/api/yahoo?ticker=${ticker}&range=max&interval=1d`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch price data");
+    return await response.json();
+}
+
+function computeReturnStats(prices) {
+    prices = limitToLastNYears(prices, 10);   // <-- ADD THIS LINE
+
+    if (!prices || prices.length < 2) {
+        return { mean: 0, vol: 0 };
+    }
+    
+    const dailyReturns = [];
+
+    for (let i = 1; i < prices.length; i++) {
+        const prev = prices[i - 1].close;
+        const curr = prices[i].close;
+        dailyReturns.push((curr - prev) / prev);
+    }
+
+    const avgDaily = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
+
+    const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgDaily, 2), 0) /
+        (dailyReturns.length - 1);
+    const dailyVol = Math.sqrt(variance);
+
+    const annualReturn = Math.pow(1 + avgDaily, 252) - 1;
+    const annualVol = dailyVol * Math.sqrt(252);
+
+    return { annualReturn, annualVol };
+}
+
+document.getElementById("overrideVolToggle").addEventListener("change", (e) => {
+    document.getElementById("customVolInputs").style.display =
+        e.target.checked ? "block" : "none";
+});
+
+/* -------------------------------------------------------
+   ROTH CONVERSION SIMULATION ENGINE (STEP 5)
+------------------------------------------------------- */
+
+function simulateRothConversions({
+    currentTrad,
+    startAge,
+    endAge,
+    annualConversion,
+    growthRate,
+    filingStatus,
+    baseTaxRate
+}) {
+    let age = startAge;
+    let trad = currentTrad;
+    let totalConverted = 0;
+    let totalTaxOnConversions = 0;
+
+    while (age < endAge) {
+        // grow before converting
+        trad *= (1 + growthRate);
+
+        // amount to convert this year
+        const convert = Math.min(annualConversion, trad);
+        trad -= convert;
+        totalConverted += convert;
+
+        // simple tax model for now (can be bracket-aware later)
+        totalTaxOnConversions += convert * baseTaxRate;
+
+        age++;
+    }
+
+    // compute RMD at 73 using IRS divisor 26.5 (approx)
+    const rmdAt73 = trad / 26.5;
+
+    return {
+        tradAfterConversions: trad,
+        totalConverted,
+        totalTaxOnConversions,
+        rmdAt73
+    };
+}
 
 const $ = id => document.getElementById(id);
 
@@ -30,10 +167,14 @@ $("runBtn").addEventListener("click", async () => {
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
-    const ticker = $("ticker").value.trim().toUpperCase();
-    const portfolioStr = $("portfolio").value.trim();
-    const mcRuns = parseInt($("mcRuns").value) || 0;
 
+    // Sanitize portfolio string
+    let portfolioStr = $("portfolio").value;
+    portfolioStr = portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "");
+    console.log("SANITIZED PORTFOLIO:", JSON.stringify(portfolioStr));
+
+
+    const mcRuns = parseInt($("mcRuns").value) || 0;
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
 
     const currentAge = $("currentAge") ? (parseInt($("currentAge").value) || 60) : 60;
@@ -44,32 +185,127 @@ $("runBtn").addEventListener("click", async () => {
     const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
-    let rate = growth;
     let mode = "synthetic";
+    let expectedReturn;
+    let stockVol;
 
     /* ---------------------------------------------------
-       OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
+   INPUT GUARDRAILS
+--------------------------------------------------- */
+
+    const ticker = $("ticker").value.trim().toUpperCase();
+
+    // 1. BOTH fields filled → not allowed
+    if (ticker !== "" && portfolioStr !== "") {
+        alert("Please choose either a single ticker OR a portfolio, not both.");
+        return;
+    }
+
+    // 2. PORTFOLIO contains no letters → invalid
+    if (portfolioStr !== "" && !/[A-Za-z]/.test(portfolioStr)) {
+        alert("Portfolio must contain tickers with weights, like VTI:60, BND:40.");
+        return;
+    }
+
+    // 3. PORTFOLIO missing weights (e.g., 'VTI, BND')
+    if (portfolioStr !== "" && portfolioStr.includes(",") && !portfolioStr.includes(":")) {
+        alert("Each portfolio ticker needs a weight, like VTI:60.");
+        return;
+    }
+
+    // 4. PORTFOLIO has exactly one ticker → user probably meant single ticker mode
+    if (portfolioStr !== "") {
+        const { tickers } = parsePortfolio(portfolioStr);
+        if (tickers.length === 1) {
+            alert("It looks like you entered a single ticker in the portfolio box. Use the Ticker field instead.");
+            return;
+        }
+    }
+
+    // 5. INVALID ticker symbol (must be 1–5 letters)
+    if (ticker !== "" && !/^[A-Za-z]{1,5}$/.test(ticker)) {
+        alert("That doesn’t look like a valid ticker symbol.");
+        return;
+    }
+
+    /* ---------------------------------------------------
+       REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
     --------------------------------------------------- */
-    if (portfolioStr) {
+
+    if (portfolioStr !== "") {
+        // Portfolio mode
         const { tickers, weights } = parsePortfolio(portfolioStr);
+
         if (tickers.length) {
-            const data = await getMultipleTickers(tickers, "10y", "1d");
-            const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
-            if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                rate = weightedCagr;
-                mode = "real-market-portfolio";
+            try {
+                const data = await getMultipleTickers(tickers, "max", "1d");
+                const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
+                const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+
+                if (!isNaN(weightedCagr) && weightedCagr > 0) {
+                    expectedReturn = weightedCagr;
+                    stockVol = weightedVol;
+                    mode = "real-market-portfolio";
+                }
+            } catch (err) {
+                console.warn("Portfolio real-market fetch failed:", err);
             }
         }
-    } else if (ticker) {
-        const prices = await getHistoricalPrices(ticker, "10y", "1d");
-        if (prices.length) {
-            rate = calculateCAGR(prices);
-            mode = "real-market";
+
+    } else {
+        // Single ticker mode
+        const ticker = $("ticker").value.trim().toUpperCase();
+        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+
+        if (ticker !== "") {
+            try {
+                const prices = await getHistoricalPrices(ticker, "max", "1d");
+                if (prices.length) {
+                    expectedReturn = calculateCAGR(prices);
+                    mode = "real-market";
+                }
+            } catch (err) {
+                console.warn("Single-ticker real-market fetch failed:", err);
+            }
         }
     }
 
     /* ---------------------------------------------------
-       AUTO TAX ESTIMATION (IF ENABLED)
+       LIVE RETURN FALLBACK (ONLY IF REAL-MARKET FAILED)
+    --------------------------------------------------- */
+    if (expectedReturn === undefined) {
+        try {
+            const ticker = $("ticker").value.trim().toUpperCase();
+            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const stats = computeReturnStats(prices);
+            expectedReturn = stats.annualReturn;
+        } catch (err) {
+            console.warn("Live return fallback failed:", err);
+            expectedReturn = growth; // manual fallback
+        }
+    }
+
+    /* ---------------------------------------------------
+       VOLATILITY (override or live)
+    --------------------------------------------------- */
+    const overrideVol = $("overrideVolToggle").checked;
+
+    if (overrideVol) {
+        stockVol = Number($("customStockVol").value) / 100;
+    } else if (stockVol === undefined) {
+        try {
+            const ticker = $("ticker").value.trim().toUpperCase();
+            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const stats = computeReturnStats(prices);
+            stockVol = stats.annualVol;
+        } catch (err) {
+            console.warn("Volatility fetch failed, using fallback:", err);
+            stockVol = 0.15;
+        }
+    }
+
+    /* ---------------------------------------------------
+       AUTO TAX ESTIMATION
     --------------------------------------------------- */
     let retirementTaxDetails = null;
 
@@ -81,7 +317,7 @@ $("runBtn").addEventListener("click", async () => {
             currentTrad,
             yearsToRetirement,
             yearsFromRetirementToRMD,
-            growth: rate,
+            growth: expectedReturn,
             ssAnnual: ssAnnualStatement,
             claimAge,
             filingStatus,
@@ -92,51 +328,40 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-       GROW CURRENT BALANCES FORWARD
+       GROWTH CALCULATIONS
     --------------------------------------------------- */
-    const rothStartingFuture = currentRoth * Math.pow(1 + rate, years);
-
-    const tradStartingFuturePreTax = currentTrad * Math.pow(1 + rate, years);
+    const rothStartingFuture = currentRoth * Math.pow(1 + expectedReturn, years);
+    const tradStartingFuturePreTax = currentTrad * Math.pow(1 + expectedReturn, years);
     const tradStartingFutureAfterTax = tradStartingFuturePreTax * (1 - retireTax);
 
-    /* ---------------------------------------------------
-       100% OF CONTRIBUTIONS ARE TREATED AS ROTH CONTRIBUTIONS
-       WHEN MODELING THE ROTH SCENARIO.
-    --------------------------------------------------- */
     const rothContribution = contribution * (1 - currentTax);
 
-    /* ---------------------------------------------------
-       FUTURE CONTRIBUTIONS
-    --------------------------------------------------- */
     const rothFuture = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: rothContribution,
-        rate,
+        expectedReturn,
         years
     });
 
     const tradFuturePreTax = Finance.compoundWithContributions({
         initial: 0,
         annualContribution: contribution,
-        rate,
+        expectedReturn,
         years
     });
 
     const tradFutureAfterTax = tradFuturePreTax * (1 - retireTax);
 
-    /* ---------------------------------------------------
-       FINAL TOTALS
-    --------------------------------------------------- */
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
     /* ---------------------------------------------------
-       YEAR-BY-YEAR CURVES FOR CHART
+       CHARTS
     --------------------------------------------------- */
     const yearly = buildYearlyCurves({
         contribution,
         rothContribution,
-        rate,
+        expectedReturn,
         years,
         retireTax,
         currentRoth,
@@ -146,19 +371,21 @@ $("runBtn").addEventListener("click", async () => {
     renderGrowthChart(yearly);
     renderTaxChart({
         contribution,
-        rate,
+        expectedReturn,
         years,
         currentTax,
         rothFinal
     });
 
     /* ---------------------------------------------------
-       MONTE CARLO (OPTIONAL)
+       MONTE CARLO
     --------------------------------------------------- */
     let monteCarlo = null;
-    if (mcRuns > 0 && (ticker || portfolioStr)) {
+    const mcTicker = $("ticker").value.trim().toUpperCase();
+
+    if (mcRuns > 0 && (mcTicker || portfolioStr)) {
         monteCarlo = await runMonteCarlo({
-            ticker,
+            ticker: mcTicker,
             portfolioStr,
             contribution,
             rothContribution,
@@ -167,16 +394,29 @@ $("runBtn").addEventListener("click", async () => {
             retireTax,
             runs: mcRuns,
             currentRoth,
-            currentTrad
+            currentTrad,
+            expectedReturn,
+            stockVolatility: stockVol
         });
     }
 
     /* ---------------------------------------------------
        RESULT OBJECT
     --------------------------------------------------- */
+    const taxContext = retirementTaxDetails ? {
+        currentTax,
+        retireTax,
+        filingStatus,
+        currentAge,
+        retirementAge,
+        rmd: retirementTaxDetails.rmd,
+        taxableIncome: retirementTaxDetails.taxableIncome,
+        grossIncome: retirementTaxDetails.grossIncome
+    } : null;
+
     const result = {
         mode,
-        assumedGrowthRate: Finance.round(rate * 100, 2) + "%",
+        assumedGrowthRate: Finance.round(expectedReturn * 100, 2) + "%",
         rothFinal: Finance.round(rothFinal),
         traditionalFinal: Finance.round(tradFinal),
         difference: Finance.round(rothFinal - tradFinal),
@@ -186,7 +426,10 @@ $("runBtn").addEventListener("click", async () => {
         currentTrad,
         years,
         monteCarlo,
-        retirementTaxDetails
+        retirementTaxDetails,
+        taxContext,
+        expectedReturn,
+        stockVol
     };
 
     renderSummary(result);
@@ -231,12 +474,66 @@ async function computeWeightedCAGR(data, tickers, weights) {
 
     return total;
 }
+async function computeWeightedVolatility(data, tickers, weights) {
+    const dailyReturns = {};
+
+    // 1. Compute daily returns for each ticker
+    for (let t of tickers) {
+        const prices = data[t];
+        const rets = [];
+
+        for (let i = 1; i < prices.length; i++) {
+            const prev = prices[i - 1].close;
+            const curr = prices[i].close;
+            rets.push((curr - prev) / prev);
+        }
+
+        dailyReturns[t] = rets;
+    }
+
+    // 2. Compute annualized volatility for each ticker
+    const vols = {};
+    for (let t of tickers) {
+        const std = Finance.stddev(dailyReturns[t]);
+        vols[t] = std * Math.sqrt(252); // annualize
+    }
+
+    // 3. Compute correlation matrix
+    const corr = {};
+    for (let i = 0; i < tickers.length; i++) {
+        for (let j = i; j < tickers.length; j++) {
+            const a = tickers[i];
+            const b = tickers[j];
+
+            if (i === j) {
+                corr[`${a}-${b}`] = 1;
+            } else {
+                const c = Finance.correlation(dailyReturns[a], dailyReturns[b]);
+                corr[`${a}-${b}`] = c;
+                corr[`${b}-${a}`] = c;
+            }
+        }
+    }
+
+    // 4. Compute portfolio variance
+    let variance = 0;
+
+    for (let i = 0; i < tickers.length; i++) {
+        for (let j = 0; j < tickers.length; j++) {
+            const a = tickers[i];
+            const b = tickers[j];
+            variance += weights[i] * weights[j] * vols[a] * vols[b] * corr[`${a}-${b}`];
+        }
+    }
+
+    return Math.sqrt(variance);
+}
 
 /* -------------------------------------------------------
    YEARLY CURVES FOR CHART
 ------------------------------------------------------- */
 
-function buildYearlyCurves({ contribution, rothContribution, rate, years, retireTax, currentRoth, currentTrad }) {
+function buildYearlyCurves({ contribution, rothContribution, expectedReturn, years, retireTax, currentRoth, currentTrad }) {
     const roth = [];
     const trad = [];
 
@@ -244,8 +541,11 @@ function buildYearlyCurves({ contribution, rothContribution, rate, years, retire
     let tradBal = currentTrad;
 
     for (let year = 1; year <= years; year++) {
-        rothBal = rothBal * (1 + rate) + rothContribution;
-        tradBal = tradBal * (1 + rate) + contribution;
+        // rothBal = rothBal * (1 + rate) + rothContribution; updated (and the variable in the function a few lines up)
+        // tradBal = tradBal * (1 + rate) + contribution; updated
+
+        rothBal = rothBal * (1 + expectedReturn) + rothContribution;
+        tradBal = tradBal * (1 + expectedReturn) + contribution;
 
         roth.push({ year, balance: rothBal });
         trad.push({ year, balance: tradBal * (1 - retireTax) });
@@ -304,7 +604,7 @@ function renderGrowthChart({ roth, trad }) {
     });
 }
 
-function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
+function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
 
     const labels = [];
@@ -315,7 +615,8 @@ function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
         let tradBal = 0;
 
         for (let year = 1; year <= years; year++) {
-            tradBal = tradBal * (1 + rate) + contribution;
+            // tradBal = tradBal * (1 + rate) + contribution; and the function call a few lines up
+            tradBal = tradBal * (1 + expectedReturn) + contribution;
         }
 
         const afterTax = tradBal * (1 - retireTax);
@@ -363,7 +664,7 @@ function renderTaxChart({ contribution, rate, years, currentTax, rothFinal }) {
 }
 
 /* -------------------------------------------------------
-   MONTE CARLO SIMULATION
+   MONTE CARLO SIMULATION (Volatility-Driven)
 ------------------------------------------------------- */
 
 async function runMonteCarlo({
@@ -376,52 +677,44 @@ async function runMonteCarlo({
     retireTax,
     runs,
     currentRoth,
-    currentTrad
+    currentTrad,
+    expectedReturn,
+    stockVolatility
 }) {
-    let dailyReturns = [];
-
-    if (portfolioStr) {
-        const { tickers, weights } = parsePortfolio(portfolioStr);
-        const data = await getMultipleTickers(tickers, "10y", "1d");
-
-        const series = [];
-        for (const t of tickers) {
-            const prices = data[t] || [];
-            if (!prices.length) continue;
-            series.push(priceSeriesToDailyReturns(prices));
-        }
-
-        const len = Math.min(...series.map(s => s.length));
-        for (let i = 0; i < len; i++) {
-            let r = 0;
-            for (let j = 0; j < series.length; j++) {
-                r += series[j][i].return * weights[j];
-            }
-            dailyReturns.push(r);
-        }
-    } else if (ticker) {
-        const prices = await getHistoricalPrices(ticker, "10y", "1d");
-        dailyReturns = priceSeriesToDailyReturns(prices).map(r => r.return);
-    }
-
-    if (!dailyReturns.length) return null;
+    // If we don't have volatility or return, we cannot simulate
+    if (!expectedReturn || !stockVolatility) return null;
 
     const daysPerYear = 252;
     const totalDays = years * daysPerYear;
 
+    // Convert annual parameters → daily parameters
+    const dailyMean = expectedReturn / daysPerYear;
+    const dailyStd = stockVolatility / Math.sqrt(daysPerYear);
+
     const rothResults = [];
     const tradResults = [];
+
+    // Box–Muller normal random generator
+    function randomNormal() {
+        const u1 = Math.random();
+        const u2 = Math.random();
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    }
 
     for (let run = 0; run < runs; run++) {
         let rothBal = currentRoth;
         let tradBal = currentTrad;
 
         for (let day = 0; day < totalDays; day++) {
-            const r = dailyReturns[Math.floor(Math.random() * dailyReturns.length)];
+            // Generate a normally distributed daily return
+            const z = randomNormal();
+            const r = dailyMean + dailyStd * z;
 
+            // Apply growth
             rothBal *= (1 + r);
             tradBal *= (1 + r);
 
+            // Monthly contributions (every ~21 trading days)
             if (day % 21 === 0) {
                 rothBal += rothContribution / 12;
                 tradBal += contribution / 12;
@@ -432,6 +725,7 @@ async function runMonteCarlo({
         tradResults.push(tradBal * (1 - retireTax));
     }
 
+    // Summaries
     const summarize = arr => {
         const sorted = [...arr].sort((a, b) => a - b);
         const pct = p => sorted[Math.floor(p * (sorted.length - 1))];
@@ -455,6 +749,7 @@ async function runMonteCarlo({
         rothWinProbability: Finance.round(rothWinProb, 1) + "%"
     };
 }
+
 /* -------------------------------------------------------
    GENERATE GUIDANCE
 ------------------------------------------------------- */
@@ -539,56 +834,224 @@ function computeProInsights(result) {
     const {
         currentRoth,
         currentTrad,
-        retirementTaxDetails
+        retirementTaxDetails,
+        taxContext
     } = result;
 
     const total = currentRoth + currentTrad || 1;
-
     const rothShare = currentRoth / total;
 
+    // -------------------------------------------------------
+    // TAX DIVERSIFICATION SCORE
+    // -------------------------------------------------------
     const diversificationScore = Math.round(
         100 * (1 - Math.abs(rothShare - 0.5) / 0.5)
     );
 
+    // -------------------------------------------------------
+    // DEFAULTS FOR ADVANCED METRICS
+    // -------------------------------------------------------
     let rmdPressureScore = null;
     let conversionWindow = null;
     let conversionComment = null;
+    let irmaaRiskScore = null;
+    let bracketFillAmount = null;
+    let bracketFillRate = null;
+    let taxTrajectory = null;
+    let safeConversionMin = null;
+    let safeConversionMax = null;
+    let conversionImpact = null;
+    let maxConversion = null;
+    let currentBracketFill = null;
+    let nextBracketFill = null;
+    let currentBracketRate = null;
+    let nextBracketRate = null;
+    let taxJump = null;
 
-    if (retirementTaxDetails) {
+
+    // -------------------------------------------------------
+    // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
+    // -------------------------------------------------------
+    if (retirementTaxDetails && taxContext) {
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
+        const {
+            filingStatus,
+            taxableIncome,
+            grossIncome,
+            currentTax,
+            retireTax,
+            retirementAge
+        } = taxContext;
 
+        // -------------------------------------------------------
+        // RMD PRESSURE SCORE
+        // -------------------------------------------------------
         const rmdFactor = Math.min(rmd / 100000, 2);
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
         const taxFactor = estimatedRate / 0.22;
 
         const raw = (rmdFactor + tradFactor + taxFactor) / 3;
-
         rmdPressureScore = Math.round(
             Math.max(0, Math.min(100, raw * 60))
         );
 
-        conversionWindow = "Ages 60–73";
+        conversionWindow = `${retirementAge}–73`;
 
         if (rmdPressureScore >= 70) {
-            conversionComment = "High RMD pressure. Consider steady annual Roth conversions to reduce future RMDs and taxable income.";
+            conversionComment =
+                "High RMD pressure. Consider steady annual Roth conversions to reduce future RMDs and taxable income.";
         } else if (rmdPressureScore >= 40) {
-            conversionComment = "Moderate RMD pressure. Targeted Roth conversions in lower-income years can improve flexibility.";
+            conversionComment =
+                "Moderate RMD pressure. Targeted Roth conversions in lower-income years can improve flexibility.";
         } else {
-            conversionComment = "Low RMD pressure. Roth conversions are optional and may be most useful for legacy or flexibility goals.";
+            conversionComment =
+                "Low RMD pressure. Roth conversions are optional and may be most useful for legacy or flexibility goals.";
         }
+
+        // -------------------------------------------------------
+        // BRACKET FILL OPPORTUNITY
+        // -------------------------------------------------------
+        const { brackets } = getBracketThresholds({ filingStatus });
+
+        const taxable = Math.max(taxableIncome, 0);
+        const currentBracket = brackets.find(b => taxable <= b.top) || brackets[brackets.length - 1];
+        const nextBracketIndex = brackets.indexOf(currentBracket) + 1;
+        const nextBracket = brackets[nextBracketIndex];
+
+        if (nextBracket) {
+            const space = Math.max(nextBracket.top - taxable, 0);
+            bracketFillAmount = Finance.round(space);
+            bracketFillRate = currentBracket.rate;
+        }
+
+        // -------------------------------------------------------
+        // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
+        // -------------------------------------------------------
+
+        if (currentBracket) {
+            currentBracketRate = currentBracket.rate;
+
+            // Room left in the CURRENT bracket
+            currentBracketFill = Math.max(currentBracket.top - taxable, 0);
+
+            // Room left until the NEXT bracket top
+            if (nextBracket) {
+                nextBracketFill = Math.max(nextBracket.top - taxable, 0);
+                nextBracketRate = nextBracket.rate;
+
+                // Tax jump (e.g., 22% → 24%)
+                taxJump = nextBracketRate - currentBracketRate;
+            }
+        }
+
+
+        // -------------------------------------------------------
+        // IRMAA RISK SCORE
+        // -------------------------------------------------------
+        const irmaaThresholds = getIrmaaThresholds({ filingStatus });
+        const magi = grossIncome;
+
+        let band = 0;
+        for (let i = 0; i < irmaaThresholds.length; i++) {
+            if (magi > irmaaThresholds[i]) band = i + 1;
+        }
+
+        irmaaRiskScore = Math.min(100, band * 20);
+
+        // -------------------------------------------------------
+        // SAFE CONVERSION RANGE (BRACKET + IRMAA AWARE)
+        // -------------------------------------------------------
+        let irmaaHeadroom = null;
+        const nextIrmaa = irmaaThresholds.find(t => magi < t);
+        if (nextIrmaa) {
+            irmaaHeadroom = Math.max(nextIrmaa - magi, 0);
+        }
+
+        if (bracketFillAmount !== null) {
+            const maxByBracket = bracketFillAmount;
+            const maxByIrmaa = irmaaHeadroom !== null ? irmaaHeadroom : maxByBracket;
+            const safeMax = Math.max(0, Math.min(maxByBracket, maxByIrmaa));
+
+            safeConversionMin = 0;
+            safeConversionMax = Finance.round(safeMax);
+        }
+
+        // -------------------------------------------------------
+        // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
+        // -------------------------------------------------------
+        if (safeConversionMax !== null && safeConversionMax > 0) {
+            const startAge = retirementAge;
+            const endAge = 73;
+            const annualConversion = safeConversionMax;
+
+            const growthRate =
+                parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+
+            const baseTaxRate = currentTax;
+
+            const sim = simulateRothConversions({
+                currentTrad,
+                startAge,
+                endAge,
+                annualConversion,
+                growthRate,
+                filingStatus,
+                baseTaxRate
+            });
+
+            conversionImpact = {
+                annualConversion,
+                tradAfter: Finance.round(sim.tradAfterConversions),
+                rmdAfter: Finance.round(sim.rmdAt73),
+                rmdBefore: Finance.round(rmd),
+                rmdReduction: Finance.round(rmd - sim.rmdAt73)
+            };
+        }
+
+        // -------------------------------------------------------
+        // MAXIMUM ALLOWABLE CONVERSION (BEFORE CROSSING BRACKET/IRMAA)
+        // -------------------------------------------------------
+        if (bracketFillAmount !== null) {
+            const maxByBracket = bracketFillAmount;
+            const maxByIrmaa = irmaaHeadroom !== null ? irmaaHeadroom : maxByBracket;
+            maxConversion = Math.max(maxByBracket, maxByIrmaa);
+        }
+
+        // -------------------------------------------------------
+        // TAX TRAJECTORY
+        // -------------------------------------------------------
+        taxTrajectory = {
+            currentRate: currentTax,
+            retireRate: retireTax,
+            rmdRate: retireTax
+        };
     }
 
+    // -------------------------------------------------------
+    // RETURN ALL INSIGHTS
+    // -------------------------------------------------------
     return {
         diversificationScore,
         rmdPressureScore,
         conversionWindow,
-        conversionComment
+        conversionComment,
+        irmaaRiskScore,
+        bracketFillAmount,
+        bracketFillRate,
+        taxTrajectory,
+        safeConversionMin,
+        safeConversionMax,
+        conversionImpact,
+        maxConversion,
+        currentBracketFill,
+        nextBracketFill,
+        currentBracketRate,
+        nextBracketRate,
+        taxJump
     };
 }
 
-/* -------------------------------------------------------
-   PRO INSIGHTS (RENDERER)
-------------------------------------------------------- */
+
 
 function renderProInsights(result) {
     const el = document.getElementById("pro-insights");
@@ -598,23 +1061,52 @@ function renderProInsights(result) {
         diversificationScore,
         rmdPressureScore,
         conversionWindow,
-        conversionComment
+        conversionComment,
+        irmaaRiskScore,
+        bracketFillAmount,
+        bracketFillRate,
+        taxTrajectory,
+        safeConversionMin,
+        safeConversionMax,
+        conversionImpact,
+        maxConversion,
+        currentBracketFill,
+        nextBracketFill,
+        currentBracketRate,
+        nextBracketRate,
+        taxJump
     } = computeProInsights(result);
 
-    let html = `
-        <div class="pro-insights-card">
-            <div class="pro-insights-header">
-                <div class="pro-insights-title">Pro Insights</div>
-                <div class="pro-insights-tag">Advanced</div>
-            </div>
+    const retirementAge = result.taxContext?.retirementAge;
 
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">Tax Diversification Score</div>
-                <div>${diversificationScore}/100</div>
-                <div class="pro-insights-score-bar">
-                    <div class="pro-insights-score-fill" style="width:${diversificationScore}%;"></div>
-                </div>
-            </div>
+    let html = `
+    <div class="pro-insights-card">
+        <div class="pro-insights-header">
+            <div class="pro-insights-title">Pro Insights</div>
+            <div class="pro-insights-tag">Advanced</div>
+        </div>
+
+        <!-- Custom Conversion Slider -->
+        <div class="pro-insights-metric">
+            <div class="pro-insights-label">Custom Conversion Amount</div>
+            <input id="conversionSlider" type="range" min="0" max="100000" step="1000" value="0" />
+            <div id="conversionSliderValue">$0 per year</div>
+            <div id="conversion-simulation"></div>
+        </div>
+
+        <!-- Assumption Note -->
+        <div class="pro-insights-note">
+            <em>Assumption:</em> Roth conversions are modeled from your retirement age
+            (age ${retirementAge}) until age 73.
+        </div>
+
+        <!-- Warning Box -->
+        <div id="conversion-warning" class="warning-box" style="display:none;">
+            <strong>Warning:</strong> Converting this amount from age ${retirementAge} until age 73 may 
+            <em>increase</em> your future RMDs because your retirement tax rate is higher 
+            than your current tax rate. Consider limiting conversions to your retirement 
+            window or adjusting the annual amount.
+        </div>
     `;
 
     if (rmdPressureScore !== null) {
@@ -626,24 +1118,132 @@ function renderProInsights(result) {
                     <div class="pro-insights-score-fill" style="width:${rmdPressureScore}%;"></div>
                 </div>
             </div>
+        `;
+    }
 
+    if (irmaaRiskScore !== null) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">IRMAA Risk Score</div>
+                <div>${irmaaRiskScore}/100</div>
+                <div class="pro-insights-score-bar">
+                    <div class="pro-insights-score-fill" style="width:${irmaaRiskScore}%;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (bracketFillAmount !== null && bracketFillAmount > 0) {
+        const totalRoom = nextBracketFill;
+        const roomInCurrent = currentBracketFill;
+        const roomInNext = nextBracketFill - currentBracketFill;
+
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Bracket Fill Opportunity</div>
+                <div>
+                    <strong>Total space before you spill beyond the next tax bracket:</strong>
+                    $${totalRoom.toLocaleString()}
+                </div>
+    
+                <div class="pro-insights-note">
+                    The first $${roomInCurrent.toLocaleString()} fills the rest of the 
+                    <strong>${(currentBracketRate * 100).toFixed(0)}% bucket</strong>.<br>
+                    The remaining $${roomInNext.toLocaleString()} fills the 
+                    <strong>${(nextBracketRate * 100).toFixed(0)}% bucket</strong>.
+                </div>
+            </div>
+    
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Tax Bracket Insights</div>
+    
+                <div>
+                    <strong>Room left in the ${(currentBracketRate * 100).toFixed(0)}% bracket:</strong>
+                    $${roomInCurrent.toLocaleString()}
+                </div>
+    
+                <div>
+                    <strong>Additional room in the ${(nextBracketRate * 100).toFixed(0)}% bracket:</strong>
+                    $${roomInNext.toLocaleString()}
+                </div>
+    
+                <div class="pro-insights-note">
+                    Crossing into the next bracket increases your marginal rate from 
+                    ${(currentBracketRate * 100).toFixed(0)}% to 
+                    ${(nextBracketRate * 100).toFixed(0)}% 
+                    (a +${(taxJump * 100).toFixed(0)}% jump).
+                </div>
+            </div>
+        `;
+    }
+
+    if (safeConversionMax !== null && safeConversionMax > 0) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Safe Conversion Range</div>
+                <div>You can likely convert up to $${safeConversionMax.toLocaleString()} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
+            </div>
+        `;
+    }
+
+    if (conversionImpact) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Safe Conversion Impact</div>
+
+                <div>
+                    Converting your <strong>safe maximum</strong> of 
+                    $${conversionImpact.annualConversion.toLocaleString()} per year until age 73 
+                    reduces your RMD from 
+                    $${conversionImpact.rmdBefore.toLocaleString()} 
+                    to 
+                    $${conversionImpact.rmdAfter.toLocaleString()} 
+                    (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
+                </div>
+
+                <div class="pro-insights-note">
+                    This scenario uses your calculated safe conversion limit 
+                    (bracket + IRMAA aware).  
+                    Use the slider above to explore custom conversion amounts.
+                </div>
+            </div>
+        `;
+    }
+
+    if (taxTrajectory) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Tax Trajectory</div>
+                <div>
+                    Current: ${(taxTrajectory.currentRate * 100).toFixed(1)}% →
+                    Retirement: ${(taxTrajectory.retireRate * 100).toFixed(1)}%
+                </div>
+            </div>
+        `;
+    }
+
+    if (rmdPressureScore !== null) {
+        html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Roth Conversion Strategy</div>
                 <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
-            </div>
-        `;
-    } else {
-        html += `
-            <div class="pro-insights-metric">
-                <div class="pro-insights-label">RMD & Roth Conversion</div>
-                <div>Turn on the automatic retirement tax estimate to unlock RMD pressure and Roth conversion insights.</div>
             </div>
         `;
     }
 
     html += `</div>`;
     el.innerHTML = html;
+
+    // -------------------------------------------------------
+    // SET SLIDER MAX TO TRUE MAX CONVERSION
+    // -------------------------------------------------------
+    const slider = document.getElementById("conversionSlider");
+    if (slider && maxConversion !== null) {
+        slider.max = maxConversion;
+    }
 }
+
+
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
@@ -663,7 +1263,8 @@ function renderSummary(result) {
         currentRoth,
         currentTrad,
         monteCarlo,
-        retirementTaxDetails
+        retirementTaxDetails,
+        conversionImpact
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -744,8 +1345,59 @@ function renderSummary(result) {
     document.getElementById("guidance").innerHTML = guidanceHtml;
 
     /* -------------------------------------------------------
-       PRO INSIGHTS RENDER CALL
-    ------------------------------------------------------- */
+   PRO INSIGHTS RENDER CALL
+------------------------------------------------------- */
 
     renderProInsights(result);
+
+    // -------------------------------------------------------
+    // CUSTOM CONVERSION SLIDER LISTENER
+    // -------------------------------------------------------
+    const slider = document.getElementById("conversionSlider");
+    const sliderValue = document.getElementById("conversionSliderValue");
+    const warningBox = document.getElementById("conversion-warning");
+
+    if (slider) {
+        slider.addEventListener("input", () => {
+            const annualConversion = parseInt(slider.value) || 0;
+
+            // Update label
+            sliderValue.textContent = `$${annualConversion.toLocaleString()} per year`;
+
+            // Pull needed values from result
+            const { currentTrad } = result;
+            const { filingStatus, currentTax, retirementAge, rmd } = result.taxContext;
+
+            // Growth rate (corrected)
+            const growthRate = result.expectedReturn || 0.07;
+
+            // Run simulation
+            const sim = simulateRothConversions({
+                currentTrad,
+                startAge: retirementAge,
+                endAge: 73,
+                annualConversion,
+                growthRate,
+                filingStatus,
+                baseTaxRate: currentTax
+            });
+
+            // Render simulation impact
+            renderConversionSimulation({
+                annualConversion,
+                startAge: retirementAge,
+                rmdBefore: rmd,
+                rmdAfter: Finance.round(sim.rmdAt73),
+                rmdReduction: Finance.round(rmd - sim.rmdAt73)
+            });
+
+            // Warning logic
+            if (currentTax < result.taxContext.retireTax && annualConversion > 0) {
+                warningBox.style.display = "block";
+            } else {
+                warningBox.style.display = "none";
+            }
+        });
+    }
 }
+
