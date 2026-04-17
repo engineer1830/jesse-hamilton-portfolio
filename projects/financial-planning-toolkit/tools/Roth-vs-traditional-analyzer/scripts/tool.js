@@ -706,12 +706,12 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart({ roth, trad }) {
+function renderGrowthChart(chartData) {
     const ctx = $("growthChart").getContext("2d");
 
-    const labels = roth.map(p => `Year ${p.year}`);
-    const rothData = roth.map(p => p.balance);
-    const tradData = trad.map(p => p.balance);
+    const labels = chartData.map(p => `Age ${p.age}`);
+    const rothData = chartData.map(p => p.roth);
+    const tradData = chartData.map(p => p.trad);
 
     if (growthChart) growthChart.destroy();
 
@@ -751,6 +751,7 @@ function renderGrowthChart({ roth, trad }) {
         }
     });
 }
+
 
 function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
