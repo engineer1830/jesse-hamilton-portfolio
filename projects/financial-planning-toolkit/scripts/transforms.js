@@ -1,3 +1,16 @@
+function limitToLastNYears(prices, years = 10) {
+    if (!prices || prices.length === 0) return prices;
+
+    const lastDate = new Date(prices[prices.length - 1].date);
+    const cutoff = new Date(lastDate);
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+
+    return prices.filter(p => {
+        const d = new Date(p.date);
+        return d >= cutoff && p.close > 0;
+    });
+}
+  
 /* -------------------------------------------------------
    TRANSFORM LAYER — Convert Price Data → Growth Curves
    Works with data.js + engine.js
@@ -46,7 +59,10 @@ export function annualizedReturn(dailyReturns) {
  * Compute CAGR from price series.
  */
 export function calculateCAGR(prices) {
-    if (prices.length < 2) return 0;
+    // if (prices.length < 2) return 0;
+    prices = limitToLastNYears(prices, 10);   // <-- ADD THIS LINE
+
+    if (!prices || prices.length < 2) return 0;
 
     const start = prices[0].close;
     const end = prices[prices.length - 1].close;

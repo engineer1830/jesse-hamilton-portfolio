@@ -1,3 +1,17 @@
+function limitToLastNYears(prices, years = 10) {
+    if (!prices || prices.length === 0) return prices;
+
+    const lastDate = new Date(prices[prices.length - 1].date);
+    const cutoff = new Date(lastDate);
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+
+    return prices.filter(p => {
+        const d = new Date(p.date);
+        return d >= cutoff && p.close > 0;
+    });
+}
+  
+
 import { Finance } from "../../../scripts/engine.js";
 import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.js";
 import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
@@ -51,6 +65,12 @@ async function fetchHistoricalPrices(ticker = "VTI") {
 }
 
 function computeReturnStats(prices) {
+    prices = limitToLastNYears(prices, 10);   // <-- ADD THIS LINE
+
+    if (!prices || prices.length < 2) {
+        return { mean: 0, vol: 0 };
+    }
+    
     const dailyReturns = [];
 
     for (let i = 1; i < prices.length; i++) {
