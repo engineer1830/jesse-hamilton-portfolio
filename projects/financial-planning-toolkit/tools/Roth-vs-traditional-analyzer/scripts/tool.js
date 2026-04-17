@@ -305,51 +305,57 @@ $("runBtn").addEventListener("click", async () => {
 
 
     /* ---------------------------------------------------
-       REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
-    --------------------------------------------------- */
+    REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
+    (Only runs when glidepath is OFF)
+ --------------------------------------------------- */
 
-    if (portfolioStr !== "") {
-        // Portfolio mode
-        const { tickers, weights } = parsePortfolio(portfolioStr);
+    if (!useGlidepath) {
 
-        if (tickers.length) {
-            try {
-                const data = await getMultipleTickers(tickers, "max", "1d");
-                const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
-                const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+        if (portfolioStr !== "") {
+            // Portfolio mode
+            const { tickers, weights } = parsePortfolio(portfolioStr);
 
-                if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                    expectedReturn = weightedCagr;
-                    stockVol = weightedVol;
-                    mode = "real-market-portfolio";
+            if (tickers.length) {
+                try {
+                    const data = await getMultipleTickers(tickers, "max", "1d");
+                    const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
+                    const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+
+                    if (!isNaN(weightedCagr) && weightedCagr > 0) {
+                        expectedReturn = weightedCagr;
+                        stockVol = weightedVol;
+                        mode = "real-market-portfolio";
+                    }
+                } catch (err) {
+                    console.warn("Portfolio real-market fetch failed:", err);
                 }
-            } catch (err) {
-                console.warn("Portfolio real-market fetch failed:", err);
+            }
+
+        } else {
+            // Single ticker mode
+            const ticker = $("ticker").value.trim().toUpperCase();
+            console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+
+            if (ticker !== "") {
+                try {
+                    const prices = await getHistoricalPrices(ticker, "max", "1d");
+                    if (prices.length) {
+                        expectedReturn = calculateCAGR(prices);
+                        mode = "real-market";
+                    }
+                } catch (err) {
+                    console.warn("Single-ticker real-market fetch failed:", err);
+                }
             }
         }
 
-    } else {
-        // Single ticker mode
-        const ticker = $("ticker").value.trim().toUpperCase();
-        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
-
-        if (ticker !== "") {
-            try {
-                const prices = await getHistoricalPrices(ticker, "max", "1d");
-                if (prices.length) {
-                    expectedReturn = calculateCAGR(prices);
-                    mode = "real-market";
-                }
-            } catch (err) {
-                console.warn("Single-ticker real-market fetch failed:", err);
-            }
-        }
-    }
+    } // END: !useGlidepath guard
+ 
 
     /* ---------------------------------------------------
        LIVE RETURN FALLBACK (ONLY IF REAL-MARKET FAILED)
     --------------------------------------------------- */
-    if (expectedReturn === undefined) {
+    if (!useGlidepath && expectedReturn === undefined) {
         try {
             const ticker = $("ticker").value.trim().toUpperCase();
             const prices = await fetchHistoricalPrices(ticker || "VTI");
@@ -368,7 +374,7 @@ $("runBtn").addEventListener("click", async () => {
 
     if (overrideVol) {
         stockVol = Number($("customStockVol").value) / 100;
-    } else if (stockVol === undefined) {
+    } else if (!useGlidepath && stockVol === undefined) {
         try {
             const ticker = $("ticker").value.trim().toUpperCase();
             const prices = await fetchHistoricalPrices(ticker || "VTI");
