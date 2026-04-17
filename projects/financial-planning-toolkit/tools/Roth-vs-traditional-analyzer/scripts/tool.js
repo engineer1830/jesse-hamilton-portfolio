@@ -191,7 +191,7 @@ $("runBtn").addEventListener("click", async () => {
     let stockVol;
 
     // 1. Determine expected return
-    if (portfolioStr || ticker) {
+    if (portfolioStr) {
         try {
             const prices = await fetchHistoricalPrices(ticker || "VTI");
             const stats = computeReturnStats(prices);
