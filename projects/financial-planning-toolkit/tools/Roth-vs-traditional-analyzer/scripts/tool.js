@@ -605,7 +605,7 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
 }
 
 /* -------------------------------------------------------
-   MONTE CARLO SIMULATION
+   MONTE CARLO SIMULATION (Volatility-Driven)
 ------------------------------------------------------- */
 
 async function runMonteCarlo({
@@ -618,52 +618,44 @@ async function runMonteCarlo({
     retireTax,
     runs,
     currentRoth,
-    currentTrad
+    currentTrad,
+    expectedReturn,
+    stockVolatility
 }) {
-    let dailyReturns = [];
-
-    if (portfolioStr) {
-        const { tickers, weights } = parsePortfolio(portfolioStr);
-        const data = await getMultipleTickers(tickers, "10y", "1d");
-
-        const series = [];
-        for (const t of tickers) {
-            const prices = data[t] || [];
-            if (!prices.length) continue;
-            series.push(priceSeriesToDailyReturns(prices));
-        }
-
-        const len = Math.min(...series.map(s => s.length));
-        for (let i = 0; i < len; i++) {
-            let r = 0;
-            for (let j = 0; j < series.length; j++) {
-                r += series[j][i].return * weights[j];
-            }
-            dailyReturns.push(r);
-        }
-    } else if (ticker) {
-        const prices = await getHistoricalPrices(ticker, "10y", "1d");
-        dailyReturns = priceSeriesToDailyReturns(prices).map(r => r.return);
-    }
-
-    if (!dailyReturns.length) return null;
+    // If we don't have volatility or return, we cannot simulate
+    if (!expectedReturn || !stockVolatility) return null;
 
     const daysPerYear = 252;
     const totalDays = years * daysPerYear;
 
+    // Convert annual parameters → daily parameters
+    const dailyMean = expectedReturn / daysPerYear;
+    const dailyStd = stockVolatility / Math.sqrt(daysPerYear);
+
     const rothResults = [];
     const tradResults = [];
+
+    // Box–Muller normal random generator
+    function randomNormal() {
+        const u1 = Math.random();
+        const u2 = Math.random();
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    }
 
     for (let run = 0; run < runs; run++) {
         let rothBal = currentRoth;
         let tradBal = currentTrad;
 
         for (let day = 0; day < totalDays; day++) {
-            const r = dailyReturns[Math.floor(Math.random() * dailyReturns.length)];
+            // Generate a normally distributed daily return
+            const z = randomNormal();
+            const r = dailyMean + dailyStd * z;
 
+            // Apply growth
             rothBal *= (1 + r);
             tradBal *= (1 + r);
 
+            // Monthly contributions (every ~21 trading days)
             if (day % 21 === 0) {
                 rothBal += rothContribution / 12;
                 tradBal += contribution / 12;
@@ -674,6 +666,7 @@ async function runMonteCarlo({
         tradResults.push(tradBal * (1 - retireTax));
     }
 
+    // Summaries
     const summarize = arr => {
         const sorted = [...arr].sort((a, b) => a - b);
         const pct = p => sorted[Math.floor(p * (sorted.length - 1))];
@@ -697,6 +690,7 @@ async function runMonteCarlo({
         rothWinProbability: Finance.round(rothWinProb, 1) + "%"
     };
 }
+
 /* -------------------------------------------------------
    GENERATE GUIDANCE
 ------------------------------------------------------- */
