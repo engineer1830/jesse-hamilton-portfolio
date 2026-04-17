@@ -167,6 +167,8 @@ $("runBtn").addEventListener("click", async () => {
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
+    const lifeExpectancy = 85;
+
 
     // Sanitize portfolio string
     let portfolioStr = $("portfolio").value;
@@ -239,8 +241,8 @@ $("runBtn").addEventListener("click", async () => {
 
 
     /* ---------------------------------------------------
-   LIFECYCLE GLIDEPATH ENGINE (if enabled)
---------------------------------------------------- */
+    LIFECYCLE GLIDEPATH ENGINE (EXTENDED TO LIFE EXPECTANCY)
+ --------------------------------------------------- */
 
     let yearlyExpectedReturns = null;
     let yearlyVols = null;
@@ -248,44 +250,41 @@ $("runBtn").addEventListener("click", async () => {
     if (useGlidepath) {
         mode = "real-market-glidepath";
 
-        // Fetch stock + bond data once
         try {
             const tickers = [glidepathStockTicker, glidepathBondTicker];
             const data = await getMultipleTickers(tickers, "max", "1d");
 
-            // Compute individual asset stats
             const stockPrices = data[glidepathStockTicker] || [];
             const bondPrices = data[glidepathBondTicker] || [];
 
             const stockReturn = stockPrices.length ? calculateCAGR(stockPrices) : growth;
             const bondReturn = bondPrices.length ? calculateCAGR(bondPrices) : growth;
 
-            // Compute individual volatilities
-            const stockVolDaily = stockPrices.length ? Finance.stddev(
-                stockPrices.slice(1).map((p, i) => (p.close - stockPrices[i].close) / stockPrices[i].close)
-            ) : 0.15 / Math.sqrt(252);
+            const stockVolDaily = stockPrices.length
+                ? Finance.stddev(stockPrices.slice(1).map((p, i) =>
+                    (p.close - stockPrices[i].close) / stockPrices[i].close))
+                : 0.15 / Math.sqrt(252);
 
-            const bondVolDaily = bondPrices.length ? Finance.stddev(
-                bondPrices.slice(1).map((p, i) => (p.close - bondPrices[i].close) / bondPrices[i].close)
-            ) : 0.07 / Math.sqrt(252);
+            const bondVolDaily = bondPrices.length
+                ? Finance.stddev(bondPrices.slice(1).map((p, i) =>
+                    (p.close - bondPrices[i].close) / bondPrices[i].close))
+                : 0.07 / Math.sqrt(252);
 
             const stockVolAnnual = stockVolDaily * Math.sqrt(252);
             const bondVolAnnual = bondVolDaily * Math.sqrt(252);
 
-            // Build year-by-year arrays
+            // EXTENDED RANGE
+            const totalYears = lifeExpectancy - currentAge;
+
             yearlyExpectedReturns = [];
             yearlyVols = [];
 
-            for (let i = 0; i < years; i++) {
+            for (let i = 0; i < totalYears; i++) {
                 const age = currentAge + i;
                 const { stockWeight, bondWeight } = getGlidepathAllocation(age, retirementAge);
 
-                // Blended expected return
-                const mu =
-                    stockWeight * stockReturn +
-                    bondWeight * bondReturn;
+                const mu = stockWeight * stockReturn + bondWeight * bondReturn;
 
-                // Blended volatility (no correlation term for now)
                 const sigma = Math.sqrt(
                     Math.pow(stockVolAnnual * stockWeight, 2) +
                     Math.pow(bondVolAnnual * bondWeight, 2)
@@ -295,13 +294,11 @@ $("runBtn").addEventListener("click", async () => {
                 yearlyVols.push(sigma);
             }
 
-            // For deterministic growth charts, use the FIRST YEAR return
             expectedReturn = yearlyExpectedReturns[0];
             stockVol = yearlyVols[0];
 
         } catch (err) {
             console.warn("Glidepath fetch failed, falling back:", err);
-            // Fallback to manual growth
             expectedReturn = growth;
             stockVol = 0.15;
             mode = "synthetic";
@@ -309,7 +306,7 @@ $("runBtn").addEventListener("click", async () => {
             yearlyVols = null;
         }
     }
-
+ 
 
     /* ---------------------------------------------------
     REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
@@ -445,26 +442,54 @@ $("runBtn").addEventListener("click", async () => {
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
     /* ---------------------------------------------------
-       CHARTS
-    --------------------------------------------------- */
-    const yearly = buildYearlyCurves({
-        contribution,
-        rothContribution,
-        expectedReturn,
-        years,
-        retireTax,
-        currentRoth,
-        currentTrad
-    });
+    DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
+ --------------------------------------------------- */
 
-    renderGrowthChart(yearly);
-    renderTaxChart({
+    function buildDeterministicChart({
+        currentAge,
+        currentRoth,
+        currentTrad,
         contribution,
         expectedReturn,
-        years,
-        currentTax,
-        rothFinal
-    });
+        yearlyExpectedReturns,
+        yearlyVols,
+        useGlidepath
+    }) {
+        const chartData = [];
+        const totalYears = lifeExpectancy - currentAge;
+
+        let roth = currentRoth;
+        let trad = currentTrad;
+
+        for (let i = 0; i < totalYears; i++) {
+            const age = currentAge + i;
+
+            // Determine return for this year
+            let mu = expectedReturn;
+            if (useGlidepath && yearlyExpectedReturns) {
+                mu = yearlyExpectedReturns[i] || yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+            }
+
+            // Apply growth
+            roth *= (1 + mu);
+            trad *= (1 + mu);
+
+            // Apply contributions only before retirement
+            if (age < retirementAge) {
+                roth += contribution;
+                trad += contribution;
+            }
+
+            chartData.push({
+                age,
+                roth,
+                trad
+            });
+        }
+
+        return chartData;
+    }
+ 
 
     /* ---------------------------------------------------
        MONTE CARLO
