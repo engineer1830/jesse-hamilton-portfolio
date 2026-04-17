@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Roth vs Traditional – Service Guide</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+
+<body>
+    <div class="page">
+        <header class="page-header">
+            <div class="page-kicker">Service Guide</div>
+            <div class="page-title">Roth vs Traditional – Real‑Market Engine</div>
+            <div class="page-subtitle">
+                This guide explains how the tool behaves, how modes are selected, how inputs are interpreted,
+                and how guardrails protect users from confusing or invalid configurations. It doubles as both
+                UX documentation and a mental model for anyone maintaining or extending the engine.
+            </div>
+        </header>
+
+        <main class="layout">
+            <!-- LEFT COLUMN: Mental model, modes, inputs -->
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-pill">01 · Mental Model</span>
+                        How the tool thinks
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div class="section-label">Core idea</div>
+                        <div>
+                            The tool compares <span class="strong">Roth vs Traditional</span> outcomes using either
+                            <span class="strong">real‑market data</span> or a
+                            <span class="strong">manual growth rate</span>, depending on how the user configures
+                            the inputs. The user experience is built around three explicit modes:
+                        </div>
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>
+                                    <span class="list-label">Real‑Market (Single Ticker):</span>
+                                    One ticker in the Ticker field, Portfolio empty. Uses historical CAGR and volatility
+                                    for that asset.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>
+                                    <span class="list-label">Real‑Market (Portfolio):</span>
+                                    Multiple tickers with weights in the Portfolio field, Ticker empty. Uses weighted
+                                    portfolio CAGR and volatility (with correlations).
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Synthetic (Manual Growth):</span>
+                                    No ticker and no portfolio, or real‑market data unavailable. Uses the user’s manual
+                                    growth rate and a default or overridden volatility.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div>
+                        <div class="section-label">Mode selection rules</div>
+                        <ul class="list">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Single Ticker Mode:</span>
+                                    <span class="strong">Ticker</span> has a valid symbol, <span
+                                        class="strong">Portfolio</span> is empty.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Portfolio Mode:</span>
+                                    <span class="strong">Portfolio</span> has 2+ tickers with weights, <span
+                                        class="strong">Ticker</span> is empty.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Synthetic Mode:</span>
+                                    Both fields empty, or real‑market fetch fails. Falls back to manual growth.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="callout callout-accent">
+                        <div class="callout-title">Design intent</div>
+                        The user should always feel that the mode is intentional, visible, and aligned with how
+                        they think about their input: “one asset”, “a portfolio”, or “just assume a growth rate.”
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: Mode badge, quick reference -->
+            <aside class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-pill">Quick Reference</span>
+                        Mode & behavior at a glance
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="section-label">Mode badge (UI)</div>
+                    <div class="badge-row">
+                        <div class="badge badge-strong">
+                            <span class="badge-dot badge-dot-accent"></span>
+                            Mode: Real‑Market (Single Ticker)
+                        </div>
+                        <div class="badge badge-strong">
+                            <span class="badge-dot badge-dot-accent"></span>
+                            Mode: Real‑Market (Portfolio)
+                        </div>
+                        <div class="badge badge-soft">
+                            <span class="badge-dot"></span>
+                            Mode: Synthetic (Manual Growth)
+                        </div>
+                    </div>
+                    <div class="tagline">
+                        The badge should update in real time as the user types in the Ticker or Portfolio fields.
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div>
+                        <div class="section-label">Input expectations</div>
+                        <ul class="list">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Ticker:</span>
+                                    One symbol, 1–5 letters (e.g., VTI, BND, AAPL). Portfolio must be empty.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Portfolio:</span>
+                                    Tickers with weights, separated by commas:
+                                    <code>VTI:60, BND:40</code>. Ticker must be empty.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Manual growth:</span>
+                                    Used only when no real‑market configuration is active or data is unavailable.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div>
+                        <div class="section-label">Good defaults</div>
+                        <ul class="list">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Volatility:</span>
+                                    0.15 if no real‑market volatility is available and no override is set.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Tax:</span>
+                                    Auto‑tax uses real‑market growth when available; otherwise, manual growth.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <section class="layout" style="margin-top: 20px;">
+            <!-- LEFT: Inputs & guardrails -->
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-pill">02 · Inputs & Guardrails</span>
+                        How user input is interpreted
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="two-col">
+                        <div>
+                            <div class="section-label">Ticker field (single asset)</div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Purpose:</span>
+                                        Model a single asset using real‑market return and volatility.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Format:</span>
+                                        1–5 letters, e.g., <code>VTI</code>, <code>BND</code>, <code>AAPL</code>.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Rule:</span>
+                                        Portfolio must be empty for this field to activate Real‑Market (Single Ticker)
+                                        mode.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <div class="section-label">Portfolio field (multiple assets)</div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Purpose:</span>
+                                        Model a weighted portfolio using real‑market return and volatility.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Format:</span>
+                                        <code>TICKER:WEIGHT</code> pairs, separated by commas:
+                                        <code>VTI:60, BND:40</code>.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Rule:</span>
+                                        Ticker must be empty for this field to activate Real‑Market (Portfolio) mode.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="section-label">Guardrail behaviors</div>
+                    <ul class="list">
+                        <li class="list-item">
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>
+                                <span class="list-label">Both fields filled:</span>
+                                The tool blocks execution and prompts:
+                                <span class="strong">“Please choose either a single ticker OR a portfolio, not
+                                    both.”</span>
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>
+                                <span class="list-label">Single ticker in portfolio:</span>
+                                If the portfolio parses to exactly one ticker, the tool blocks execution and prompts:
+                                <span class="strong">“It looks like you entered a single ticker in the portfolio box.
+                                    Use the Ticker field instead.”</span>
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">No letters in portfolio:</span>
+                                Blocks execution and prompts:
+                                <span class="strong">“Portfolio must contain tickers with weights, like VTI:60,
+                                    BND:40.”</span>
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Missing weights:</span>
+                                If the user enters <code>VTI, BND</code> or <code>VTI:</code>, the tool prompts:
+                                <span class="strong">“Each portfolio ticker needs a weight, like VTI:60.”</span>
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Invalid ticker:</span>
+                                If the ticker is not 1–5 letters, the tool prompts:
+                                <span class="strong">“That doesn’t look like a valid ticker symbol.”</span>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="callout callout-warning">
+                        <div class="callout-title">Why guardrails matter</div>
+                        These checks prevent users from accidentally entering the wrong mode, feeding malformed
+                        portfolios into the engine, or getting confusing results from invalid tickers.
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="code-label">Guardrail snippet (conceptual)</div>
+                    <div class="code-block">
+                        // After reading and sanitizing inputs<br />
+                        const ticker = $("ticker").value.trim().toUpperCase();<br />
+                        <br />
+                        if (ticker !== "" &amp;&amp; portfolioStr !== "") {<br />
+                        &nbsp;&nbsp;alert("Please choose either a single ticker OR a portfolio, not both.");<br />
+                        &nbsp;&nbsp;return;<br />
+                        }<br />
+                        <br />
+                        if (portfolioStr !== "" &amp;&amp; !/[A-Za-z]/.test(portfolioStr)) {<br />
+                        &nbsp;&nbsp;alert("Portfolio must contain tickers with weights, like VTI:60, BND:40.");<br />
+                        &nbsp;&nbsp;return;<br />
+                        }<br />
+                        <br />
+                        if (portfolioStr !== "" &amp;&amp; portfolioStr.includes(",") &amp;&amp;
+                        !portfolioStr.includes(":")) {<br />
+                        &nbsp;&nbsp;alert("Each portfolio ticker needs a weight, like VTI:60.");<br />
+                        &nbsp;&nbsp;return;<br />
+                        }<br />
+                        <br />
+                        if (portfolioStr !== "") {<br />
+                        &nbsp;&nbsp;const { tickers } = parsePortfolio(portfolioStr);<br />
+                        &nbsp;&nbsp;if (tickers.length === 1) {<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;alert("It looks like you entered a single ticker in the portfolio box.
+                        Use the Ticker field instead.");<br />
+                        &nbsp;&nbsp;&nbsp;&nbsp;return;<br />
+                        &nbsp;&nbsp;}<br />
+                        }<br />
+                        <br />
+                        if (ticker !== "" &amp;&amp; !/^[A-Za-z]{1,5}$/.test(ticker)) {<br />
+                        &nbsp;&nbsp;alert("That doesn’t look like a valid ticker symbol.");<br />
+                        &nbsp;&nbsp;return;<br />
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT: Modes, outputs, interpretation -->
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-title-pill">03 · Modes & Outputs</span>
+                        What the user sees and why
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="section-label">Mode behavior</div>
+                    <ul class="list">
+                        <li class="list-item">
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>
+                                <span class="list-label">Real‑Market (Single Ticker):</span>
+                                Uses historical prices for the ticker to compute CAGR, volatility, and Monte Carlo
+                                distributions. Mode badge: <span class="strong">“Real‑Market (Single Ticker)”</span>.
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>
+                                <span class="list-label">Real‑Market (Portfolio):</span>
+                                Uses weighted historical data for all tickers, including correlations, to compute
+                                portfolio CAGR and volatility. Mode badge:
+                                <span class="strong">“Real‑Market (Portfolio)”</span>.
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Synthetic (Manual Growth):</span>
+                                Uses the user’s growth rate and a default or overridden volatility. Mode badge:
+                                <span class="strong">“Synthetic (Manual Growth)”</span>.
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="divider"></div>
+
+                    <div class="section-label">Negative return warning</div>
+                    <div class="callout callout-warning">
+                        <div class="callout-title">When expected return is negative</div>
+                        If the real‑market CAGR is negative (e.g., for certain bond funds over specific windows),
+                        the tool should surface a subtle warning such as:
+                        <span class="strong">“This asset has had a negative long‑term return. Results may look
+                            unusual.”</span>
+                        This helps users interpret outcomes where Traditional may outperform Roth simply because
+                        the asset itself has struggled.
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="section-label">Output interpretation</div>
+                    <ul class="list">
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Assumed growth rate:</span>
+                                Shows the effective CAGR used in the projection (real‑market or manual).
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Roth vs Traditional totals:</span>
+                                Final projected balances after contributions, growth, and taxes.
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Monte Carlo percentiles:</span>
+                                P10, P50, P90 for both Roth and Traditional, based on the volatility and mode.
+                            </div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>
+                                <span class="list-label">Tax context:</span>
+                                Shows current vs retirement tax assumptions, RMDs, and taxable income at retirement.
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="divider"></div>
+
+                    <div class="section-label">Debug / power‑user view (optional)</div>
+                    <div class="callout">
+                        A collapsible “Debug” panel can expose parsed portfolio, mode, expectedReturn source,
+                        volatility source, and raw Monte Carlo parameters. This is useful for advisors, power
+                        users, and developers validating behavior against expectations.
+                    </div>
+                </div>
+            </section>
+        </section>
+    </div>
+</body>
+
+</html>
