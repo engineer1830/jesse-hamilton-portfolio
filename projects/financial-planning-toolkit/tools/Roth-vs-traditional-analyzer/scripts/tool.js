@@ -191,7 +191,7 @@ $("runBtn").addEventListener("click", async () => {
     let stockVol;
 
     // 1. Determine expected return
-    if (portfolioStr) {
+    if (portfolioStr.trim() !== "") {
         try {
             const prices = await fetchHistoricalPrices(ticker || "VTI");
             const stats = computeReturnStats(prices);
@@ -200,9 +200,8 @@ $("runBtn").addEventListener("click", async () => {
             console.warn("Live return failed, using manual growth rate:", err);
             expectedReturn = parseFloat($("growth").value) / 100;
         }
-    } else {
-        expectedReturn = parseFloat($("growth").value) / 100;
     }
+
 
     // 2. Determine volatility
     const overrideVol = $("overrideVolToggle").checked;
