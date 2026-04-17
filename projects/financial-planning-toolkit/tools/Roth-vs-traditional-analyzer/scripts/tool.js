@@ -239,7 +239,7 @@ $("runBtn").addEventListener("click", async () => {
         }
 
     } else if (ticker && ticker.trim() !== "") {
-        const prices = await getHistoricalPrices(ticker, "10y", "1d");
+        const prices = await getHistoricalPrices(ticker, "max", "1d");
         if (prices.length) {
             expectedReturn = calculateCAGR(prices);
             mode = "real-market";

@@ -34,7 +34,7 @@ function getCache(key) {
  */
 export async function getHistoricalPrices(
     ticker,
-    range = "10y",
+    range = "max",
     interval = "1d"
 ) {
     const key = `${ticker}-${range}-${interval}`;
@@ -78,7 +78,7 @@ export async function getHistoricalPrices(
  */
 export async function getMultipleTickers(
     tickers = [],
-    range = "10y",
+    range = "max",
     interval = "1d"
 ) {
     const results = {};
