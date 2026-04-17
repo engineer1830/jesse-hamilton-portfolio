@@ -201,27 +201,26 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-       OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
-    --------------------------------------------------- */
+   OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
+--------------------------------------------------- */
     if (portfolioStr) {
         const { tickers, weights } = parsePortfolio(portfolioStr);
         if (tickers.length) {
             const data = await getMultipleTickers(tickers, "10y", "1d");
             const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
             if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                // rate = weightedCagr; updated 
                 expectedReturn = weightedCagr;
                 mode = "real-market-portfolio";
             }
         }
-    } else if (ticker) {
+    } else if (ticker && ticker.trim() !== "") {
         const prices = await getHistoricalPrices(ticker, "10y", "1d");
         if (prices.length) {
-            // rate = calculateCAGR(prices); updated
             expectedReturn = calculateCAGR(prices);
             mode = "real-market";
         }
     }
+
 
     /* ---------------------------------------------------
        AUTO TAX ESTIMATION (IF ENABLED)
