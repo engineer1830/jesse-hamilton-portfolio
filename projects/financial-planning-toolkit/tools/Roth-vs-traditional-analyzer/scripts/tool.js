@@ -474,8 +474,8 @@ $("runBtn").addEventListener("click", async () => {
             expectedReturn,
             stockVolatility: stockVol,
             useGlidepath,
-            yearlyExpectedReturns,
-            yearlyVols
+            yearlyExpectedReturns: gpReturns,
+            yearlyVols: gpVols
         });
     }
 
@@ -799,17 +799,16 @@ async function runMonteCarlo({
     const totalDays = years * daysPerYear;
 
     function getDailyParams(dayIndex) {
-        if (useGlidepath && yearlyExpectedReturns && yearlyVols) {
+        if (useGlidepath && gpReturns && gpVols) {
             const yearIndex = Math.floor(dayIndex / daysPerYear);
-            const mu = yearlyExpectedReturns[yearIndex];
-            const sigma = yearlyVols[yearIndex];
+            const mu = gpReturns[yearIndex];
+            const sigma = gpVols[yearIndex];
             return {
                 dailyMean: mu / daysPerYear,
                 dailyStd: sigma / Math.sqrt(daysPerYear)
             };
         }
 
-        // static mode
         return {
             dailyMean: expectedReturn / daysPerYear,
             dailyStd: stockVolatility / Math.sqrt(daysPerYear)
