@@ -779,30 +779,33 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
     });
 }
 
-/* -------------------------------------------------------
-   MONTE CARLO SIMULATION (Volatility-Driven)
-------------------------------------------------------- */
+    /* -------------------------------------------------------
+    MONTE CARLO SIMULATION (Volatility-Driven)
+    ------------------------------------------------------- */
 
-async function runMonteCarlo({
-    ticker,
-    portfolioStr,
-    contribution,
-    rothContribution,
-    years,
-    currentTax,
-    retireTax,
-    runs,
-    currentRoth,
-    currentTrad,
-    expectedReturn,
-    stockVolatility
-}) {
-    // If we don't have volatility or return, we cannot simulate
-    if (!expectedReturn || !stockVolatility) return null;
+    async function runMonteCarlo({
+        ticker,
+        portfolioStr,
+        contribution,
+        rothContribution,
+        years,
+        currentTax,
+        retireTax,
+        runs,
+        currentRoth,
+        currentTrad,
+        expectedReturn,
+        stockVolatility,
+        useGlidepath,
+        yearlyExpectedReturns: gpReturns,
+        yearlyVols: gpVols
+    }) {
+        // If we don't have volatility or return, we cannot simulate
+        if (!expectedReturn || !stockVolatility) return null;
 
-    
-    const daysPerYear = 252;
-    const totalDays = years * daysPerYear;
+        
+        const daysPerYear = 252;
+        const totalDays = years * daysPerYear;
 
     function getDailyParams(dayIndex) {
         if (useGlidepath && gpReturns && gpVols) {
