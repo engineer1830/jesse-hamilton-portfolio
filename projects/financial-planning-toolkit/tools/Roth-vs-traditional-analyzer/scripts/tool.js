@@ -167,7 +167,7 @@ $("runBtn").addEventListener("click", async () => {
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
-    const ticker = $("ticker").value.trim().toUpperCase();
+    // const ticker = $("ticker").value.trim().toUpperCase();
     const portfolioStr = $("portfolio").value.trim();
     const mcRuns = parseInt($("mcRuns").value) || 0;
 
@@ -184,16 +184,16 @@ $("runBtn").addEventListener("click", async () => {
     let mode = "synthetic";
 
     /* ---------------------------------------------------
-   LIVE RETURN + VOLATILITY (or override)
---------------------------------------------------- */
+    LIVE RETURN + VOLATILITY (or override)
+ --------------------------------------------------- */
 
     let expectedReturn;
     let stockVol;
 
-    // 1. Determine expected return
-    // if (portfolioStr && portfolioStr.replace(/\s/g, "") !== "") {
+    // 1. Determine expected return (portfolio only)
     if (portfolioStr && portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "") {
 
+        const ticker = $("ticker").value.trim().toUpperCase(); // ⭐ add this
 
         try {
             const prices = await fetchHistoricalPrices(ticker || "VTI");
@@ -205,13 +205,15 @@ $("runBtn").addEventListener("click", async () => {
         }
     }
 
-
     // 2. Determine volatility
     const overrideVol = $("overrideVolToggle").checked;
 
     if (overrideVol) {
         stockVol = Number($("customStockVol").value) / 100;
     } else {
+
+        const ticker = $("ticker").value.trim().toUpperCase(); // ⭐ add this
+
         try {
             const prices = await fetchHistoricalPrices(ticker || "VTI");
             const stats = computeReturnStats(prices);
@@ -221,12 +223,14 @@ $("runBtn").addEventListener("click", async () => {
             stockVol = 0.15;
         }
     }
+ 
 
     /* ---------------------------------------------------
     OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
  --------------------------------------------------- */
     if (portfolioStr) {
         const { tickers, weights } = parsePortfolio(portfolioStr);
+
         if (tickers.length) {
             const data = await getMultipleTickers(tickers, "max", "1d");
 
@@ -235,21 +239,24 @@ $("runBtn").addEventListener("click", async () => {
 
             if (!isNaN(weightedCagr) && weightedCagr > 0) {
                 expectedReturn = weightedCagr;
-                stockVol = weightedVol;   // NEW: portfolio volatility
+                stockVol = weightedVol;
                 mode = "real-market-portfolio";
             }
         }
-        console.log("REAL-MARKET CHECK — ticker:", JSON.stringify(ticker));
 
-    } else if (ticker && ticker.trim() !== "") {
-        const prices = await getHistoricalPrices(ticker, "max", "1d");
-        if (prices.length) {
-            expectedReturn = calculateCAGR(prices);
-            mode = "real-market";
+    } else {
+        // ⭐ Re-read ticker HERE — this is the correct place
+        const ticker = $("ticker").value.trim().toUpperCase();
+        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+
+        if (ticker && ticker.trim() !== "") {
+            const prices = await getHistoricalPrices(ticker, "max", "1d");
+            if (prices.length) {
+                expectedReturn = calculateCAGR(prices);
+                mode = "real-market";
+            }
         }
     }
-
-
 
     /* ---------------------------------------------------
        AUTO TAX ESTIMATION (IF ENABLED)
