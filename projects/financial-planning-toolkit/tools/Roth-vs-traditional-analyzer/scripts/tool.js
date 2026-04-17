@@ -231,6 +231,13 @@ $("runBtn").addEventListener("click", async () => {
         return;
     }
 
+    // 6. NO ticker + NO portfolio + NO glidepath → not a meaningful scenario
+    if (!useGlidepath && ticker === "" && portfolioStr === "") {
+        alert("Please enter a ticker, a portfolio, or enable Glidepath.");
+        return;
+    }
+
+
     /* ---------------------------------------------------
    LIFECYCLE GLIDEPATH ENGINE (if enabled)
 --------------------------------------------------- */
@@ -623,8 +630,8 @@ async function computeWeightedVolatility(data, tickers, weights) {
     return Math.sqrt(variance);
 }
 
-const glidepathStockTicker = "VTI";
-const glidepathBondTicker = "BND";
+const glidepathStockTicker = "FXAIX";
+const glidepathBondTicker = "FXNAX";
 
 
 function getGlidepathAllocation(age, retirementAge) {
