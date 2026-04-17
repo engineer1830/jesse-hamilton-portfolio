@@ -191,7 +191,9 @@ $("runBtn").addEventListener("click", async () => {
     let stockVol;
 
     // 1. Determine expected return
-    if (portfolioStr && portfolioStr.replace(/\s/g, "") !== "") {
+    // if (portfolioStr && portfolioStr.replace(/\s/g, "") !== "") {
+    if (portfolioStr && portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "") {
+
 
         try {
             const prices = await fetchHistoricalPrices(ticker || "VTI");
@@ -237,6 +239,7 @@ $("runBtn").addEventListener("click", async () => {
                 mode = "real-market-portfolio";
             }
         }
+        console.log("REAL-MARKET CHECK — ticker:", JSON.stringify(ticker));
 
     } else if (ticker && ticker.trim() !== "") {
         const prices = await getHistoricalPrices(ticker, "max", "1d");
