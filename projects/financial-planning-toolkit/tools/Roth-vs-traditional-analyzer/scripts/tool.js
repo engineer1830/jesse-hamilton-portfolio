@@ -58,7 +58,7 @@ function getIrmaaThresholds({ filingStatus }) {
 }
 
 async function fetchHistoricalPrices(ticker = "VTI") {
-    const url = `/api/yahoo?ticker=${ticker}`;
+    const url = `/api/yahoo?ticker=${ticker}&range=max&interval=1d`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch price data");
     return await response.json();
