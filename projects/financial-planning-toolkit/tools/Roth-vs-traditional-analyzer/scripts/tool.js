@@ -171,6 +171,8 @@ $("runBtn").addEventListener("click", async () => {
     // Sanitize portfolio string
     let portfolioStr = $("portfolio").value;
     portfolioStr = portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "");
+    console.log("SANITIZED PORTFOLIO:", JSON.stringify(portfolioStr));
+
 
     const mcRuns = parseInt($("mcRuns").value) || 0;
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
