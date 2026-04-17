@@ -231,5 +231,43 @@ export const Finance = {
             totalLiabilities: this.round(totalLiabilities),
             netWorth: this.round(totalAssets - totalLiabilities)
         };
+    },
+
+    /* ---------------------------------------------------
+       STATISTICS (NEW: for portfolio volatility)
+    --------------------------------------------------- */
+
+    stddev(arr) {
+        if (!arr || arr.length < 2) return 0;
+        const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+        const variance = arr.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / (arr.length - 1);
+        return Math.sqrt(variance);
+    },
+
+    correlation(arrA, arrB) {
+        const len = Math.min(arrA.length, arrB.length);
+        if (len < 2) return 0;
+
+        const sliceA = arrA.slice(0, len);
+        const sliceB = arrB.slice(0, len);
+
+        const meanA = sliceA.reduce((a, b) => a + b, 0) / len;
+        const meanB = sliceB.reduce((a, b) => a + b, 0) / len;
+
+        let numerator = 0;
+        let denomA = 0;
+        let denomB = 0;
+
+        for (let i = 0; i < len; i++) {
+            const da = sliceA[i] - meanA;
+            const db = sliceB[i] - meanB;
+            numerator += da * db;
+            denomA += da * da;
+            denomB += db * db;
+        }
+
+        const denom = Math.sqrt(denomA * denomB);
+        return denom === 0 ? 0 : numerator / denom;
     }
+
 };
