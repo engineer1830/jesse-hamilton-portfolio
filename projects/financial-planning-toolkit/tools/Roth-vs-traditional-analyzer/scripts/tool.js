@@ -512,8 +512,8 @@ $("runBtn").addEventListener("click", async () => {
             expectedReturn,
             stockVolatility: stockVol,
             useGlidepath,
-            yearlyExpectedReturns: gpReturns,
-            yearlyVols: gpVols
+            yearlyExpectedReturns,
+            yearlyVols
         });
     }
 
