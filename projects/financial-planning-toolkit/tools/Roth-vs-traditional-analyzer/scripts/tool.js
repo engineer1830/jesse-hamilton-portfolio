@@ -161,6 +161,7 @@ $("runBtn").addEventListener("click", async () => {
     const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
+    let mode = "synthetic";
 
     /* ---------------------------------------------------
    LIVE RETURN + VOLATILITY (or override)
