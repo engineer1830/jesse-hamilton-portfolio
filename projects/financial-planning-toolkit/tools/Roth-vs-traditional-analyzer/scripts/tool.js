@@ -226,7 +226,7 @@ $("runBtn").addEventListener("click", async () => {
     if (portfolioStr) {
         const { tickers, weights } = parsePortfolio(portfolioStr);
         if (tickers.length) {
-            const data = await getMultipleTickers(tickers, "10y", "1d");
+            const data = await getMultipleTickers(tickers, "max", "1d");
 
             const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
             const weightedVol = await computeWeightedVolatility(data, tickers, weights);
