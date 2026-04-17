@@ -11,7 +11,9 @@ export default async function handler(req, res) {
     }
 
     try {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=${interval}`;
+        // const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=${interval}`;
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${range}&interval=${interval}&includeAdjustedClose=true`;
+
 
         const response = await fetch(url, {
             method: "GET",
