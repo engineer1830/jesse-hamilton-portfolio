@@ -225,7 +225,7 @@ $("runBtn").addEventListener("click", async () => {
             mode = "real-market";
         }
     }
- 
+
 
 
     /* ---------------------------------------------------
@@ -424,7 +424,9 @@ async function computeWeightedVolatility(data, tickers, weights) {
         const rets = [];
 
         for (let i = 1; i < prices.length; i++) {
-            rets.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+            const prev = prices[i - 1].close;
+            const curr = prices[i].close;
+            rets.push((curr - prev) / prev);
         }
 
         dailyReturns[t] = rets;
@@ -872,7 +874,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
         // -------------------------------------------------------
-       
+
         if (currentBracket) {
             currentBracketRate = currentBracket.rate;
 
