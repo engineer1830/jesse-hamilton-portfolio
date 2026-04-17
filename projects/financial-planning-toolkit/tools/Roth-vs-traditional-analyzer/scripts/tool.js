@@ -228,7 +228,8 @@ $("runBtn").addEventListener("click", async () => {
     /* ---------------------------------------------------
     OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
  --------------------------------------------------- */
-    if (portfolioStr) {
+    // if (portfolioStr) {
+    if (portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "") {
         const { tickers, weights } = parsePortfolio(portfolioStr);
 
         if (tickers.length) {
