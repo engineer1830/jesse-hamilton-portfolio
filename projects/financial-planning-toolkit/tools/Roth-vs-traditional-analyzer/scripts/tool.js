@@ -43,6 +43,39 @@ function getIrmaaThresholds({ filingStatus }) {
     return [206000, 258000, 322000, 386000, 750000];
 }
 
+async function fetchHistoricalPrices(ticker = "VTI") {
+    const url = `/api/yahoo?ticker=${ticker}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch price data");
+    return await response.json();
+}
+
+function computeReturnStats(prices) {
+    const dailyReturns = [];
+
+    for (let i = 1; i < prices.length; i++) {
+        const prev = prices[i - 1].close;
+        const curr = prices[i].close;
+        dailyReturns.push((curr - prev) / prev);
+    }
+
+    const avgDaily = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
+
+    const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgDaily, 2), 0) /
+        (dailyReturns.length - 1);
+    const dailyVol = Math.sqrt(variance);
+
+    const annualReturn = Math.pow(1 + avgDaily, 252) - 1;
+    const annualVol = dailyVol * Math.sqrt(252);
+
+    return { annualReturn, annualVol };
+}
+
+document.getElementById("overrideVolToggle").addEventListener("change", (e) => {
+    document.getElementById("customVolInputs").style.display =
+        e.target.checked ? "block" : "none";
+});
+
 /* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
 ------------------------------------------------------- */
@@ -128,8 +161,43 @@ $("runBtn").addEventListener("click", async () => {
     const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
-    let rate = growth;
-    let mode = "synthetic";
+
+    /* ---------------------------------------------------
+   LIVE RETURN + VOLATILITY (or override)
+--------------------------------------------------- */
+
+    let expectedReturn;
+    let stockVol;
+
+    // 1. Determine expected return
+    if (portfolioStr || ticker) {
+        try {
+            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const stats = computeReturnStats(prices);
+            expectedReturn = stats.annualReturn;
+        } catch (err) {
+            console.warn("Live return failed, using manual growth rate:", err);
+            expectedReturn = parseFloat($("growth").value) / 100;
+        }
+    } else {
+        expectedReturn = parseFloat($("growth").value) / 100;
+    }
+
+    // 2. Determine volatility
+    const overrideVol = $("overrideVolToggle").checked;
+
+    if (overrideVol) {
+        stockVol = Number($("customStockVol").value) / 100;
+    } else {
+        try {
+            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const stats = computeReturnStats(prices);
+            stockVol = stats.annualVol;
+        } catch (err) {
+            console.warn("Live volatility failed, using fallback:", err);
+            stockVol = 0.15;
+        }
+    }
 
     /* ---------------------------------------------------
        OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
@@ -251,7 +319,9 @@ $("runBtn").addEventListener("click", async () => {
             retireTax,
             runs: mcRuns,
             currentRoth,
-            currentTrad
+            currentTrad,
+            expectedReturn,
+            stockVolatility: stockVol
         });
     }
 
@@ -272,7 +342,7 @@ $("runBtn").addEventListener("click", async () => {
 
     const result = {
         mode,
-        assumedGrowthRate: Finance.round(rate * 100, 2) + "%",
+        assumedGrowthRate: Finance.round(expectedReturn * 100, 2) + "%",
         rothFinal: Finance.round(rothFinal),
         traditionalFinal: Finance.round(tradFinal),
         difference: Finance.round(rothFinal - tradFinal),
@@ -283,7 +353,9 @@ $("runBtn").addEventListener("click", async () => {
         years,
         monteCarlo,
         retirementTaxDetails,
-        taxContext
+        taxContext,
+        expectedReturn,
+        stockVol
     };
 
     renderSummary(result);
@@ -1171,8 +1243,7 @@ function renderSummary(result) {
             const { filingStatus, currentTax, retirementAge, rmd } = result.taxContext;
 
             // Growth rate (corrected)
-            const growthRate =
-                parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+            const growthRate = result.expectedReturn || 0.07;
 
             // Run simulation
             const sim = simulateRothConversions({

@@ -72,7 +72,16 @@
                     <input id="portfolio" type="text" placeholder="VTI:60,VXUS:20,BND:20" autocomplete="off">
                     <small class="note">Overrides single ticker if provided</small>
                 </label>
-
+                <label>
+                    <input type="checkbox" id="overrideVolToggle">
+                    Use custom volatility
+                </label>
+                
+                <div id="customVolInputs" style="display:none;">
+                    <label>Stock Volatility (%): <input id="customStockVol" type="number" value="15"></label>
+                    <label>Bond Volatility (%): <input id="customBondVol" type="number" value="5"></label>
+                </div>
+                  
                 <label>
                     Monte Carlo Simulations
                     <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
