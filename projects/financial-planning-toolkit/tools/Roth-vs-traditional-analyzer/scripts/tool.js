@@ -190,6 +190,45 @@ $("runBtn").addEventListener("click", async () => {
     let stockVol;
 
     /* ---------------------------------------------------
+   INPUT GUARDRAILS
+--------------------------------------------------- */
+
+    const ticker = $("ticker").value.trim().toUpperCase();
+
+    // 1. BOTH fields filled → not allowed
+    if (ticker !== "" && portfolioStr !== "") {
+        alert("Please choose either a single ticker OR a portfolio, not both.");
+        return;
+    }
+
+    // 2. PORTFOLIO contains no letters → invalid
+    if (portfolioStr !== "" && !/[A-Za-z]/.test(portfolioStr)) {
+        alert("Portfolio must contain tickers with weights, like VTI:60, BND:40.");
+        return;
+    }
+
+    // 3. PORTFOLIO missing weights (e.g., 'VTI, BND')
+    if (portfolioStr !== "" && portfolioStr.includes(",") && !portfolioStr.includes(":")) {
+        alert("Each portfolio ticker needs a weight, like VTI:60.");
+        return;
+    }
+
+    // 4. PORTFOLIO has exactly one ticker → user probably meant single ticker mode
+    if (portfolioStr !== "") {
+        const { tickers } = parsePortfolio(portfolioStr);
+        if (tickers.length === 1) {
+            alert("It looks like you entered a single ticker in the portfolio box. Use the Ticker field instead.");
+            return;
+        }
+    }
+
+    // 5. INVALID ticker symbol (must be 1–5 letters)
+    if (ticker !== "" && !/^[A-Za-z]{1,5}$/.test(ticker)) {
+        alert("That doesn’t look like a valid ticker symbol.");
+        return;
+    }
+
+    /* ---------------------------------------------------
        REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
     --------------------------------------------------- */
 
