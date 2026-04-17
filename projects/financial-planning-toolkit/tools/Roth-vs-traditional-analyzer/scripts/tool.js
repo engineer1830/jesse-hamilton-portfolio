@@ -358,7 +358,7 @@ $("runBtn").addEventListener("click", async () => {
     if (!useGlidepath && expectedReturn === undefined) {
         try {
             const ticker = $("ticker").value.trim().toUpperCase();
-            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const prices = await getHistoricalPrices(ticker || "VTI", "10y", "1d");
             const stats = computeReturnStats(prices);
             expectedReturn = stats.annualReturn;
         } catch (err) {
