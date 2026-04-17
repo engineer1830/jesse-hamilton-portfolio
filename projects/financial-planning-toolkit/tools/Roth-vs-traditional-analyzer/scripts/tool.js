@@ -185,6 +185,9 @@ $("runBtn").addEventListener("click", async () => {
     const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
 
+    const useGlidepath = $("useGlidepath") ? $("useGlidepath").checked : false;
+
+
     let mode = "synthetic";
     let expectedReturn;
     let stockVol;
@@ -227,6 +230,79 @@ $("runBtn").addEventListener("click", async () => {
         alert("That doesn’t look like a valid ticker symbol.");
         return;
     }
+
+    /* ---------------------------------------------------
+   LIFECYCLE GLIDEPATH ENGINE (if enabled)
+--------------------------------------------------- */
+
+    let yearlyExpectedReturns = null;
+    let yearlyVols = null;
+
+    if (useGlidepath) {
+        mode = "real-market-glidepath";
+
+        // Fetch stock + bond data once
+        try {
+            const tickers = [glidepathStockTicker, glidepathBondTicker];
+            const data = await getMultipleTickers(tickers, "max", "1d");
+
+            // Compute individual asset stats
+            const stockPrices = data[glidepathStockTicker] || [];
+            const bondPrices = data[glidepathBondTicker] || [];
+
+            const stockReturn = stockPrices.length ? calculateCAGR(stockPrices) : growth;
+            const bondReturn = bondPrices.length ? calculateCAGR(bondPrices) : growth;
+
+            // Compute individual volatilities
+            const stockVolDaily = stockPrices.length ? Finance.stddev(
+                stockPrices.slice(1).map((p, i) => (p.close - stockPrices[i].close) / stockPrices[i].close)
+            ) : 0.15 / Math.sqrt(252);
+
+            const bondVolDaily = bondPrices.length ? Finance.stddev(
+                bondPrices.slice(1).map((p, i) => (p.close - bondPrices[i].close) / bondPrices[i].close)
+            ) : 0.07 / Math.sqrt(252);
+
+            const stockVolAnnual = stockVolDaily * Math.sqrt(252);
+            const bondVolAnnual = bondVolDaily * Math.sqrt(252);
+
+            // Build year-by-year arrays
+            yearlyExpectedReturns = [];
+            yearlyVols = [];
+
+            for (let i = 0; i < years; i++) {
+                const age = currentAge + i;
+                const { stockWeight, bondWeight } = getGlidepathAllocation(age, retirementAge);
+
+                // Blended expected return
+                const mu =
+                    stockWeight * stockReturn +
+                    bondWeight * bondReturn;
+
+                // Blended volatility (no correlation term for now)
+                const sigma = Math.sqrt(
+                    Math.pow(stockVolAnnual * stockWeight, 2) +
+                    Math.pow(bondVolAnnual * bondWeight, 2)
+                );
+
+                yearlyExpectedReturns.push(mu);
+                yearlyVols.push(sigma);
+            }
+
+            // For deterministic growth charts, use the FIRST YEAR return
+            expectedReturn = yearlyExpectedReturns[0];
+            stockVol = yearlyVols[0];
+
+        } catch (err) {
+            console.warn("Glidepath fetch failed, falling back:", err);
+            // Fallback to manual growth
+            expectedReturn = growth;
+            stockVol = 0.15;
+            mode = "synthetic";
+            yearlyExpectedReturns = null;
+            yearlyVols = null;
+        }
+    }
+
 
     /* ---------------------------------------------------
        REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
@@ -396,7 +472,10 @@ $("runBtn").addEventListener("click", async () => {
             currentRoth,
             currentTrad,
             expectedReturn,
-            stockVolatility: stockVol
+            stockVolatility: stockVol,
+            useGlidepath,
+            yearlyExpectedReturns,
+            yearlyVols
         });
     }
 
@@ -429,8 +508,17 @@ $("runBtn").addEventListener("click", async () => {
         retirementTaxDetails,
         taxContext,
         expectedReturn,
-        stockVol
+        stockVol,
+
+        glidepath: useGlidepath ? {
+            yearlyExpectedReturns,
+            yearlyVols,
+            glidepathStockTicker,
+            glidepathBondTicker
+        } : null
     };
+    
+
 
     renderSummary(result);
     loading.style.display = "none";
@@ -528,6 +616,28 @@ async function computeWeightedVolatility(data, tickers, weights) {
 
     return Math.sqrt(variance);
 }
+
+const glidepathStockTicker = "VTI";
+const glidepathBondTicker = "BND";
+
+
+function getGlidepathAllocation(age, retirementAge) {
+    // Returns { stockWeight, bondWeight } as decimals (0–1)
+    if (age < retirementAge - 10) {
+        // Aggressive
+        return { stockWeight: 1.0, bondWeight: 0.0 };
+    } else if (age < retirementAge - 2) {
+        // Moderate
+        return { stockWeight: 0.65, bondWeight: 0.35 };
+    } else if (age < 70) {
+        // Preserve
+        return { stockWeight: 0.50, bondWeight: 0.50 };
+    } else {
+        // Legacy
+        return { stockWeight: 0.35, bondWeight: 0.65 };
+    }
+}
+
 
 /* -------------------------------------------------------
    YEARLY CURVES FOR CHART
@@ -684,12 +794,28 @@ async function runMonteCarlo({
     // If we don't have volatility or return, we cannot simulate
     if (!expectedReturn || !stockVolatility) return null;
 
+    
     const daysPerYear = 252;
     const totalDays = years * daysPerYear;
 
-    // Convert annual parameters → daily parameters
-    const dailyMean = expectedReturn / daysPerYear;
-    const dailyStd = stockVolatility / Math.sqrt(daysPerYear);
+    function getDailyParams(dayIndex) {
+        if (useGlidepath && yearlyExpectedReturns && yearlyVols) {
+            const yearIndex = Math.floor(dayIndex / daysPerYear);
+            const mu = yearlyExpectedReturns[yearIndex];
+            const sigma = yearlyVols[yearIndex];
+            return {
+                dailyMean: mu / daysPerYear,
+                dailyStd: sigma / Math.sqrt(daysPerYear)
+            };
+        }
+
+        // static mode
+        return {
+            dailyMean: expectedReturn / daysPerYear,
+            dailyStd: stockVolatility / Math.sqrt(daysPerYear)
+        };
+    }
+    
 
     const rothResults = [];
     const tradResults = [];
@@ -708,7 +834,10 @@ async function runMonteCarlo({
         for (let day = 0; day < totalDays; day++) {
             // Generate a normally distributed daily return
             const z = randomNormal();
+
+            const { dailyMean, dailyStd } = getDailyParams(day);
             const r = dailyMean + dailyStd * z;
+
 
             // Apply growth
             rothBal *= (1 + r);
