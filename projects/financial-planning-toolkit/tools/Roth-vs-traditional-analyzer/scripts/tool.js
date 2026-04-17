@@ -201,18 +201,23 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-   OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
---------------------------------------------------- */
+    OPTIONAL: PORTFOLIO OR SINGLE TICKER → REAL CAGR
+ --------------------------------------------------- */
     if (portfolioStr) {
         const { tickers, weights } = parsePortfolio(portfolioStr);
         if (tickers.length) {
             const data = await getMultipleTickers(tickers, "10y", "1d");
+
             const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
+            const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+
             if (!isNaN(weightedCagr) && weightedCagr > 0) {
                 expectedReturn = weightedCagr;
+                stockVol = weightedVol;   // NEW: portfolio volatility
                 mode = "real-market-portfolio";
             }
         }
+
     } else if (ticker && ticker.trim() !== "") {
         const prices = await getHistoricalPrices(ticker, "10y", "1d");
         if (prices.length) {
@@ -220,6 +225,7 @@ $("runBtn").addEventListener("click", async () => {
             mode = "real-market";
         }
     }
+ 
 
 
     /* ---------------------------------------------------
@@ -408,6 +414,58 @@ async function computeWeightedCAGR(data, tickers, weights) {
     }
 
     return total;
+}
+async function computeWeightedVolatility(data, tickers, weights) {
+    const dailyReturns = {};
+
+    // 1. Compute daily returns for each ticker
+    for (let t of tickers) {
+        const prices = data[t];
+        const rets = [];
+
+        for (let i = 1; i < prices.length; i++) {
+            rets.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+        }
+
+        dailyReturns[t] = rets;
+    }
+
+    // 2. Compute annualized volatility for each ticker
+    const vols = {};
+    for (let t of tickers) {
+        const std = Finance.stddev(dailyReturns[t]);
+        vols[t] = std * Math.sqrt(252); // annualize
+    }
+
+    // 3. Compute correlation matrix
+    const corr = {};
+    for (let i = 0; i < tickers.length; i++) {
+        for (let j = i; j < tickers.length; j++) {
+            const a = tickers[i];
+            const b = tickers[j];
+
+            if (i === j) {
+                corr[`${a}-${b}`] = 1;
+            } else {
+                const c = Finance.correlation(dailyReturns[a], dailyReturns[b]);
+                corr[`${a}-${b}`] = c;
+                corr[`${b}-${a}`] = c;
+            }
+        }
+    }
+
+    // 4. Compute portfolio variance
+    let variance = 0;
+
+    for (let i = 0; i < tickers.length; i++) {
+        for (let j = 0; j < tickers.length; j++) {
+            const a = tickers[i];
+            const b = tickers[j];
+            variance += weights[i] * weights[j] * vols[a] * vols[b] * corr[`${a}-${b}`];
+        }
+    }
+
+    return Math.sqrt(variance);
 }
 
 /* -------------------------------------------------------
