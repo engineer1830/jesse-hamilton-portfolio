@@ -607,6 +607,7 @@ $("runBtn").addEventListener("click", async () => {
             // Apply withdrawals after retirement (need-based OR RMD, whichever is larger)
             let withdrawal = undefined;
             let taxDrag = undefined;
+            let rmdComponent = 0;
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
             if (age >= retirementAge) {
@@ -618,8 +619,11 @@ $("runBtn").addEventListener("click", async () => {
                 if (age >= 73 && trad > 0) {
                     const divisor = getRmdDivisor(age);
                     rmdGross = trad / divisor;
+
+                    rmdComponent = Math.round(rmdGross * (1 - retireTax));    
                 }
 
+            
                 // After-tax cash from RMD alone
                 const rmdNet = rmdGross * (1 - retireTax);
 
@@ -686,7 +690,8 @@ $("runBtn").addEventListener("click", async () => {
                 contribution: contributionThisYear,
                 withdrawal,
                 ssIncome,
-                taxDrag
+                taxDrag,
+                rmdComponent
             });
 
         }
@@ -1041,6 +1046,10 @@ function renderGrowthChart(chartData, phases) {
                                 lines.push(`Tax drag: $${point.taxDrag.toLocaleString()}`);
                             }
 
+                            if (context.raw.rmdComponent > 0) {
+                                lines.push(`RMD component: $${context.raw.rmdComponent.toLocaleString()}`);
+                            }
+                            
                             return lines;
                         }
                     }
