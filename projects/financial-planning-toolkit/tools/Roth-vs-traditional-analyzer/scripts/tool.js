@@ -726,7 +726,7 @@ $("runBtn").addEventListener("click", async () => {
 
         }
 
-        console.log("Ages in chartData:", chartData.map(d => d.age).join(", "));
+        // console.log("Ages in chartData:", chartData.map(d => d.age).join(", "));
 
 
         return {
@@ -760,7 +760,7 @@ $("runBtn").addEventListener("click", async () => {
     const tradAtRetirement =
         chartData.find(row => row.age === retirementAge)?.trad || 0;
 
-    renderGrowthChart(chartData, phases, lifeExpectancy);
+    renderGrowthChart(chartData, phases, currentAge, lifeExpectancy);
     
 
     /* ---------------------------------------------------
@@ -1043,7 +1043,7 @@ const phases = [
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(chartData, phases, lifeExpectancy) {
+function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
     const ctx = $("growthChart").getContext("2d");
 
     if (growthChart) growthChart.destroy();
