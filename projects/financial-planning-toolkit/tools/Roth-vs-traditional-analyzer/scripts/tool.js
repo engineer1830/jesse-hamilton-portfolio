@@ -551,6 +551,11 @@ $("runBtn").addEventListener("click", async () => {
         yearlyExpectedReturns,
         yearlyVols,
         useGlidepath,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
         lifeExpectancy
     }) {
         const chartData = [];
@@ -659,6 +664,11 @@ $("runBtn").addEventListener("click", async () => {
         yearlyExpectedReturns,
         yearlyVols,
         useGlidepath,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
         lifeExpectancy
     });
 
