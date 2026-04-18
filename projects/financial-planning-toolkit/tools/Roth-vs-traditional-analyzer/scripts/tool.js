@@ -611,54 +611,64 @@ $("runBtn").addEventListener("click", async () => {
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
             if (age >= retirementAge) {
+
                 // 1) Need-based withdrawal (after-tax)
                 const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
 
-                // 2) RMD (gross, from Traditional)
+                // 2) Compute RMD (gross)
                 let rmdGross = 0;
                 if (age >= 73 && trad > 0) {
                     const divisor = getRmdDivisor(age);
                     rmdGross = trad / divisor;
-
-                    rmdComponent = Math.round(rmdGross * (1 - retireTax));    
                 }
 
-            
-                // After-tax cash from RMD alone
+                // After-tax RMD
                 const rmdNet = rmdGross * (1 - retireTax);
 
-                // 3) Target after-tax cash this year: max(need, RMD cash)
-                const targetNet = Math.max(needBasedNet, rmdNet);
+                // 3) Total after-tax cash required this year
+                //    = RMD net + any additional need beyond RMD
+                const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
+                const targetNet = rmdNet + extraNeedNet;
 
-                if (targetNet > 0) {
-                    const rothBefore = roth;
-                    const tradBefore = trad;
+                // 4) Withdraw RMD gross from Traditional (always)
+                let tradGrossActual = Math.min(trad, rmdGross);
+                let tradNet = tradGrossActual * (1 - retireTax);
 
-                    // 4) First try to fund targetNet from Traditional (grossed up for tax)
-                    let tradGrossNeeded = targetNet / (1 - retireTax);
+                // Track RMD component for tooltip
+                rmdComponent = Math.round(tradNet);
 
-                    // Enforce at least RMD from Traditional
-                    tradGrossNeeded = Math.max(tradGrossNeeded, rmdGross);
+                // 5) If extra need exists, fund it:
+                //    First from Traditional (grossed up), then Roth
+                if (extraNeedNet > 0) {
 
-                    // But cannot take more than we have
-                    const tradGrossActual = Math.min(trad, tradGrossNeeded);
+                    // Gross needed from Traditional to cover extra need
+                    const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
 
-                    // After-tax from Traditional
-                    const tradNet = tradGrossActual * (1 - retireTax);
+                    // Actual gross from Traditional
+                    const extraTradGrossActual = Math.min(trad - tradGrossActual, extraTradGrossNeeded);
+                    const extraTradNet = extraTradGrossActual * (1 - retireTax);
 
-                    // 5) If still short, take the rest from Roth (no tax)
-                    const rothNetNeeded = Math.max(targetNet - tradNet, 0);
-                    const rothActual = Math.min(roth, rothNetNeeded);
+                    tradGrossActual += extraTradGrossActual;
+                    tradNet += extraTradNet;
 
-                    // 6) Update balances
-                    trad -= tradGrossActual;
+                    // If still short, take from Roth (no tax)
+                    const remainingNet = extraNeedNet - extraTradNet;
+                    const rothActual = Math.min(roth, remainingNet);
+
                     roth -= rothActual;
+                    trad -= extraTradGrossActual;
 
-                    // 7) Tooltip values
                     withdrawal = Math.round(tradNet + rothActual);
+                    taxDrag = Math.round(tradGrossActual * retireTax);
+
+                } else {
+                    // No extra need — only RMD
+                    trad -= tradGrossActual;
+                    withdrawal = Math.round(tradNet);
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 }
             }
+            
 
             // Determine glidepath allocation (if enabled)
             let stockWeight = undefined;
