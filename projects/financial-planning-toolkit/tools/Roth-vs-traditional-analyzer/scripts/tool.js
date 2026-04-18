@@ -490,6 +490,22 @@ $("runBtn").addEventListener("click", async () => {
         return chartData;
     }
  
+    /* ---------------------------------------------------
+       BUILD & RENDER GROWTH CHART
+    --------------------------------------------------- */
+
+    const chartData = buildDeterministicChart({
+        currentAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        expectedReturn,
+        yearlyExpectedReturns,
+        yearlyVols,
+        useGlidepath
+    });
+
+    renderGrowthChart(chartData);
 
     /* ---------------------------------------------------
        MONTE CARLO
