@@ -585,6 +585,8 @@ $("runBtn").addEventListener("click", async () => {
         let roth = currentRoth;
         let trad = currentTrad;
 
+        let tradAt73 = null;
+
         for (let i = 0; i < totalYears; i++) {
             const age = currentAge + i;
 
@@ -668,6 +670,11 @@ $("runBtn").addEventListener("click", async () => {
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 }
             }
+
+            if (age === 73) {
+                tradAt73 = trad; // pre-tax Traditional balance at 73
+            }
+            
             
 
             // Determine glidepath allocation (if enabled)
@@ -693,10 +700,10 @@ $("runBtn").addEventListener("click", async () => {
                 trad,
 
                 // Hover insights
-                mu,                     // return for this year
-                vol,                    // volatility for this year
-                stockWeight,            // glidepath stock %
-                bondWeight,             // glidepath bond %
+                mu,
+                vol,
+                stockWeight,
+                bondWeight,
                 contribution: contributionThisYear,
                 withdrawal,
                 ssIncome,
@@ -706,14 +713,17 @@ $("runBtn").addEventListener("click", async () => {
 
         }
 
-        return chartData;
+        return {
+            chartData,
+            tradAt73
+        };
     }
  
     /* ---------------------------------------------------
        BUILD & RENDER GROWTH CHART
     --------------------------------------------------- */
 
-    const chartData = buildDeterministicChart({
+    const { chartData, tradAt73 } = buildDeterministicChart({
         currentAge,
         currentRoth,
         currentTrad,
@@ -732,19 +742,41 @@ $("runBtn").addEventListener("click", async () => {
     });
 
     renderGrowthChart(chartData);
+    
 
     /* ---------------------------------------------------
-   BUILD & RENDER TAX CHART
---------------------------------------------------- */
+    BUILD & RENDER TAX CHART (USING REAL tradAt73)
+ --------------------------------------------------- */
 
+    // Compute RMD from the actual deterministic Traditional balance at 73
+    const rmdDivisor = getRmdDivisor(73);
+    const rmd = tradAt73 ? tradAt73 / rmdDivisor : 0;
+
+    // Compute taxable Social Security (use your existing function)
+    const taxableSS = computeTaxableSS(ssAnnualStatement, filingStatus);
+
+    // Build the tax estimate details using REAL values
+    const retirementTaxDetails = {
+        tradAtRetirement,          // whatever you already compute elsewhere
+        tradAt73,                  // <-- from deterministic engine
+        rmd,                       // <-- computed from tradAt73
+        ssAtClaimAge: ssAnnualStatement,
+        taxableSS,
+        taxableIncome: rmd + taxableSS,
+        estimatedRate: retireTax,
+        filingStatus
+    };
+
+    // Render the tax chart using the updated details
     renderTaxChart({
         contribution,
         expectedReturn,
         years,
         currentTax,
-        rothFinal
+        rothFinal,
+        retirementTaxDetails
     });
-
+ 
     /* ---------------------------------------------------
        MONTE CARLO
     --------------------------------------------------- */
