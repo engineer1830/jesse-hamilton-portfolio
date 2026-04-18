@@ -1,3 +1,27 @@
+/* ---------------------------------------------------
+CHART SHADING SET UP
+--------------------------------------------------- */
+
+const phaseShadingPlugin = {
+    id: "phaseShading",
+    beforeDraw(chart, args, options) {
+        const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
+
+        const phases = options.phases || [];
+        ctx.save();
+
+        phases.forEach(phase => {
+            const xStart = x.getPixelForValue(phase.startAge);
+            const xEnd = x.getPixelForValue(phase.endAge);
+
+            ctx.fillStyle = phase.color;
+            ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+        });
+
+        ctx.restore();
+    }
+};
+
 function limitToLastNYears(prices, years = 10) {
     if (!prices || prices.length === 0) return prices;
 
@@ -490,29 +514,6 @@ $("runBtn").addEventListener("click", async () => {
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
-    /* ---------------------------------------------------
-    CHART SHADING SET UP
- --------------------------------------------------- */
-    
-    const phaseShadingPlugin = {
-        id: "phaseShading",
-        beforeDraw(chart, args, options) {
-            const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
-
-            const phases = options.phases || [];
-            ctx.save();
-
-            phases.forEach(phase => {
-                const xStart = x.getPixelForValue(phase.startAge);
-                const xEnd = x.getPixelForValue(phase.endAge);
-
-                ctx.fillStyle = phase.color;
-                ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
-            });
-
-            ctx.restore();
-        }
-    };
 
     const phases = [
         {
@@ -549,7 +550,8 @@ $("runBtn").addEventListener("click", async () => {
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
-        useGlidepath
+        useGlidepath,
+        lifeExpectancy
     }) {
         const chartData = [];
         const totalYears = lifeExpectancy - currentAge;
@@ -656,7 +658,8 @@ $("runBtn").addEventListener("click", async () => {
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
-        useGlidepath
+        useGlidepath,
+        lifeExpectancy
     });
 
     renderGrowthChart(chartData);
