@@ -1130,6 +1130,10 @@ function renderGrowthChart(chartData, phases, lifeExpectancy) {
             scales: {
                 x: {
                     type: "linear",
+
+                    min: currentAge,
+                    max: lifeExpectancy,
+
                     title: { text: "Age", display: true }
                 },
                 y: {
