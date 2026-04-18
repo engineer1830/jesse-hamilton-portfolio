@@ -161,12 +161,14 @@ $("runBtn").addEventListener("click", async () => {
     const currentTrad = parseFloat($("currentTrad").value) || 0;
 
     const contribution = parseFloat($("contribution").value) || 0;
-    const years = parseInt($("years").value) || 0;
+    // years will be derived from ages
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
+    const lifeExpectancy = 85;
+
 
     // Sanitize portfolio string
     let portfolioStr = $("portfolio").value;
@@ -178,12 +180,24 @@ $("runBtn").addEventListener("click", async () => {
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
 
     const currentAge = $("currentAge") ? (parseInt($("currentAge").value) || 60) : 60;
-    const retirementAge = $("retirementAge") ? (parseInt($("retirementAge").value) || (currentAge + years)) : (currentAge + years);
+    const retirementAge = $("retirementAge")
+        ? (parseInt($("retirementAge").value) || currentAge + 25)  // or any reasonable default span
+        : (currentAge + 25);
+
+    const years = retirementAge - currentAge;
+    if (years <= 0) {
+        alert("Retirement age must be greater than current age.");
+        return;
+    }
+    
     const workStopAge = $("workStopAge") ? (parseInt($("workStopAge").value) || retirementAge) : retirementAge;
     const ssAnnualStatement = $("ssAnnual") ? (parseFloat($("ssAnnual").value) || 0) : 0;
     const claimAge = $("claimAge") ? (parseInt($("claimAge").value) || 67) : 67;
     const filingStatus = $("filingStatus") ? ($("filingStatus").value || "married") : "married";
     const spendingNeed = $("spendingNeed") ? (parseFloat($("spendingNeed").value) || 0) : 0;
+
+    const useGlidepath = $("useGlidepath") ? $("useGlidepath").checked : false;
+
 
     let mode = "synthetic";
     let expectedReturn;
@@ -228,55 +242,136 @@ $("runBtn").addEventListener("click", async () => {
         return;
     }
 
+    // 6. NO ticker + NO portfolio + NO glidepath → not a meaningful scenario
+    if (!useGlidepath && ticker === "" && portfolioStr === "") {
+        alert("Please enter a ticker, a portfolio, or enable Glidepath.");
+        return;
+    }
+
+
     /* ---------------------------------------------------
-       REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
-    --------------------------------------------------- */
+    LIFECYCLE GLIDEPATH ENGINE (EXTENDED TO LIFE EXPECTANCY)
+ --------------------------------------------------- */
 
-    if (portfolioStr !== "") {
-        // Portfolio mode
-        const { tickers, weights } = parsePortfolio(portfolioStr);
+    let yearlyExpectedReturns = null;
+    let yearlyVols = null;
 
-        if (tickers.length) {
-            try {
-                const data = await getMultipleTickers(tickers, "max", "1d");
-                const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
-                const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+    if (useGlidepath) {
+        mode = "real-market-glidepath";
 
-                if (!isNaN(weightedCagr) && weightedCagr > 0) {
-                    expectedReturn = weightedCagr;
-                    stockVol = weightedVol;
-                    mode = "real-market-portfolio";
-                }
-            } catch (err) {
-                console.warn("Portfolio real-market fetch failed:", err);
+        try {
+            const tickers = [glidepathStockTicker, glidepathBondTicker];
+            const data = await getMultipleTickers(tickers, "max", "1d");
+
+            const stockPrices = data[glidepathStockTicker] || [];
+            const bondPrices = data[glidepathBondTicker] || [];
+
+            const stockReturn = stockPrices.length ? calculateCAGR(stockPrices) : growth;
+            const bondReturn = bondPrices.length ? calculateCAGR(bondPrices) : growth;
+
+            const stockVolDaily = stockPrices.length
+                ? Finance.stddev(stockPrices.slice(1).map((p, i) =>
+                    (p.close - stockPrices[i].close) / stockPrices[i].close))
+                : 0.15 / Math.sqrt(252);
+
+            const bondVolDaily = bondPrices.length
+                ? Finance.stddev(bondPrices.slice(1).map((p, i) =>
+                    (p.close - bondPrices[i].close) / bondPrices[i].close))
+                : 0.07 / Math.sqrt(252);
+
+            const stockVolAnnual = stockVolDaily * Math.sqrt(252);
+            const bondVolAnnual = bondVolDaily * Math.sqrt(252);
+
+            // EXTENDED RANGE
+            const totalYears = lifeExpectancy - currentAge;
+
+            yearlyExpectedReturns = [];
+            yearlyVols = [];
+
+            for (let i = 0; i < totalYears; i++) {
+                const age = currentAge + i;
+                const { stockWeight, bondWeight } = getGlidepathAllocation(age, retirementAge);
+
+                const mu = stockWeight * stockReturn + bondWeight * bondReturn;
+
+                const sigma = Math.sqrt(
+                    Math.pow(stockVolAnnual * stockWeight, 2) +
+                    Math.pow(bondVolAnnual * bondWeight, 2)
+                );
+
+                yearlyExpectedReturns.push(mu);
+                yearlyVols.push(sigma);
             }
-        }
 
-    } else {
-        // Single ticker mode
-        const ticker = $("ticker").value.trim().toUpperCase();
-        console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+            expectedReturn = yearlyExpectedReturns[0];
+            stockVol = yearlyVols[0];
 
-        if (ticker !== "") {
-            try {
-                const prices = await getHistoricalPrices(ticker, "max", "1d");
-                if (prices.length) {
-                    expectedReturn = calculateCAGR(prices);
-                    mode = "real-market";
-                }
-            } catch (err) {
-                console.warn("Single-ticker real-market fetch failed:", err);
-            }
+        } catch (err) {
+            console.warn("Glidepath fetch failed, falling back:", err);
+            expectedReturn = growth;
+            stockVol = 0.15;
+            mode = "synthetic";
+            yearlyExpectedReturns = null;
+            yearlyVols = null;
         }
     }
+ 
+
+    /* ---------------------------------------------------
+    REAL-MARKET RETURN (PORTFOLIO OR SINGLE TICKER)
+    (Only runs when glidepath is OFF)
+ --------------------------------------------------- */
+
+    if (!useGlidepath) {
+
+        if (portfolioStr !== "") {
+            // Portfolio mode
+            const { tickers, weights } = parsePortfolio(portfolioStr);
+
+            if (tickers.length) {
+                try {
+                    const data = await getMultipleTickers(tickers, "max", "1d");
+                    const weightedCagr = await computeWeightedCAGR(data, tickers, weights);
+                    const weightedVol = await computeWeightedVolatility(data, tickers, weights);
+
+                    if (!isNaN(weightedCagr) && weightedCagr > 0) {
+                        expectedReturn = weightedCagr;
+                        stockVol = weightedVol;
+                        mode = "real-market-portfolio";
+                    }
+                } catch (err) {
+                    console.warn("Portfolio real-market fetch failed:", err);
+                }
+            }
+
+        } else {
+            // Single ticker mode
+            const ticker = $("ticker").value.trim().toUpperCase();
+            console.log("REAL-MARKET CHECK — ticker (fresh):", JSON.stringify(ticker));
+
+            if (ticker !== "") {
+                try {
+                    const prices = await getHistoricalPrices(ticker, "max", "1d");
+                    if (prices.length) {
+                        expectedReturn = calculateCAGR(prices);
+                        mode = "real-market";
+                    }
+                } catch (err) {
+                    console.warn("Single-ticker real-market fetch failed:", err);
+                }
+            }
+        }
+
+    } // END: !useGlidepath guard
+ 
 
     /* ---------------------------------------------------
        LIVE RETURN FALLBACK (ONLY IF REAL-MARKET FAILED)
     --------------------------------------------------- */
-    if (expectedReturn === undefined) {
+    if (!useGlidepath && expectedReturn === undefined) {
         try {
             const ticker = $("ticker").value.trim().toUpperCase();
-            const prices = await fetchHistoricalPrices(ticker || "VTI");
+            const prices = await getHistoricalPrices(ticker || "VTI", "10y", "1d");
             const stats = computeReturnStats(prices);
             expectedReturn = stats.annualReturn;
         } catch (err) {
@@ -292,7 +387,7 @@ $("runBtn").addEventListener("click", async () => {
 
     if (overrideVol) {
         stockVol = Number($("customStockVol").value) / 100;
-    } else if (stockVol === undefined) {
+    } else if (!useGlidepath && stockVol === undefined) {
         try {
             const ticker = $("ticker").value.trim().toUpperCase();
             const prices = await fetchHistoricalPrices(ticker || "VTI");
@@ -356,19 +451,77 @@ $("runBtn").addEventListener("click", async () => {
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
     /* ---------------------------------------------------
-       CHARTS
-    --------------------------------------------------- */
-    const yearly = buildYearlyCurves({
+    DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
+ --------------------------------------------------- */
+
+    function buildDeterministicChart({
+        currentAge,
+        currentRoth,
+        currentTrad,
         contribution,
         rothContribution,
         expectedReturn,
-        years,
-        retireTax,
+        yearlyExpectedReturns,
+        yearlyVols,
+        useGlidepath
+    }) {
+        const chartData = [];
+        const totalYears = lifeExpectancy - currentAge;
+
+        let roth = currentRoth;
+        let trad = currentTrad;
+
+        for (let i = 0; i < totalYears; i++) {
+            const age = currentAge + i;
+
+            // Determine return for this year
+            let mu = expectedReturn;
+            if (useGlidepath && yearlyExpectedReturns) {
+                mu = yearlyExpectedReturns[i] || yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+            }
+
+            // Apply growth
+            roth *= (1 + mu);
+            trad *= (1 + mu);
+
+            // Apply contributions only before retirement
+            if (age < retirementAge) {
+                roth += rothContribution;
+                trad += contribution;
+            }
+
+            chartData.push({
+                age,
+                roth,
+                trad
+            });
+        }
+
+        return chartData;
+    }
+ 
+    /* ---------------------------------------------------
+       BUILD & RENDER GROWTH CHART
+    --------------------------------------------------- */
+
+    const chartData = buildDeterministicChart({
+        currentAge,
         currentRoth,
-        currentTrad
+        currentTrad,
+        contribution,
+        rothContribution,
+        expectedReturn,
+        yearlyExpectedReturns,
+        yearlyVols,
+        useGlidepath
     });
 
-    renderGrowthChart(yearly);
+    renderGrowthChart(chartData);
+
+    /* ---------------------------------------------------
+   BUILD & RENDER TAX CHART
+--------------------------------------------------- */
+
     renderTaxChart({
         contribution,
         expectedReturn,
@@ -396,7 +549,10 @@ $("runBtn").addEventListener("click", async () => {
             currentRoth,
             currentTrad,
             expectedReturn,
-            stockVolatility: stockVol
+            stockVolatility: stockVol,
+            useGlidepath,
+            yearlyExpectedReturns,
+            yearlyVols
         });
     }
 
@@ -429,8 +585,17 @@ $("runBtn").addEventListener("click", async () => {
         retirementTaxDetails,
         taxContext,
         expectedReturn,
-        stockVol
+        stockVol,
+
+        glidepath: useGlidepath ? {
+            yearlyExpectedReturns,
+            yearlyVols,
+            glidepathStockTicker,
+            glidepathBondTicker
+        } : null
     };
+    
+
 
     renderSummary(result);
     loading.style.display = "none";
@@ -529,6 +694,28 @@ async function computeWeightedVolatility(data, tickers, weights) {
     return Math.sqrt(variance);
 }
 
+const glidepathStockTicker = "FXAIX";
+const glidepathBondTicker = "FXNAX";
+
+
+function getGlidepathAllocation(age, retirementAge) {
+    // Returns { stockWeight, bondWeight } as decimals (0–1)
+    if (age < retirementAge - 10) {
+        // Aggressive
+        return { stockWeight: 1.0, bondWeight: 0.0 };
+    } else if (age < retirementAge - 2) {
+        // Moderate
+        return { stockWeight: 0.65, bondWeight: 0.35 };
+    } else if (age < 70) {
+        // Preserve
+        return { stockWeight: 0.50, bondWeight: 0.50 };
+    } else {
+        // Legacy
+        return { stockWeight: 0.35, bondWeight: 0.65 };
+    }
+}
+
+
 /* -------------------------------------------------------
    YEARLY CURVES FOR CHART
 ------------------------------------------------------- */
@@ -558,12 +745,12 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart({ roth, trad }) {
+function renderGrowthChart(chartData) {
     const ctx = $("growthChart").getContext("2d");
 
-    const labels = roth.map(p => `Year ${p.year}`);
-    const rothData = roth.map(p => p.balance);
-    const tradData = trad.map(p => p.balance);
+    const labels = chartData.map(p => `Age ${p.age}`);
+    const rothData = chartData.map(p => p.roth);
+    const tradData = chartData.map(p => p.trad);
 
     if (growthChart) growthChart.destroy();
 
@@ -603,6 +790,7 @@ function renderGrowthChart({ roth, trad }) {
         }
     });
 }
+
 
 function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
@@ -663,33 +851,51 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
     });
 }
 
-/* -------------------------------------------------------
-   MONTE CARLO SIMULATION (Volatility-Driven)
-------------------------------------------------------- */
+    /* -------------------------------------------------------
+    MONTE CARLO SIMULATION (Volatility-Driven)
+    ------------------------------------------------------- */
 
-async function runMonteCarlo({
-    ticker,
-    portfolioStr,
-    contribution,
-    rothContribution,
-    years,
-    currentTax,
-    retireTax,
-    runs,
-    currentRoth,
-    currentTrad,
-    expectedReturn,
-    stockVolatility
-}) {
-    // If we don't have volatility or return, we cannot simulate
-    if (!expectedReturn || !stockVolatility) return null;
+    async function runMonteCarlo({
+        ticker,
+        portfolioStr,
+        contribution,
+        rothContribution,
+        years,
+        currentTax,
+        retireTax,
+        runs,
+        currentRoth,
+        currentTrad,
+        expectedReturn,
+        stockVolatility,
+        useGlidepath,
+        yearlyExpectedReturns: gpReturns,
+        yearlyVols: gpVols
+    }) {
+        // If we don't have volatility or return, we cannot simulate
+        if (!expectedReturn || !stockVolatility) return null;
 
-    const daysPerYear = 252;
-    const totalDays = years * daysPerYear;
+        
+        const daysPerYear = 252;
+        const totalDays = years * daysPerYear;
 
-    // Convert annual parameters → daily parameters
-    const dailyMean = expectedReturn / daysPerYear;
-    const dailyStd = stockVolatility / Math.sqrt(daysPerYear);
+    function getDailyParams(dayIndex) {
+        if (useGlidepath && gpReturns && gpVols) {
+            const yearIndex = Math.floor(dayIndex / daysPerYear);
+            const mu = gpReturns[yearIndex];
+            const sigma = gpVols[yearIndex];
+            return {
+                dailyMean: mu / daysPerYear,
+                dailyStd: sigma / Math.sqrt(daysPerYear)
+            };
+        }
+
+        return {
+            dailyMean: expectedReturn / daysPerYear,
+            dailyStd: stockVolatility / Math.sqrt(daysPerYear)
+        };
+    }
+    
 
     const rothResults = [];
     const tradResults = [];
@@ -708,7 +914,10 @@ async function runMonteCarlo({
         for (let day = 0; day < totalDays; day++) {
             // Generate a normally distributed daily return
             const z = randomNormal();
+
+            const { dailyMean, dailyStd } = getDailyParams(day);
             const r = dailyMean + dailyStd * z;
+
 
             // Apply growth
             rothBal *= (1 + r);

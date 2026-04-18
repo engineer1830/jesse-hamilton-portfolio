@@ -96,6 +96,46 @@ document.getElementById("overrideVolToggle").addEventListener("change", (e) => {
         e.target.checked ? "block" : "none";
 });
 
+function applyWithdrawals({
+    age,
+    roth,
+    trad,
+    spendingNeed,
+    ssIncome,
+    retireTax
+}) {
+    // Social Security offset (0 before claim age)
+    const netNeed = Math.max(spendingNeed - ssIncome, 0);
+
+    if (netNeed <= 0) {
+        return { roth, trad };
+    }
+
+    // Withdrawal order: Traditional first (taxable), then Roth
+    let remainingNeed = netNeed;
+
+    // Traditional withdrawal (pre-tax)
+    if (trad > 0) {
+        const tradGross = remainingNeed / (1 - retireTax); // gross needed to net the spending
+        const tradWithdrawal = Math.min(tradGross, trad);
+        trad -= tradWithdrawal;
+        remainingNeed -= tradWithdrawal * (1 - retireTax);
+    }
+
+    // Roth withdrawal (tax-free)
+    if (remainingNeed > 0 && roth > 0) {
+        const rothWithdrawal = Math.min(remainingNeed, roth);
+        roth -= rothWithdrawal;
+        remainingNeed -= rothWithdrawal;
+    }
+
+    return {
+        roth: Math.max(roth, 0),
+        trad: Math.max(trad, 0)
+    };
+}
+
+
 /* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
 ------------------------------------------------------- */
@@ -451,6 +491,52 @@ $("runBtn").addEventListener("click", async () => {
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
     /* ---------------------------------------------------
+    CHART SHADING SET UP
+ --------------------------------------------------- */
+    
+    const phaseShadingPlugin = {
+        id: "phaseShading",
+        beforeDraw(chart, args, options) {
+            const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
+
+            const phases = options.phases || [];
+            ctx.save();
+
+            phases.forEach(phase => {
+                const xStart = x.getPixelForValue(phase.startAge);
+                const xEnd = x.getPixelForValue(phase.endAge);
+
+                ctx.fillStyle = phase.color;
+                ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+            });
+
+            ctx.restore();
+        }
+    };
+
+    const phases = [
+        {
+            name: "Aggressive",
+            startAge: currentAge,
+            endAge: retirementAge,
+            color: "rgba(255, 99, 132, 0.10)"   // light red
+        },
+        {
+            name: "Moderate",
+            startAge: retirementAge,
+            endAge: retirementAge + 10,
+            color: "rgba(255, 206, 86, 0.10)"   // light yellow
+        },
+        {
+            name: "Preserve",
+            startAge: retirementAge + 10,
+            endAge: lifeExpectancy,
+            color: "rgba(75, 192, 192, 0.10)"   // light teal
+        }
+    ];
+    
+    
+    /* ---------------------------------------------------
     DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
  --------------------------------------------------- */
 
@@ -490,11 +576,68 @@ $("runBtn").addEventListener("click", async () => {
                 trad += contribution;
             }
 
+            // Apply withdrawals after retirement (this updates roth & trad BEFORE chartData.push)
+            let withdrawal = undefined;
+            let taxDrag = undefined;
+            let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
+
+            if (age >= retirementAge) {
+                const updated = applyWithdrawals({
+                    age,
+                    roth,
+                    trad,
+                    spendingNeed,
+                    ssIncome,
+                    retireTax
+                });
+
+                // Compute withdrawal + tax drag for tooltip
+                const rothBefore = roth;
+                const tradBefore = trad;
+
+                roth = updated.roth;
+                trad = updated.trad;
+
+                const rothDelta = rothBefore - roth;
+                const tradDelta = tradBefore - trad;
+
+                withdrawal = Math.round(rothDelta + tradDelta * (1 - retireTax));
+                taxDrag = Math.round(tradDelta * retireTax);
+            }
+
+            // Determine glidepath allocation (if enabled)
+            let stockWeight = undefined;
+            let bondWeight = undefined;
+
+            if (useGlidepath && typeof getGlidepathAllocation === "function") {
+                const alloc = getGlidepathAllocation(age, retirementAge);
+                stockWeight = alloc.stockWeight;
+                bondWeight = alloc.bondWeight;
+            }
+
+            // Determine volatility for this year (if glidepath)
+            const vol = yearlyVols ? yearlyVols[i] : undefined;
+
+            // Determine contribution (pre‑retirement)
+            const contributionThisYear = age < retirementAge ? contribution : undefined;
+
+            // Now push the FINAL values for this year
             chartData.push({
                 age,
                 roth,
-                trad
+                trad,
+
+                // Hover insights
+                mu,                     // return for this year
+                vol,                    // volatility for this year
+                stockWeight,            // glidepath stock %
+                bondWeight,             // glidepath bond %
+                contribution: contributionThisYear,
+                withdrawal,
+                ssIncome,
+                taxDrag
             });
+
         }
 
         return chartData;
@@ -741,56 +884,128 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
     return { roth, trad };
 }
 
+// -------------------------------------------------------
+// PHASE SHADING DEFINITIONS
+// -------------------------------------------------------
+
+const phases = [
+    {
+        name: "Aggressive",
+        startAge: currentAge,
+        endAge: retirementAge,
+        color: "rgba(255, 99, 132, 0.10)"   // light red
+    },
+    {
+        name: "Moderate",
+        startAge: retirementAge,
+        endAge: retirementAge + 10,
+        color: "rgba(255, 206, 86, 0.10)"   // light yellow
+    },
+    {
+        name: "Preserve",
+        startAge: retirementAge + 10,
+        endAge: lifeExpectancy,
+        color: "rgba(75, 192, 192, 0.10)"   // light teal
+    }
+];
+
+
 /* -------------------------------------------------------
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(chartData) {
+function renderGrowthChart(chartData, phases) {
     const ctx = $("growthChart").getContext("2d");
-
-    const labels = chartData.map(p => `Age ${p.age}`);
-    const rothData = chartData.map(p => p.roth);
-    const tradData = chartData.map(p => p.trad);
 
     if (growthChart) growthChart.destroy();
 
     growthChart = new Chart(ctx, {
         type: "line",
         data: {
-            labels,
+            labels: chartData.map(d => d.age),
             datasets: [
                 {
                     label: "Roth (after-tax)",
-                    data: rothData,
-                    borderColor: "#2b6cb0",
-                    backgroundColor: "rgba(43,108,176,0.1)",
-                    tension: 0.2
+                    data: chartData.map(d => d.roth),
+                    borderColor: "blue",
+                    fill: false
                 },
                 {
                     label: "Traditional (after-tax)",
-                    data: tradData,
-                    borderColor: "#e53e3e",
-                    backgroundColor: "rgba(229,62,62,0.1)",
-                    tension: 0.2
+                    data: chartData.map(d => d.trad),
+                    borderColor: "red",
+                    fill: false
                 }
             ]
         },
+
         options: {
-            responsive: true,
             plugins: {
-                legend: { position: "bottom" }
-            },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: v => `$${v.toLocaleString()}`
+                phaseShading: {
+                    phases: phases
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const index = context.dataIndex;
+                            const point = chartData[index];
+
+                            let lines = [];
+
+                            lines.push(`${context.dataset.label}: $${context.parsed.y.toLocaleString()}`);
+
+                            if (point.mu !== undefined) {
+                                lines.push(`Return: ${(point.mu * 100).toFixed(2)}%`);
+                            }
+
+                            if (point.vol !== undefined) {
+                                lines.push(`Volatility: ${(point.vol * 100).toFixed(2)}%`);
+                            }
+
+                            if (point.stockWeight !== undefined && point.bondWeight !== undefined) {
+                                lines.push(
+                                    `Allocation: ${(point.stockWeight * 100).toFixed(0)}% stocks / ${(point.bondWeight * 100).toFixed(0)}% bonds`
+                                );
+                            }
+
+                            if (point.contribution !== undefined) {
+                                lines.push(`Contribution: $${point.contribution.toLocaleString()}`);
+                            }
+
+                            if (point.withdrawal !== undefined) {
+                                lines.push(`Withdrawal: $${point.withdrawal.toLocaleString()}`);
+                            }
+
+                            if (point.ssIncome !== undefined) {
+                                lines.push(`Social Security: $${point.ssIncome.toLocaleString()}`);
+                            }
+
+                            if (point.taxDrag !== undefined) {
+                                lines.push(`Tax drag: $${point.taxDrag.toLocaleString()}`);
+                            }
+
+                            return lines;
+                        }
                     }
                 }
-            }
-        }
-    });
-}
+            },
 
+            scales: {
+                x: {
+                    type: "linear",
+                    title: { text: "Age", display: true }
+                },
+                y: {
+                    title: { text: "Value ($)", display: true }
+                }
+            }
+        },
+
+        plugins: [phaseShadingPlugin]   // ← this was missing in your pasted version
+    });
+
+    }
+    
 
 function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
