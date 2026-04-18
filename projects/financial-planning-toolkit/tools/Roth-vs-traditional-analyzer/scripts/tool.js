@@ -727,6 +727,8 @@ $("runBtn").addEventListener("click", async () => {
             });
 
         }
+        
+        console.log("Ages in chartData:", chartData.map(d => d.age));
 
         return {
             chartData,
