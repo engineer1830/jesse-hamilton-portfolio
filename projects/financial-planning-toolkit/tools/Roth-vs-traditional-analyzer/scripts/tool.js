@@ -161,7 +161,7 @@ $("runBtn").addEventListener("click", async () => {
     const currentTrad = parseFloat($("currentTrad").value) || 0;
 
     const contribution = parseFloat($("contribution").value) || 0;
-    const years = parseInt($("years").value) || 0;
+    // years will be derived from ages
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
@@ -180,7 +180,16 @@ $("runBtn").addEventListener("click", async () => {
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
 
     const currentAge = $("currentAge") ? (parseInt($("currentAge").value) || 60) : 60;
-    const retirementAge = $("retirementAge") ? (parseInt($("retirementAge").value) || (currentAge + years)) : (currentAge + years);
+    const retirementAge = $("retirementAge")
+        ? (parseInt($("retirementAge").value) || currentAge + 25)  // or any reasonable default span
+        : (currentAge + 25);
+
+    const years = retirementAge - currentAge;
+    if (years <= 0) {
+        alert("Retirement age must be greater than current age.");
+        return;
+    }
+    
     const workStopAge = $("workStopAge") ? (parseInt($("workStopAge").value) || retirementAge) : retirementAge;
     const ssAnnualStatement = $("ssAnnual") ? (parseFloat($("ssAnnual").value) || 0) : 0;
     const claimAge = $("claimAge") ? (parseInt($("claimAge").value) || 67) : 67;
