@@ -245,6 +245,39 @@ const $ = id => document.getElementById(id);
 let growthChart = null;
 let taxChart = null;
 
+/* -------------------------------------------------------
+PHASE BUILDER (Option B)
+------------------------------------------------------- */
+
+function buildPhases(currentAge, lifeExpectancy) {
+    return [
+        {
+            name: "Aggressive",
+            startAge: currentAge,
+            endAge: 50,
+            color: "rgba(255, 99, 132, 0.15)"
+        },
+        {
+            name: "Moderate",
+            startAge: 50,
+            endAge: 60,
+            color: "rgba(255, 159, 64, 0.15)"
+        },
+        {
+            name: "Preserve",
+            startAge: 60,
+            endAge: 70,
+            color: "rgba(75, 192, 192, 0.15)"
+        },
+        {
+            name: "Legacy",
+            startAge: 70,
+            endAge: Number(lifeExpectancy),
+            color: "rgba(153, 102, 255, 0.15)"
+        }
+    ];
+}
+
 $("runBtn").addEventListener("click", async () => {
     const loading = $("loading");
     const output = $("output");
@@ -549,26 +582,26 @@ $("runBtn").addEventListener("click", async () => {
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
 
-    const phases = [
-        {
-            name: "Aggressive",
-            startAge: currentAge,
-            endAge: retirementAge,
-            color: "rgba(255, 99, 132, 0.10)"   // light red
-        },
-        {
-            name: "Moderate",
-            startAge: retirementAge,
-            endAge: retirementAge + 10,
-            color: "rgba(255, 206, 86, 0.10)"   // light yellow
-        },
-        {
-            name: "Preserve",
-            startAge: retirementAge + 10,
-            endAge: Number(lifeExpectancy),
-            color: "rgba(75, 192, 192, 0.10)"   // light teal
-        }
-    ];
+    // const phases = [ TO BE DELETED
+    //     {
+    //         name: "Aggressive",
+    //         startAge: currentAge,
+    //         endAge: retirementAge,
+    //         color: "rgba(255, 99, 132, 0.10)"   // light red
+    //     },
+    //     {
+    //         name: "Moderate",
+    //         startAge: retirementAge,
+    //         endAge: retirementAge + 10,
+    //         color: "rgba(255, 206, 86, 0.10)"   // light yellow
+    //     },
+    //     {
+    //         name: "Preserve",
+    //         startAge: retirementAge + 10,
+    //         endAge: Number(lifeExpectancy),
+    //         color: "rgba(75, 192, 192, 0.10)"   // light teal
+    //     }
+    // ];
     
     
     /* ---------------------------------------------------
@@ -734,7 +767,7 @@ $("runBtn").addEventListener("click", async () => {
             tradAt73
         };
     }
- 
+
     /* ---------------------------------------------------
        BUILD & RENDER GROWTH CHART
     --------------------------------------------------- */
@@ -756,6 +789,8 @@ $("runBtn").addEventListener("click", async () => {
         retireTax,
         lifeExpectancy
     });
+
+    const phases = buildPhases(currentAge, lifeExpectancy);
 
     const tradAtRetirement =
         chartData.find(row => row.age === retirementAge)?.trad || 0;
@@ -1011,32 +1046,7 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
 // PHASE SHADING DEFINITIONS
 // -------------------------------------------------------
 
-const phases = [
-    {
-        name: "Aggressive",
-        startAge: currentAge,
-        endAge: 50,
-        color: "rgba(255, 99, 132, 0.15)"   // red-ish
-    },
-    {
-        name: "Moderate",
-        startAge: 50,
-        endAge: 60,
-        color: "rgba(255, 159, 64, 0.15)"   // orange
-    },
-    {
-        name: "Preserve",
-        startAge: 60,
-        endAge: 70,
-        color: "rgba(75, 192, 192, 0.15)"   // teal
-    },
-    {
-        name: "Legacy",
-        startAge: 70,
-        endAge: Number(lifeExpectancy),
-        color: "rgba(153, 102, 255, 0.15)"  // purple
-    }
-];
+const phases = buildPhases(currentAge, lifeExpectancy);
 
 
 /* -------------------------------------------------------
