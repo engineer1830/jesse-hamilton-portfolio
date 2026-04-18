@@ -1046,6 +1046,9 @@ const phases = [
 function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
     const ctx = $("growthChart").getContext("2d");
 
+    console.log("renderGrowthChart args:", { currentAge, lifeExpectancy });
+
+
     if (growthChart) growthChart.destroy();
 
     growthChart = new Chart(ctx, {
