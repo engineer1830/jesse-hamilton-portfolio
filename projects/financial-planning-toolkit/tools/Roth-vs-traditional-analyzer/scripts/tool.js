@@ -500,6 +500,7 @@ $("runBtn").addEventListener("click", async () => {
         currentRoth,
         currentTrad,
         contribution,
+        rothContribution,
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
