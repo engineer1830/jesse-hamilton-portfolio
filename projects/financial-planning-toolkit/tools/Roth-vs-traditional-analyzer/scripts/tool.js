@@ -1014,20 +1014,26 @@ const phases = [
     {
         name: "Aggressive",
         startAge: currentAge,
-        endAge: retirementAge,
-        color: "rgba(255, 99, 132, 0.10)"   // light red
+        endAge: 50,
+        color: "rgba(255, 99, 132, 0.15)"   // red-ish
     },
     {
         name: "Moderate",
-        startAge: retirementAge,
-        endAge: retirementAge + 10,
-        color: "rgba(255, 206, 86, 0.10)"   // light yellow
+        startAge: 50,
+        endAge: 60,
+        color: "rgba(255, 159, 64, 0.15)"   // orange
     },
     {
         name: "Preserve",
-        startAge: retirementAge + 10,
-        endAge: lifeExpectancy,
-        color: "rgba(75, 192, 192, 0.10)"   // light teal
+        startAge: 60,
+        endAge: 70,
+        color: "rgba(75, 192, 192, 0.15)"   // teal
+    },
+    {
+        name: "Legacy",
+        startAge: 70,
+        endAge: Number(lifeExpectancy),
+        color: "rgba(153, 102, 255, 0.15)"  // purple
     }
 ];
 
@@ -1109,6 +1115,11 @@ function renderGrowthChart(chartData, phases, lifeExpectancy) {
                             if (context.raw.rmdComponent > 0) {
                                 lines.push(`RMD component: $${context.raw.rmdComponent.toLocaleString()}`);
                             }
+
+                            if (point.age === 73) {
+                                lines.push("Note: Hover withdrawal is net; tax table RMD is gross.");
+                            }
+
                             
                             return lines;
                         }
