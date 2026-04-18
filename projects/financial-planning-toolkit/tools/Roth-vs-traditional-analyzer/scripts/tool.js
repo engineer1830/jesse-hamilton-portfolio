@@ -41,6 +41,27 @@ import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.j
 import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
 import { estimateRetirementTaxRate } from "./retirement.js";
 
+
+// Simple IRS Uniform Lifetime Table approximation
+function getRmdDivisor(age) {
+    if (age < 73) return Infinity;      // no RMD yet
+    if (age === 73) return 26.5;
+    if (age === 74) return 25.5;
+    if (age === 75) return 24.6;
+    if (age === 76) return 23.7;
+    if (age === 77) return 22.9;
+    if (age === 78) return 22.0;
+    if (age === 79) return 21.1;
+    if (age === 80) return 20.2;
+    if (age === 81) return 19.4;
+    if (age === 82) return 18.5;
+    if (age === 83) return 17.7;
+    if (age === 84) return 16.8;
+    if (age === 85) return 16.0;
+    // beyond: just keep decreasing slowly
+    return 16 - (age - 85) * 0.7;
+}
+
 // -------------------------------------------------------
 // TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
 // -------------------------------------------------------
@@ -583,33 +604,56 @@ $("runBtn").addEventListener("click", async () => {
                 trad += contribution;
             }
 
-            // Apply withdrawals after retirement (this updates roth & trad BEFORE chartData.push)
+            // Apply withdrawals after retirement (need-based OR RMD, whichever is larger)
             let withdrawal = undefined;
             let taxDrag = undefined;
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
             if (age >= retirementAge) {
-                const updated = applyWithdrawals({
-                    age,
-                    roth,
-                    trad,
-                    spendingNeed,
-                    ssIncome,
-                    retireTax
-                });
+                // 1) Need-based withdrawal (after-tax)
+                const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
 
-                // Compute withdrawal + tax drag for tooltip
-                const rothBefore = roth;
-                const tradBefore = trad;
+                // 2) RMD (gross, from Traditional)
+                let rmdGross = 0;
+                if (age >= 73 && trad > 0) {
+                    const divisor = getRmdDivisor(age);
+                    rmdGross = trad / divisor;
+                }
 
-                roth = updated.roth;
-                trad = updated.trad;
+                // After-tax cash from RMD alone
+                const rmdNet = rmdGross * (1 - retireTax);
 
-                const rothDelta = rothBefore - roth;
-                const tradDelta = tradBefore - trad;
+                // 3) Target after-tax cash this year: max(need, RMD cash)
+                const targetNet = Math.max(needBasedNet, rmdNet);
 
-                withdrawal = Math.round(rothDelta + tradDelta * (1 - retireTax));
-                taxDrag = Math.round(tradDelta * retireTax);
+                if (targetNet > 0) {
+                    const rothBefore = roth;
+                    const tradBefore = trad;
+
+                    // 4) First try to fund targetNet from Traditional (grossed up for tax)
+                    let tradGrossNeeded = targetNet / (1 - retireTax);
+
+                    // Enforce at least RMD from Traditional
+                    tradGrossNeeded = Math.max(tradGrossNeeded, rmdGross);
+
+                    // But cannot take more than we have
+                    const tradGrossActual = Math.min(trad, tradGrossNeeded);
+
+                    // After-tax from Traditional
+                    const tradNet = tradGrossActual * (1 - retireTax);
+
+                    // 5) If still short, take the rest from Roth (no tax)
+                    const rothNetNeeded = Math.max(targetNet - tradNet, 0);
+                    const rothActual = Math.min(roth, rothNetNeeded);
+
+                    // 6) Update balances
+                    trad -= tradGrossActual;
+                    roth -= rothActual;
+
+                    // 7) Tooltip values
+                    withdrawal = Math.round(tradNet + rothActual);
+                    taxDrag = Math.round(tradGrossActual * retireTax);
+                }
             }
 
             // Determine glidepath allocation (if enabled)
