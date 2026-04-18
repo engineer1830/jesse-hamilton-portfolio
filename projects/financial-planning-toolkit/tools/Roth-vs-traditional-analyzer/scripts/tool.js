@@ -1050,17 +1050,17 @@ function renderGrowthChart(chartData, phases, lifeExpectancy) {
     growthChart = new Chart(ctx, {
         type: "line",
         data: {
-            labels: chartData.map(d => d.age),
+            // labels: chartData.map(d => d.age),
             datasets: [
                 {
                     label: "Roth (after-tax)",
-                    data: chartData.map(d => d.roth),
+                    data: chartData.map(d => ({ x: d.age, y: d.roth })),
                     borderColor: "blue",
                     fill: false
                 },
                 {
                     label: "Traditional (after-tax)",
-                    data: chartData.map(d => d.trad),
+                    data: chartData.map(d => ({ x: d.age, y: d.trad })),
                     borderColor: "red",
                     fill: false
                 }
