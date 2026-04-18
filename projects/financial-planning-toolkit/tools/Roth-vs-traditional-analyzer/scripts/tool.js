@@ -450,6 +450,7 @@ $("runBtn").addEventListener("click", async () => {
         currentRoth,
         currentTrad,
         contribution,
+        rothContribution,
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
@@ -476,7 +477,7 @@ $("runBtn").addEventListener("click", async () => {
 
             // Apply contributions only before retirement
             if (age < retirementAge) {
-                roth += contribution;
+                roth += rothContribution;
                 trad += contribution;
             }
 
