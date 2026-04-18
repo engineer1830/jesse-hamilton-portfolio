@@ -277,3 +277,40 @@ body.dark .summary-table th
     margin-bottom: 12px;
     font-style: italic;
 }
+.withdrawal-row
+{
+    margin-top: 8px;
+}
+
+.withdrawal-label
+{
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.withdrawal-value
+{
+    font-size: 0.95rem;
+}
+
+.withdrawal-value.good
+{
+    color: var(--success);
+}
+
+.withdrawal-value.warn
+{
+    color: var(--warning);
+}
+
+.withdrawal-value.bad
+{
+    color: var(--danger);
+}
+
+.withdrawal-sub
+{
+    display: block;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}

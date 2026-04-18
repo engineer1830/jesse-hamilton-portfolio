@@ -1382,6 +1382,34 @@ function generateGuidance(result) {
 ------------------------------------------------------- */
 
 function computeProInsights(result) {
+
+    // -------------------------------------------------------
+    // 4% / 5% WITHDRAWAL HELPERS
+    // -------------------------------------------------------
+    function simulateWithdrawal(balance, rate, growthRate, years) {
+        const annual = balance * rate;
+        let b = balance;
+
+        for (let i = 0; i < years; i++) {
+            b = b * (1 + growthRate) - annual;
+            if (b <= 0) return 0;
+        }
+        return b;
+    }
+
+    function withdrawalInsight(balance, rate, growthRate, years) {
+        const endBalance = simulateWithdrawal(balance, rate, growthRate, years);
+        return {
+            rate,
+            annual: balance * rate,
+            endBalance,
+            sustainable: endBalance > 0
+        };
+    }
+
+    // -------------------------------------------------------
+    // INPUT EXTRACTION
+    // -------------------------------------------------------
     const {
         currentRoth,
         currentTrad,
@@ -1419,11 +1447,15 @@ function computeProInsights(result) {
     let nextBracketRate = null;
     let taxJump = null;
 
+    // NEW: 4%/5% INSIGHT DEFAULTS
+    let fourPercent = null;
+    let fivePercent = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
     // -------------------------------------------------------
     if (retirementTaxDetails && taxContext) {
+
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
         const {
             filingStatus,
@@ -1476,25 +1508,18 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
+        // BRACKET INSIGHTS
         // -------------------------------------------------------
-
         if (currentBracket) {
             currentBracketRate = currentBracket.rate;
-
-            // Room left in the CURRENT bracket
             currentBracketFill = Math.max(currentBracket.top - taxable, 0);
 
-            // Room left until the NEXT bracket top
             if (nextBracket) {
                 nextBracketFill = Math.max(nextBracket.top - taxable, 0);
                 nextBracketRate = nextBracket.rate;
-
-                // Tax jump (e.g., 22% → 24%)
                 taxJump = nextBracketRate - currentBracketRate;
             }
         }
-
 
         // -------------------------------------------------------
         // IRMAA RISK SCORE
@@ -1510,7 +1535,7 @@ function computeProInsights(result) {
         irmaaRiskScore = Math.min(100, band * 20);
 
         // -------------------------------------------------------
-        // SAFE CONVERSION RANGE (BRACKET + IRMAA AWARE)
+        // SAFE CONVERSION RANGE
         // -------------------------------------------------------
         let irmaaHeadroom = null;
         const nextIrmaa = irmaaThresholds.find(t => magi < t);
@@ -1528,7 +1553,7 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
+        // SIMULATION: SAFE CONVERSIONS UNTIL 73
         // -------------------------------------------------------
         if (safeConversionMax !== null && safeConversionMax > 0) {
             const startAge = retirementAge;
@@ -1560,7 +1585,7 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // MAXIMUM ALLOWABLE CONVERSION (BEFORE CROSSING BRACKET/IRMAA)
+        // MAXIMUM ALLOWABLE CONVERSION
         // -------------------------------------------------------
         if (bracketFillAmount !== null) {
             const maxByBracket = bracketFillAmount;
@@ -1576,6 +1601,27 @@ function computeProInsights(result) {
             retireRate: retireTax,
             rmdRate: retireTax
         };
+
+        // -------------------------------------------------------
+        // 4% / 5% WITHDRAWAL SUSTAINABILITY
+        // -------------------------------------------------------
+        const retirementBalance = currentRoth + currentTrad;
+        const growthRate = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+        const yearsTo85 = Math.max(0, 85 - retirementAge);
+
+        fourPercent = withdrawalInsight(
+            retirementBalance,
+            0.04,
+            growthRate,
+            yearsTo85
+        );
+
+        fivePercent = withdrawalInsight(
+            retirementBalance,
+            0.05,
+            growthRate,
+            yearsTo85
+        );
     }
 
     // -------------------------------------------------------
@@ -1598,11 +1644,11 @@ function computeProInsights(result) {
         nextBracketFill,
         currentBracketRate,
         nextBracketRate,
-        taxJump
+        taxJump,
+        fourPercentInsight: fourPercent,
+        fivePercentInsight: fivePercent
     };
 }
-
-
 
 function renderProInsights(result) {
     const el = document.getElementById("pro-insights");
@@ -1625,7 +1671,10 @@ function renderProInsights(result) {
         nextBracketFill,
         currentBracketRate,
         nextBracketRate,
-        taxJump
+        taxJump,
+        fourPercentInsight: fourPercent,
+        fivePercentInsight: fivePercent
+
     } = computeProInsights(result);
 
     const retirementAge = result.taxContext?.retirementAge;
@@ -1778,6 +1827,36 @@ function renderProInsights(result) {
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Roth Conversion Strategy</div>
                 <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
+            </div>
+        `;
+    }
+
+    if (fourPercent && fivePercent) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
+
+                <div class="withdrawal-row">
+                    <div class="withdrawal-label">4% Rule</div>
+                    <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
+                        ${fourPercent.sustainable ? "Sustainable" : "Not Sustainable"}
+                        <span class="withdrawal-sub">
+                            Starts at ${formatCurrency(fourPercent.annual)} —
+                            Ends at ${formatCurrency(fourPercent.endBalance)}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="withdrawal-row">
+                    <div class="withdrawal-label">5% Rule</div>
+                    <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
+                        ${fivePercent.sustainable ? "Borderline" : "Not Sustainable"}
+                        <span class="withdrawal-sub">
+                            Starts at ${formatCurrency(fivePercent.annual)} —
+                            Ends at ${formatCurrency(fivePercent.endBalance)}
+                        </span>
+                    </div>
+                </div>
             </div>
         `;
     }
