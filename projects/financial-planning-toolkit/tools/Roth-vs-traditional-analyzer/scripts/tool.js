@@ -62,6 +62,21 @@ function getRmdDivisor(age) {
     return 16 - (age - 85) * 0.7;
 }
 
+function computeTaxableSS(ssAnnual, filingStatus) {
+    // IRS simplified provisional income thresholds
+    const base = filingStatus === "married" ? 32000 : 25000;
+    const max = filingStatus === "married" ? 44000 : 34000;
+
+    // For now, provisional income = SS only (you can expand later)
+    const provisional = ssAnnual;
+
+    if (provisional <= base) return 0;
+    if (provisional <= max) return 0.5 * (provisional - base);
+
+    return 0.85 * (provisional - max) + 0.5 * (max - base);
+}
+
+
 // -------------------------------------------------------
 // TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
 // -------------------------------------------------------
@@ -741,7 +756,7 @@ $("runBtn").addEventListener("click", async () => {
         lifeExpectancy
     });
 
-    renderGrowthChart(chartData);
+    renderGrowthChart(chartData, phases, lifeExpectancy);
     
 
     /* ---------------------------------------------------
@@ -1018,7 +1033,7 @@ const phases = [
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(chartData, phases) {
+function renderGrowthChart(chartData, phases, lifeExpectancy) {
     const ctx = $("growthChart").getContext("2d");
 
     if (growthChart) growthChart.destroy();
