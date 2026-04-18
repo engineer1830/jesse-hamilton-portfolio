@@ -581,28 +581,6 @@ $("runBtn").addEventListener("click", async () => {
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
-
-    // const phases = [ TO BE DELETED
-    //     {
-    //         name: "Aggressive",
-    //         startAge: currentAge,
-    //         endAge: retirementAge,
-    //         color: "rgba(255, 99, 132, 0.10)"   // light red
-    //     },
-    //     {
-    //         name: "Moderate",
-    //         startAge: retirementAge,
-    //         endAge: retirementAge + 10,
-    //         color: "rgba(255, 206, 86, 0.10)"   // light yellow
-    //     },
-    //     {
-    //         name: "Preserve",
-    //         startAge: retirementAge + 10,
-    //         endAge: Number(lifeExpectancy),
-    //         color: "rgba(75, 192, 192, 0.10)"   // light teal
-    //     }
-    // ];
-    
     
     /* ---------------------------------------------------
     DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
@@ -1041,12 +1019,6 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
 
     return { roth, trad };
 }
-
-// -------------------------------------------------------
-// PHASE SHADING DEFINITIONS
-// -------------------------------------------------------
-
-const phases = buildPhases(currentAge, lifeExpectancy);
 
 
 /* -------------------------------------------------------
