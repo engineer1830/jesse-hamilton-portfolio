@@ -508,6 +508,18 @@ $("runBtn").addEventListener("click", async () => {
     renderGrowthChart(chartData);
 
     /* ---------------------------------------------------
+   BUILD & RENDER TAX CHART
+--------------------------------------------------- */
+
+    renderTaxChart({
+        contribution,
+        expectedReturn,
+        years,
+        currentTax,
+        rothFinal
+    });
+
+    /* ---------------------------------------------------
        MONTE CARLO
     --------------------------------------------------- */
     let monteCarlo = null;
