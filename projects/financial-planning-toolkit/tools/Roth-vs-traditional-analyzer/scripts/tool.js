@@ -756,7 +756,7 @@ $("runBtn").addEventListener("click", async () => {
     const taxableSS = computeTaxableSS(ssAnnualStatement, filingStatus);
 
     // Build the tax estimate details using REAL values
-    const retirementTaxDetails = {
+    retirementTaxDetails = {
         tradAtRetirement,          // whatever you already compute elsewhere
         tradAt73,                  // <-- from deterministic engine
         rmd,                       // <-- computed from tradAt73
