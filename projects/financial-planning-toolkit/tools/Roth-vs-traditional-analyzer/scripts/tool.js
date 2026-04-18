@@ -567,7 +567,7 @@ $("runBtn").addEventListener("click", async () => {
         {
             name: "Preserve",
             startAge: retirementAge + 10,
-            endAge: lifeExpectancy,
+            endAge: Number(lifeExpectancy),
             color: "rgba(75, 192, 192, 0.10)"   // light teal
         }
     ];
@@ -755,6 +755,9 @@ $("runBtn").addEventListener("click", async () => {
         retireTax,
         lifeExpectancy
     });
+
+    const tradAtRetirement =
+        chartData.find(row => row.age === retirementAge)?.trad || 0;
 
     renderGrowthChart(chartData, phases, lifeExpectancy);
     
