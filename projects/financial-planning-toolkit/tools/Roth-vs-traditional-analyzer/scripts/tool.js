@@ -1700,6 +1700,18 @@ function computeProInsights(result) {
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
         const growthRate = retirementGrowthRate;
+
+        // -------------------------------------------------------
+        // SANITY CHECK: Can the portfolio support the spending gap?
+        // -------------------------------------------------------
+        const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
+        const spendingGap = spendingNeedAtRetirement - ssIncome;
+
+        const requiredWithdrawalRate =
+            retirementBalance > 0 ? spendingGap / retirementBalance : 1;
+
+        const catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
+
         
         fourPercent = withdrawalInsight(
             retirementBalance,
@@ -1715,6 +1727,14 @@ function computeProInsights(result) {
             yearsInRetirement
         );
 
+        if (catastrophic) {
+            fourPercent.label = "Not Sustainable";
+            fourPercent.endBalance = 0;
+
+            fivePercent.label = "Not Sustainable";
+            fivePercent.endBalance = 0;
+        }
+        
 
         // -------------------------------------------------------
         // RETIREMENT READINESS GAUGE (MONTE CARLO)
@@ -1781,7 +1801,9 @@ function getWithdrawalTooltip(label) {
         case "High Risk":
             return "You end with very little remaining. Even mild market volatility could cause depletion before age 85.";
         case "Not Sustainable":
-            return "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
+            return catastrophic
+                ? "Your spending need is far above what your savings can support. The portfolio is projected to deplete rapidly regardless of withdrawal strategy."
+                : "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
         default:
             return "";
     }
