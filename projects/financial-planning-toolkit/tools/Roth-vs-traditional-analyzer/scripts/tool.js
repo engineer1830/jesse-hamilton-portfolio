@@ -1702,6 +1702,11 @@ function computeProInsights(result) {
         const growthRate = retirementGrowthRate;
 
         // -------------------------------------------------------
+        // SPENDING NEED AT RETIREMENT
+        // -------------------------------------------------------
+        const spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
+
+        // -------------------------------------------------------
         // SANITY CHECK: Can the portfolio support the spending gap?
         // -------------------------------------------------------
         const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
