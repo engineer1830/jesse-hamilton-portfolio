@@ -1399,6 +1399,7 @@ function computeProInsights(result) {
     let fourPercent = null;
     let fivePercent = null;
     let retirementReadiness = null;
+
     
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
    
@@ -1513,11 +1514,6 @@ function computeProInsights(result) {
     let nextBracketRate = null;
     let taxJump = null;
 
-    // NEW: 4%/5% INSIGHT DEFAULTS
-    let fourPercent = null;
-    let fivePercent = null;
-
-    let retirementReadiness = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
