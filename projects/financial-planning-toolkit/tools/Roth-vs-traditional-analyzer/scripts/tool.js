@@ -871,6 +871,7 @@ $("runBtn").addEventListener("click", async () => {
         taxContext,
         expectedReturn,
         stockVol,
+        spendingNeedAtRetirement: spendingNeed,
 
         glidepath: useGlidepath ? {
             yearlyExpectedReturns,
@@ -1793,7 +1794,8 @@ function computeProInsights(result) {
         taxJump,
         fourPercentInsight: fourPercent,
         fivePercentInsight: fivePercent,
-        retirementReadiness
+        retirementReadiness,
+        spendingNeedAtRetirement: spendingNeed
     };
 }
 
@@ -2099,7 +2101,8 @@ function renderSummary(result) {
         currentTrad,
         monteCarlo,
         retirementTaxDetails,
-        conversionImpact
+        conversionImpact,
+        spendingNeedAtRetirement: spendingNeed
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
