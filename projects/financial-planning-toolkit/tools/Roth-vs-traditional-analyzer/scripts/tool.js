@@ -1406,8 +1406,10 @@ function computeProInsights(result) {
     let yearsUntilDepletion = null;
     let depletionAge = null;
     let retirementBalance = 0;
-
-
+    let safeSpendingMin = null;
+    let safeSpendingMax = null;
+    let safeSpendingDelta = null;
+    let requiredPortfolioSize = null;
 
     
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
@@ -1727,6 +1729,9 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
 
+        requiredPortfolioSize = spendingNeedAtRetirement / 0.04;
+
+
         // -------------------------------------------------------
         // SANITY CHECK: Can the portfolio support the spending gap?
         // -------------------------------------------------------
@@ -1753,6 +1758,17 @@ function computeProInsights(result) {
             growthRate,
             yearsInRetirement
         );
+
+        // -------------------------------------------------------
+        // SAFE SPENDING LEVELS (4%–5% RULE)
+        // -------------------------------------------------------
+        safeSpendingMin = fourPercent?.annual ?? 0;
+        safeSpendingMax = fivePercent?.annual ?? 0;
+
+        // How much spending must be reduced to reach the safe range
+        safeSpendingDelta = spendingNeedAtRetirement - safeSpendingMax;
+        if (safeSpendingDelta < 0) safeSpendingDelta = 0; // no reduction needed
+
 
         if (catastrophic) {
             fourPercent.label = "Not Sustainable";
@@ -1828,7 +1844,12 @@ function computeProInsights(result) {
         spendingGap,
         yearsUntilDepletion,
         depletionAge,
-        catastrophic
+        catastrophic,
+        safeSpendingMin,
+        safeSpendingMax,
+        safeSpendingDelta,
+        requiredPortfolioSize
+
     };
 }
 
@@ -2342,6 +2363,18 @@ function renderCatastrophicUX(result) {
         ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
         : "";
 
+    const safeSpendingText =
+        catastrophic && result.safeSpendingMin != null && result.safeSpendingMax != null
+            ? `To stay within the 4%–5% safe range, your sustainable spending level is 
+               <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(result.safeSpendingMax)}</strong> per year.`
+            : "";
+    const safeDeltaText =
+        catastrophic && result.safeSpendingDelta != null
+            ? `You would need to reduce spending by 
+                   <strong>${formatCurrency(result.safeSpendingDelta)}</strong> 
+                   to reach the safe range.`
+            : "";
+              
 
     sanityEl.innerHTML = `
         <div class="sanity-block">
@@ -2362,6 +2395,14 @@ function renderCatastrophicUX(result) {
             : ""
         }
           ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+          ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
+          ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
+          ${result.requiredPortfolioSize
+            ? `<p class="sanity-required">
+                 To safely sustain your current lifestyle, you would need a portfolio of 
+                 <strong>${formatCurrency(result.requiredPortfolioSize)}</strong>.
+               </p>`
+            : ""}
         </div>
       `;
     // Recommended actions
