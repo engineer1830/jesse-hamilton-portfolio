@@ -536,3 +536,13 @@ body.dark .summary-table th
         transform: translateY(0);
     }
 }
+
+.catastrophic-banner
+{
+    margin-bottom: 24px;
+}
+
+#sanity-check
+{
+    margin-top: 12px;
+}
