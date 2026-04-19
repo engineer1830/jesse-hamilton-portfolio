@@ -871,7 +871,7 @@ $("runBtn").addEventListener("click", async () => {
         taxContext,
         expectedReturn,
         stockVol,
-        spendingNeedAtRetirement: spendingNeed,
+        spendingNeedAtRetirement,
 
         glidepath: useGlidepath ? {
             yearlyExpectedReturns,
