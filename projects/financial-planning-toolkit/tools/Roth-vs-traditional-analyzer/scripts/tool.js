@@ -1391,8 +1391,14 @@ function generateGuidance(result) {
    PRO INSIGHTS (COMPUTATION)
 ------------------------------------------------------- */
 
+
 function computeProInsights(result) {
 
+    let catastrophic = null;
+    let spendingNeedAtRetirement = null;
+    let fourPercent = null;
+    let fivePercent = null;
+    let retirementReadiness = null;
     
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
    
@@ -1709,7 +1715,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // SPENDING NEED AT RETIREMENT
         // -------------------------------------------------------
-        const spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
+        spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
 
         // -------------------------------------------------------
         // SANITY CHECK: Can the portfolio support the spending gap?
@@ -1720,7 +1726,7 @@ function computeProInsights(result) {
         const requiredWithdrawalRate =
             retirementBalance > 0 ? spendingGap / retirementBalance : 1;
 
-        const catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
+        catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
 
         
         fourPercent = withdrawalInsight(
@@ -1795,7 +1801,7 @@ function computeProInsights(result) {
         fourPercentInsight: fourPercent,
         fivePercentInsight: fivePercent,
         retirementReadiness,
-        spendingNeedAtRetirement: spendingNeed,
+        spendingNeedAtRetirement,
         catastrophic
     };
 }
