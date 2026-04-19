@@ -2386,7 +2386,7 @@ function renderCatastrophicUX(result) {
         <div class="sanity-block">
           <h3>Will I Run Out of Money?</h3>
           <p class="sanity-status">${statusLine}</p>
-          ${catastrophic
+          ${needsAdjustment
             ? `<p class="sanity-detail">
                   Your annual spending need is <strong>${formatCurrency(
                 result.spendingNeedAtRetirement ?? 0
