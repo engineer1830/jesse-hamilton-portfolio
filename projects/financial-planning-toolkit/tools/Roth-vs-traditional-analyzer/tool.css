@@ -547,3 +547,111 @@ body.dark .summary-table th
 {
     margin-top: 20px;
 }
+
+/* -------------------------------------------------------
+   SANITY BLOCK (Plan Sustainability)
+   ------------------------------------------------------- */
+
+.sanity-block
+{
+    padding: 1.25rem;
+    background: #f8fafc;
+    /* same as guidance-card */
+    border-left: 4px solid #2b6cb0;
+    /* advisor blue */
+    border-radius: 6px;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+.sanity-block h3
+{
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    /* slate-800 */
+}
+
+.sanity-status
+{
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+/* Status colors */
+.sanity-status.good
+{
+    color: #2e8b57;
+    /* sustainable green */
+}
+
+.sanity-status.warn
+{
+    color: #e6a700;
+    /* amber */
+}
+
+.sanity-status.bad
+{
+    color: #c0392b;
+    /* red */
+}
+
+.sanity-detail,
+.sanity-years,
+.sanity-safe,
+.sanity-delta,
+.sanity-required
+{
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #374151;
+    /* slate-700 */
+}
+
+.sanity-required strong
+{
+    color: #2b6cb0;
+    /* advisor blue */
+}
+
+/* -------------------------------------------------------
+   RECOMMENDED ACTIONS BLOCK
+   ------------------------------------------------------- */
+
+.actions-block
+{
+    padding: 1.25rem;
+    background: #fff5f5;
+    /* soft red tint */
+    border-left: 4px solid #e53e3e;
+    /* red warning */
+    border-radius: 6px;
+    line-height: 1.6;
+    margin-top: 1.25rem;
+}
+
+.actions-block h3
+{
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #7f1d1d;
+    /* deep red */
+}
+
+.actions-block ol
+{
+    padding-left: 1.25rem;
+    margin: 0;
+}
+
+.actions-block li
+{
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
