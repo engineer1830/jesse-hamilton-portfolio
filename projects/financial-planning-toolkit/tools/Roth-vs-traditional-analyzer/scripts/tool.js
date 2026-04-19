@@ -1648,6 +1648,30 @@ function computeProInsights(result) {
             rmdRate: retireTax
         };
 
+        const yearsTo85 = Math.max(0, 85 - retirementAge);
+        // -------------------------------------------------------
+        // Compute retirement-phase growth rate from glidepath
+        // -------------------------------------------------------
+        let retirementGrowthRate = 0.05; // fallback default
+
+        if (Array.isArray(glidepath) && glidepath.length > 0) {
+            const start = yearsToRetirement;
+            const end = yearsToRetirement + yearsTo85;
+
+            // Slice the glidepath for retirement years only
+            const retirementReturns = glidepath.slice(start, end);
+
+            if (retirementReturns.length > 0) {
+                // Average the retirement-year returns
+                retirementGrowthRate =
+                    retirementReturns.reduce((sum, r) => sum + r, 0) /
+                    retirementReturns.length;
+            }
+        }
+
+        console.log("Retirement-phase growth rate:", retirementGrowthRate);
+        
+
         // -------------------------------------------------------
         // 4% / 5% WITHDRAWAL SUSTAINABILITY
         // -------------------------------------------------------
@@ -1657,9 +1681,8 @@ function computeProInsights(result) {
 
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
-        const growthRate = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
-        const yearsTo85 = Math.max(0, 85 - retirementAge);
-
+        const growthRate = retirementGrowthRate;
+        
         fourPercent = withdrawalInsight(
             retirementBalance,
             0.04,
