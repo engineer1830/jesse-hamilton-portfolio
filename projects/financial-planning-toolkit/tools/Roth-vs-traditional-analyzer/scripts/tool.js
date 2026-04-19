@@ -1391,6 +1391,10 @@ function generateGuidance(result) {
 function computeProInsights(result) {
 
     console.log("computeProInsights START");
+    console.log("Spending need:", spendingNeedAtRetirement);
+    console.log("Required withdrawal rate:", requiredWithdrawalRate);
+    console.log("Catastrophic:", catastrophic);
+
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
@@ -1799,7 +1803,7 @@ function computeProInsights(result) {
     };
 }
 
-function getWithdrawalTooltip(label) {
+function getWithdrawalTooltip(label, catastrophic) {
     switch (label) {
         case "Sustainable":
             return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
@@ -2006,7 +2010,7 @@ function renderProInsights(result) {
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
                     <div class="withdrawal-value ${fourPercent.label.toLowerCase().replace(" ", "-")}"
-                         title="${getWithdrawalTooltip(fourPercent.label)}">
+                         title="${getWithdrawalTooltip(fourPercent.label, catastrophic)}">
                         ${fourPercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
@@ -2018,7 +2022,7 @@ function renderProInsights(result) {
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">5% Rule</div>
                     <div class="withdrawal-value ${fivePercent.label.toLowerCase().replace(" ", "-")}"
-                         title="${getWithdrawalTooltip(fivePercent.label)}">
+                         title="${getWithdrawalTooltip(fivePercent.label, catastrophic)}">
                         ${fivePercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
