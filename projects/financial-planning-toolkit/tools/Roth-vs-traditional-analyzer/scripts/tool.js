@@ -2272,15 +2272,19 @@ function renderCatastrophicUX(result) {
         if (rateEl && requiredRate != null) {
             rateEl.textContent = (requiredRate * 100).toFixed(1) + "%";
         }
+
         if (gapEl && spendingGap != null) {
-            gapEl.textContent = "$" + Finance.format(spendingGap);
+            gapEl.textContent = formatCurrency(spendingGap);
         }
+
         if (ssEl && ssIncome != null) {
-            ssEl.textContent = "$" + Finance.format(ssIncome);
+            ssEl.textContent = formatCurrency(ssIncome);
         }
+
     } else {
         bannerEl.style.display = "none";
     }
+    
 
     // Will I run out of money?
     let statusLine = "";
@@ -2297,27 +2301,26 @@ function renderCatastrophicUX(result) {
         : "";
 
     sanityEl.innerHTML = `
-      <div class="sanity-block">
-        <h3>Will I Run Out of Money?</h3>
-        <p class="sanity-status">${statusLine}</p>
-        ${catastrophic
+        <div class="sanity-block">
+          <h3>Will I Run Out of Money?</h3>
+          <p class="sanity-status">${statusLine}</p>
+          ${catastrophic
             ? `<p class="sanity-detail">
-                Your annual spending need is <strong>$${Finance.format(
+                  Your annual spending need is <strong>${formatCurrency(
                 result.spendingNeedAtRetirement ?? 0
             )}</strong>, but your portfolio can safely support only
-                <strong>$${Finance.format(
+                  <strong>${formatCurrency(
                 result.fourPercentInsight?.annual ?? 0
-            )}–$${Finance.format(
+            )}–${formatCurrency(
                 result.fivePercentInsight?.annual ?? 0
             )}</strong> per year under the 4%–5% rule.
-                This mismatch creates a withdrawal rate that guarantees early depletion.
-              </p>`
+                  This mismatch creates a withdrawal rate that guarantees early depletion.
+                </p>`
             : ""
         }
-        ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-      </div>
-    `;
-
+          ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+        </div>
+      `;
     // Recommended actions
     if (catastrophic) {
         actionsEl.innerHTML = `
