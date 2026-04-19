@@ -2429,6 +2429,8 @@ function renderCatastrophicUX(result) {
         </div>
     `;
 
+    console.log("SANITY HTML:", sanityEl.innerHTML);
+
     // -------------------------------------------------------
     // RECOMMENDED ACTIONS (catastrophic only)
     // -------------------------------------------------------
