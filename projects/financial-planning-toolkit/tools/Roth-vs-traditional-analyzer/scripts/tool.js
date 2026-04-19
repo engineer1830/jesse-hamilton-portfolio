@@ -1791,7 +1791,7 @@ function computeProInsights(result) {
         fourPercentInsight: fourPercent,
         fivePercentInsight: fivePercent,
         retirementReadiness,
-        spendingNeedAtRetirement: spendingNeed,
+        spendingNeedAtRetirement,
         catastrophic
     };
 }
