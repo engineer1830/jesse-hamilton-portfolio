@@ -1653,7 +1653,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         const retirementBalance =
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
-            (result.retirementTaxDetails?.rothAtRetirement ?? 0);
+            (result.rothFinal ?? 0);
 
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
@@ -1673,6 +1673,7 @@ function computeProInsights(result) {
             growthRate,
             yearsTo85
         );
+
 
         // -------------------------------------------------------
         // RETIREMENT READINESS GAUGE (MONTE CARLO)
