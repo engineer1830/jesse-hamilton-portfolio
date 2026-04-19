@@ -2401,12 +2401,33 @@ function renderCatastrophicUX(result) {
             : "";
 
     // -------------------------------------------------------
+    // STATUS CLASS + ICON
+    // -------------------------------------------------------
+    let statusClass = "";
+    let statusIcon = "";
+
+    if (catastrophic) {
+        statusClass = "bad";
+        statusIcon = "⛔";
+    } else if (requiredRate != null && requiredRate > 0.05) {
+        statusClass = "warn";
+        statusIcon = "⚠️";
+    } else {
+        statusClass = "good";
+        statusIcon = "✓";
+    }
+
+    // -------------------------------------------------------
     // SANITY BLOCK
     // -------------------------------------------------------
     sanityEl.innerHTML = `
-                <div class="sanity-block">
+                <div class="sanity-block fade-in">
                   <h3>Will I Run Out of Money?</h3>
-                  <p class="sanity-status">${statusLine}</p>
+            
+                  <p class="sanity-status ${statusClass}">
+                    <span class="status-icon">${statusIcon}</span>
+                    ${statusLine}
+                  </p>
             
                   ${needsAdjustment
             ? `<p class="sanity-detail">
@@ -2429,17 +2450,14 @@ function renderCatastrophicUX(result) {
                 </div>
             `;
 
-    // ⭐ REQUIRED: Make the sanity block visible
     sanityEl.style.display = "block";
-
-    console.log("SANITY HTML:", sanityEl.innerHTML);
 
     // -------------------------------------------------------
     // RECOMMENDED ACTIONS (catastrophic only)
     // -------------------------------------------------------
     if (catastrophic) {
         actionsEl.innerHTML = `
-                    <div class="actions-block">
+                    <div class="actions-block fade-in">
                       <h3>Recommended Next Steps</h3>
                       <ol>
                         <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
@@ -2450,12 +2468,10 @@ function renderCatastrophicUX(result) {
                       </ol>
                     </div>
                 `;
-
-        // ⭐ REQUIRED: Make the actions block visible
         actionsEl.style.display = "block";
-
     } else {
         actionsEl.innerHTML = "";
         actionsEl.style.display = "none";
     }
+            
 }            

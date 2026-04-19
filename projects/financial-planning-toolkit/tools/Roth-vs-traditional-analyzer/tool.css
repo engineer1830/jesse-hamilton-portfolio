@@ -632,6 +632,7 @@ body.dark .summary-table th
     border-radius: 6px;
     line-height: 1.6;
     margin-top: 1.25rem;
+    margin-bottom: 20px;
 }
 
 .actions-block h3
@@ -654,4 +655,31 @@ body.dark .summary-table th
 {
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
+}
+
+.status-icon
+{
+    margin-right: 6px;
+    font-size: 1.1rem;
+}
+
+/* Fade-in animation */
+.fade-in
+{
+    animation: fadeIn 300ms ease-out;
+}
+
+@keyframes fadeIn
+{
+    from
+    {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to
+    {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
