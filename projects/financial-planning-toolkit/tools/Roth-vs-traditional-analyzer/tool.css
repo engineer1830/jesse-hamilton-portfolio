@@ -405,3 +405,61 @@ body.dark .summary-table th
 {
     color: #e53935;
 }
+
+/* Withdrawal Sustainability Colors */
+.withdrawal-value.sustainable
+{
+    color: #2e8b57;
+    /* soft green */
+    font-weight: 600;
+}
+
+.withdrawal-value.borderline
+{
+    color: #e6a700;
+    /* warm amber */
+    font-weight: 600;
+}
+
+.withdrawal-value.high-risk
+{
+    color: #d35400;
+    /* orange */
+    font-weight: 600;
+}
+
+.withdrawal-value.not-sustainable
+{
+    color: #c0392b;
+    /* red */
+    font-weight: 600;
+}
+
+/* Optional: subtle background tint for extra clarity */
+.withdrawal-value.sustainable
+{
+    background: rgba(46, 139, 87, 0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.withdrawal-value.borderline
+{
+    background: rgba(230, 167, 0, 0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.withdrawal-value.high-risk
+{
+    background: rgba(211, 84, 0, 0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.withdrawal-value.not-sustainable
+{
+    background: rgba(192, 57, 43, 0.08);
+    padding: 6px 10px;
+    border-radius: 6px;
+}

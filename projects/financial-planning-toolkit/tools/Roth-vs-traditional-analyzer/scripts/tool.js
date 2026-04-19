@@ -1740,6 +1740,21 @@ function computeProInsights(result) {
 
     console.log("computeProInsights END");
 
+    function getWithdrawalTooltip(label) {
+        switch (label) {
+            case "Sustainable":
+                return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
+            case "Borderline":
+                return "You do not run out of money, but your balance declines meaningfully. A poor market sequence could increase risk.";
+            case "High Risk":
+                return "You end with very little remaining. Even mild market volatility could cause depletion before age 85.";
+            case "Not Sustainable":
+                return "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
+            default:
+                return "";
+        }
+    }
+    
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
@@ -1957,7 +1972,8 @@ function renderProInsights(result) {
     
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
-                    <div class="withdrawal-value ${fourPercent.label.toLowerCase().replace(" ", "-")}">
+                    <div class="withdrawal-value ${fourPercent.label.toLowerCase().replace(" ", "-")}"
+                         title="${getWithdrawalTooltip(fourPercent.label)}">
                         ${fourPercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
@@ -1968,7 +1984,8 @@ function renderProInsights(result) {
     
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">5% Rule</div>
-                    <div class="withdrawal-value ${fivePercent.label.toLowerCase().replace(" ", "-")}">
+                    <div class="withdrawal-value ${fivePercent.label.toLowerCase().replace(" ", "-")}"
+                         title="${getWithdrawalTooltip(fivePercent.label)}">
                         ${fivePercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
