@@ -2404,30 +2404,33 @@ function renderCatastrophicUX(result) {
     // SANITY BLOCK
     // -------------------------------------------------------
     sanityEl.innerHTML = `
-        <div class="sanity-block">
-          <h3>Will I Run Out of Money?</h3>
-          <p class="sanity-status">${statusLine}</p>
-
-          ${needsAdjustment
+                <div class="sanity-block">
+                  <h3>Will I Run Out of Money?</h3>
+                  <p class="sanity-status">${statusLine}</p>
+            
+                  ${needsAdjustment
             ? `<p class="sanity-detail">
-                  Your annual spending need is <strong>${formatCurrency(
+                          Your annual spending need is <strong>${formatCurrency(
                 result.spendingNeedAtRetirement ?? 0
             )}</strong>, but your portfolio can safely support only
-                  <strong>${formatCurrency(
+                          <strong>${formatCurrency(
                 result.fourPercentInsight?.annual ?? 0
             )}–${formatCurrency(
                 result.fivePercentInsight?.annual ?? 0
             )}</strong> per year under the 4%–5% rule.
-                  This mismatch creates a withdrawal rate that leads to early depletion.
-               </p>`
+                          This mismatch creates a withdrawal rate that leads to early depletion.
+                       </p>`
             : ""}
+            
+                  ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+                  ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
+                  ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
+                  ${requiredPortfolioText}
+                </div>
+            `;
 
-          ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-          ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
-          ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
-          ${requiredPortfolioText}
-        </div>
-    `;
+    // ⭐ REQUIRED: Make the sanity block visible
+    sanityEl.style.display = "block";
 
     console.log("SANITY HTML:", sanityEl.innerHTML);
 
@@ -2436,153 +2439,23 @@ function renderCatastrophicUX(result) {
     // -------------------------------------------------------
     if (catastrophic) {
         actionsEl.innerHTML = `
-            <div class="actions-block">
-              <h3>Recommended Next Steps</h3>
-              <ol>
-                <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
-                <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
-                <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
-                <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
-                <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
-              </ol>
-            </div>
-        `;
+                    <div class="actions-block">
+                      <h3>Recommended Next Steps</h3>
+                      <ol>
+                        <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+                        <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+                        <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+                        <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+                        <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+                      </ol>
+                    </div>
+                `;
+
+        // ⭐ REQUIRED: Make the actions block visible
+        actionsEl.style.display = "block";
+
     } else {
         actionsEl.innerHTML = "";
+        actionsEl.style.display = "none";
     }
-}
-
-
-// function renderCatastrophicUX(result) {
-//     const bannerEl = document.getElementById("catastrophic-banner");
-//     const sanityEl = document.getElementById("sanity-check");
-//     const actionsEl = document.getElementById("recommended-actions");
-
-//     if (!bannerEl || !sanityEl || !actionsEl) return;
-
-//     const catastrophic = !!result.catastrophic;
-//     const requiredRate = result.requiredWithdrawalRate ?? null;
-//     const spendingGap = result.spendingGap ?? null;
-//     const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? null;
-//     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
-//     const depletionAge = result.depletionAge ?? null;
-
-//     const depletionMsgEl = document.getElementById("catastrophic-depletion-message");
-
-//     const needsAdjustment =
-//         catastrophic ||
-//         (requiredRate != null && requiredRate > 0.05) ||
-//         (result.safeSpendingDelta != null && result.safeSpendingDelta > 0);
-
-
-//     if (depletionMsgEl) {
-//         const depletionLine = depletionAge
-//             ? `At your current spending level, your savings will be depleted near age <strong>${depletionAge}</strong>.`
-//             : `At your current spending level, your savings would be depleted well before age 85.`;
-
-//         depletionMsgEl.innerHTML = `
-//         ${depletionLine}
-//         This is a high‑risk scenario that requires immediate adjustment.
-//     `;
-//     }
-
-//     // Banner
-//     if (catastrophic) {
-//         bannerEl.style.display = "flex";
-
-//         const rateEl = document.getElementById("catastrophic-withdrawal-rate");
-//         const gapEl = document.getElementById("catastrophic-spending-gap");
-//         const ssEl = document.getElementById("catastrophic-ss-income");
-
-//         if (rateEl && requiredRate != null) {
-//             rateEl.textContent = (requiredRate * 100).toFixed(1) + "%";
-//         }
-
-//         if (gapEl && spendingGap != null) {
-//             gapEl.textContent = formatCurrency(spendingGap);
-//         }
-
-//         if (ssEl && ssIncome != null) {
-//             ssEl.textContent = formatCurrency(ssIncome);
-//         }
-
-//     } else {
-//         bannerEl.style.display = "none";
-//     }
-    
-
-//     // Will I run out of money?
-//     let statusLine = "";
-//     if (catastrophic) {
-//         statusLine = "Yes — at your current spending level, your savings would run out early.";
-//     } else if (requiredRate != null && requiredRate > 0.05 && requiredRate <= 0.08) {
-//         statusLine = "Possibly — your plan is fragile and may not withstand market volatility.";
-//     } else {
-//         statusLine = "Unlikely — your plan appears sustainable under typical market conditions.";
-//     }
-
-//     const yearsText = yearsUntilDepletion
-//         ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
-//         : "";
-
-//     const safeSpendingText =
-//         needsAdjustment && result.safeSpendingMin != null && result.safeSpendingMax != null
-//             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
-//                <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(result.safeSpendingMax)}</strong> per year.`
-//             : "";
-//     const safeDeltaText =
-//         needsAdjustment && result.safeSpendingDelta != null
-//             ? `You would need to reduce spending by 
-//                    <strong>${formatCurrency(result.safeSpendingDelta)}</strong> 
-//                    to reach the safe range.`
-//             : "";
-              
-
-//     sanityEl.innerHTML = `
-//         <div class="sanity-block">
-//           <h3>Will I Run Out of Money?</h3>
-//           <p class="sanity-status">${statusLine}</p>
-//           ${needsAdjustment
-//             ? `<p class="sanity-detail">
-//                   Your annual spending need is <strong>${formatCurrency(
-//                 result.spendingNeedAtRetirement ?? 0
-//             )}</strong>, but your portfolio can safely support only
-//                   <strong>${formatCurrency(
-//                 result.fourPercentInsight?.annual ?? 0
-//             )}–${formatCurrency(
-//                 result.fivePercentInsight?.annual ?? 0
-//             )}</strong> per year under the 4%–5% rule.
-//                   This mismatch creates a withdrawal rate that guarantees early depletion.
-//                 </p>`
-//             : ""
-//         }
-//           ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-//           ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
-//           ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
-//           ${needsAdjustment && result.requiredPortfolioSize
-//             ? `<p class="sanity-required">
-//                  To safely sustain your current lifestyle, you would need a portfolio of 
-//                  <strong>${formatCurrency(result.requiredPortfolioSize)}</strong>.
-//                </p>`
-//             : ""}
-//         </div>
-//       `;
-//     // Recommended actions
-//     if (catastrophic) {
-//         actionsEl.innerHTML = `
-//         <div class="actions-block">
-//           <h3>Recommended Next Steps</h3>
-//           <ol>
-//             <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
-//             <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
-//             <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
-//             <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
-//             <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
-//           </ol>
-//         </div>
-//       `;
-//     } else {
-//         actionsEl.innerHTML = "";
-//     }
-// }
-  
+}            
