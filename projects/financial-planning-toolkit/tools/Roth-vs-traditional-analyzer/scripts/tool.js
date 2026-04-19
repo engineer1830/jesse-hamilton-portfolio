@@ -871,7 +871,7 @@ $("runBtn").addEventListener("click", async () => {
         taxContext,
         expectedReturn,
         stockVol,
-        spendingNeedAtRetirement: spendingNeed,
+        spendingNeedAtRetirement,
 
         glidepath: useGlidepath ? {
             yearlyExpectedReturns,
@@ -1765,11 +1765,7 @@ function computeProInsights(result) {
         console.log("Readiness result:", retirementReadiness);
 
     }
-
-    console.log("computeProInsights END");
-
-    
-    
+        
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
@@ -1802,6 +1798,7 @@ function computeProInsights(result) {
 
 function getWithdrawalTooltip(label, catastrophic) {
     switch (label) {
+        
         case "Sustainable":
             return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
         case "Borderline":
@@ -2104,7 +2101,7 @@ function renderSummary(result) {
         monteCarlo,
         retirementTaxDetails,
         conversionImpact,
-        spendingNeedAtRetirement: spendingNeed
+        spendingNeedAtRetirement
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
