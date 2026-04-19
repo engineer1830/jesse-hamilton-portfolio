@@ -1651,7 +1651,12 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // 4% / 5% WITHDRAWAL SUSTAINABILITY
         // -------------------------------------------------------
-        const retirementBalance = currentRoth + currentTrad;
+        const retirementBalance =
+            (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
+            (result.retirementTaxDetails?.rothAtRetirement ?? 0);
+
+        console.log("Retirement balance used for 4%/5%:", retirementBalance);
+
         const growthRate = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
         const yearsTo85 = Math.max(0, 85 - retirementAge);
 
