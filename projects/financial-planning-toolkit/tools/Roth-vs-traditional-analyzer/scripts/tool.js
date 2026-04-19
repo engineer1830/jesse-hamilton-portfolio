@@ -1800,6 +1800,8 @@ function computeProInsights(result) {
         fivePercentInsight: fivePercent,
         retirementReadiness,
         spendingNeedAtRetirement,
+        requiredWithdrawalRate,
+        spendingGap,
         catastrophic
     };
 }
