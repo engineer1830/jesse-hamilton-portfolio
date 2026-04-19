@@ -885,6 +885,8 @@ $("runBtn").addEventListener("click", async () => {
 
     const insights = computeProInsights(result);
     renderSummary({ ...result, ...insights });
+    
+
 
     loading.style.display = "none";
     output.textContent = JSON.stringify({ ...result, ...insights }, null, 2);
@@ -1802,6 +1804,10 @@ function computeProInsights(result) {
     };
 }
 
+/* -------------------------------------------------------
+   SUMMARY RENDERER
+------------------------------------------------------- */
+
 function getWithdrawalTooltip(label, catastrophic) {
     switch (label) {
         
@@ -2086,11 +2092,6 @@ function renderProInsights(result) {
 }
 
 
-
-/* -------------------------------------------------------
-   SUMMARY RENDERER
-------------------------------------------------------- */
-
 function renderSummary(result) {
     const el = $("summary");
 
@@ -2192,6 +2193,7 @@ function renderSummary(result) {
 ------------------------------------------------------- */
 
     const insights = computeProInsights(result);
+    renderCatastrophicUX({ ...result, ...insights });
     renderProInsights(insights);
 
 
@@ -2246,3 +2248,92 @@ function renderSummary(result) {
     }
 }
 
+function renderCatastrophicUX(result) {
+    const bannerEl = document.getElementById("catastrophic-banner");
+    const sanityEl = document.getElementById("sanity-check");
+    const actionsEl = document.getElementById("recommended-actions");
+
+    if (!bannerEl || !sanityEl || !actionsEl) return;
+
+    const catastrophic = !!result.catastrophic;
+    const requiredRate = result.requiredWithdrawalRate ?? null;
+    const spendingGap = result.spendingGap ?? null;
+    const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? null;
+    const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+
+    // Banner
+    if (catastrophic) {
+        bannerEl.style.display = "flex";
+
+        const rateEl = document.getElementById("catastrophic-withdrawal-rate");
+        const gapEl = document.getElementById("catastrophic-spending-gap");
+        const ssEl = document.getElementById("catastrophic-ss-income");
+
+        if (rateEl && requiredRate != null) {
+            rateEl.textContent = (requiredRate * 100).toFixed(1) + "%";
+        }
+        if (gapEl && spendingGap != null) {
+            gapEl.textContent = "$" + Finance.format(spendingGap);
+        }
+        if (ssEl && ssIncome != null) {
+            ssEl.textContent = "$" + Finance.format(ssIncome);
+        }
+    } else {
+        bannerEl.style.display = "none";
+    }
+
+    // Will I run out of money?
+    let statusLine = "";
+    if (catastrophic) {
+        statusLine = "Yes — at your current spending level, your savings would run out early.";
+    } else if (requiredRate != null && requiredRate > 0.05 && requiredRate <= 0.08) {
+        statusLine = "Possibly — your plan is fragile and may not withstand market volatility.";
+    } else {
+        statusLine = "Unlikely — your plan appears sustainable under typical market conditions.";
+    }
+
+    const yearsText = yearsUntilDepletion
+        ? `Estimated years until savings run out: <strong>${yearsUntilDepletion}</strong>`
+        : "";
+
+    sanityEl.innerHTML = `
+      <div class="sanity-block">
+        <h3>Will I Run Out of Money?</h3>
+        <p class="sanity-status">${statusLine}</p>
+        ${catastrophic
+            ? `<p class="sanity-detail">
+                Your annual spending need is <strong>$${Finance.format(
+                result.spendingNeedAtRetirement ?? 0
+            )}</strong>, but your portfolio can safely support only
+                <strong>$${Finance.format(
+                result.fourPercentInsight?.annual ?? 0
+            )}–$${Finance.format(
+                result.fivePercentInsight?.annual ?? 0
+            )}</strong> per year under the 4%–5% rule.
+                This mismatch creates a withdrawal rate that guarantees early depletion.
+              </p>`
+            : ""
+        }
+        ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+      </div>
+    `;
+
+    // Recommended actions
+    if (catastrophic) {
+        actionsEl.innerHTML = `
+        <div class="actions-block">
+          <h3>Recommended Next Steps</h3>
+          <ol>
+            <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+            <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+            <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+            <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+            <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+          </ol>
+        </div>
+      `;
+    } else {
+        actionsEl.innerHTML = "";
+    }
+}
+  
