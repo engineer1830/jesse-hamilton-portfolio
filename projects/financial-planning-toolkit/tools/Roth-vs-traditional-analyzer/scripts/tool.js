@@ -1390,6 +1390,8 @@ function generateGuidance(result) {
 function computeProInsights(result) {
 
     console.log("computeProInsights START");
+    
+    const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
     // -------------------------------------------------------
     // 4% / 5% WITHDRAWAL HELPERS
