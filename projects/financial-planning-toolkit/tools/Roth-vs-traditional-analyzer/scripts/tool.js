@@ -1401,6 +1401,8 @@ function computeProInsights(result) {
     let fourPercent = null;
     let fivePercent = null;
     let retirementReadiness = null;
+    let requiredWithdrawalRate = null;
+    let spendingGap = null;
 
     
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
