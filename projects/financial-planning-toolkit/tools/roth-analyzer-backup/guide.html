@@ -9,533 +9,2010 @@
 
 <body>
     <div class="page">
+
+        <!-- ========================= -->
+        <!--        PAGE HEADER        -->
+        <!-- ========================= -->
         <header class="page-header">
             <div class="page-kicker">Service Guide</div>
             <div class="page-title">Roth vs Traditional – Real‑Market Engine</div>
             <div class="page-subtitle">
-                This guide explains how the tool behaves, how modes are selected, how inputs are interpreted,
-                and how guardrails protect users from confusing or invalid configurations. It doubles as both
-                UX documentation and a mental model for anyone maintaining or extending the engine.
+                This guide explains how the Roth vs Traditional Analyzer works under the hood — including
+                inputs, modes, glidepath behavior, deterministic projections, RMD logic, tax modeling,
+                and the advisor‑grade insights generated from the simulation. It is designed to give
+                users and maintainers a clear mental model of how the engine behaves and why.
             </div>
         </header>
 
-        <main class="layout">
-            <!-- LEFT COLUMN: Mental model, modes, inputs -->
-            <section class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="card-title-pill">01 · Mental Model</span>
-                        How the tool thinks
+        <!-- ========================= -->
+        <!--        SECTION 01         -->
+        <!--         OVERVIEW          -->
+        <!-- ========================= -->
+        <section class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">01 · Overview</span>
+                    What this tool does
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The tool compares <span class="strong">Roth vs Traditional</span> retirement outcomes using
+                        real‑market data, lifecycle glidepath modeling, deterministic projections, and tax‑aware
+                        withdrawal logic. It produces a clear, advisor‑grade view of how contributions, growth,
+                        taxes, RMDs, and withdrawals interact across a full retirement timeline.
                     </div>
                 </div>
-                <div class="card-body">
-                    <div>
-                        <div class="section-label">Core idea</div>
+
+                <div class="divider"></div>
+
+                <div>
+                    <div class="section-label">High‑level behavior</div>
+
+                    <div class="two-col">
                         <div>
-                            The tool compares <span class="strong">Roth vs Traditional</span> outcomes using either
-                            <span class="strong">real‑market data</span> or a
-                            <span class="strong">manual growth rate</span>, depending on how the user configures
-                            the inputs. The user experience is built around three explicit modes:
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Real‑market returns:</span>
+                                        Uses historical CAGR and volatility for a single ticker or weighted portfolio.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Lifecycle glidepath (default ON):</span>
+                                        Automatically adjusts stock/bond allocation each year based on age and
+                                        retirement
+                                        horizon, producing more realistic expected returns.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Deterministic projection:</span>
+                                        Runs a year‑by‑year simulation from current age through life expectancy,
+                                        applying
+                                        growth, contributions, withdrawals, RMDs, and tax drag.
+                                    </div>
+                                </li>
+                            </ul>
                         </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Auto‑tax estimation (default ON):</span>
+                                        Computes retirement tax rate using RMDs, Social Security, taxable SS, and filing
+                                        status to avoid unrealistic manual assumptions.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Contribution direction toggle:</span>
+                                        Users can direct future contributions to Roth, Traditional, or a custom split.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Advisor‑grade insights:</span>
+                                        Includes 4% and 5% withdrawal sustainability tests, depletion age, and
+                                        long‑term survivability scoring.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div>
+                    <div class="section-label">Design intent</div>
+                    <div class="callout callout-accent">
+                        The tool is built to mirror how real advisors model retirement outcomes — blending
+                        real‑market data, glidepath logic, tax‑aware withdrawals, and RMD rules into a single,
+                        intuitive projection. Users should feel confident that the engine behaves the way a
+                        professional planning tool would.
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 02         -->
+        <!--          INPUTS          -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">02 · Inputs</span>
+                    How user input is interpreted
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Core Inputs -->
+                <div>
+                    <div class="section-label">Core inputs</div>
+                    <div>
+                        The tool requires a small set of essential inputs to model retirement outcomes. These
+                        inputs define the user’s current position, retirement horizon, and contribution behavior.
+                    </div>
+
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Current age:</span> Starting point for the projection.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Retirement age:</span> When contributions stop and
+                                        withdrawals begin.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Roth balance:</span> Current after‑tax retirement
+                                        savings.</div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Traditional balance:</span> Current pre‑tax retirement
+                                        savings.</div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Annual contribution:</span> Amount added each year
+                                        until retirement.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div><span class="list-label">Current tax rate:</span> Used to convert Roth
+                                        contributions to
+                                        after‑tax dollars.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Contribution Direction -->
+                <div>
+                    <div class="section-label">Contribution direction</div>
+                    <div>
+                        Users can direct future contributions to Roth, Traditional, or a custom split. This setting
+                        affects only future contributions — existing balances remain unchanged.
+                    </div>
+
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Roth:</span>
+                                        Contributions are made with after‑tax dollars and grow tax‑free.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Traditional:</span>
+                                        Contributions reduce taxable income today but are taxed upon withdrawal.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Custom split:</span>
+                                        Users can allocate contributions between Roth and Traditional in any ratio.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Details to be added:</span>
+                                        Don't forget to update this
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Full-width callout (matches your original guide) -->
+                    <div class="callout callout-accent" style="margin-top: 12px;">
+                        Contribution direction affects only <strong>future</strong> contributions. Existing balances
+                        remain in their respective accounts.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="two-col" style="margin-top: 6px;">
+
+                    <!-- Glidepath -->
+                    <div>
+                        <div class="section-label">Glidepath (default ON)</div>
+                        <div>
+                            When enabled, the tool uses an age‑based stock/bond allocation to compute expected returns
+                            and volatility each year. This produces more realistic projections than a fixed growth rate.
+                        </div>
+
+                        <div class="pill-row" style="margin-top: 6px;">
+                            <div class="pill pill-accent">Recommended</div>
+                            <div class="pill">Auto‑adjusts allocation</div>
+                            <div class="pill">Real‑market returns</div>
+                        </div>
+                    </div>
+
+                    <!-- Auto Tax -->
+                    <div>
+                        <div class="section-label">Auto‑tax estimation (default ON)</div>
+                        <div>
+                            The tool automatically estimates the user’s retirement tax rate using RMDs, Social Security,
+                            taxable SS rules, and filing status. This avoids unrealistic manual assumptions and produces
+                            more accurate Roth vs Traditional comparisons.
+                        </div>
+
+                        <div class="pill-row" style="margin-top: 6px;">
+                            <div class="pill pill-accent">Recommended</div>
+                            <div class="pill">RMD‑aware</div>
+                            <div class="pill">SS‑aware</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Social Security -->
+                <div>
+                    <div class="section-label">Social Security</div>
+                    <div>
+                        Users may optionally enter a Social Security estimate and claim age. The tool applies
+                        taxable Social Security rules and integrates SS income into the retirement tax calculation.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Filing Status -->
+                <div>
+                    <div class="section-label">Filing status</div>
+                    <div>
+                        Filing status affects how the tool estimates retirement tax rates, especially when RMDs and
+                        Social Security interact. Users should select the status that reflects their expected filing
+                        situation in retirement.
+                    </div>
+
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Single:</span>
+                                        Uses single filer brackets and Social Security taxation thresholds.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Married filing jointly:</span>
+                                        Uses joint brackets and higher Social Security thresholds.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Head of household:</span>
+                                        Uses HOH brackets and intermediate Social Security thresholds.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Widowed:</span>
+                                        Uses qualifying widow(er) brackets for the applicable period.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Guardrails -->
+                <div>
+                    <div class="section-label">Guardrails</div>
+                    <div>
+                        The tool prevents invalid or ambiguous configurations by enforcing clear input rules.
+                        These guardrails ensure the user always enters a valid mode and receives meaningful results.
+                    </div>
+
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Ticker + Portfolio:</span>
+                                        Cannot be used together.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Portfolio requires weights:</span>
+                                        e.g., <code>VTI:60, BND:40</code>.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Single ticker in portfolio:</span>
+                                        Must use the Ticker field instead.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Invalid ticker format:</span>
+                                        Must be 1–5 letters.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="callout callout-warning" style="margin-top: 12px;">
+                        <div class="callout-title">Why guardrails matter</div>
+                        Guardrails prevent users from accidentally entering the wrong mode or feeding malformed
+                        portfolios into the engine, ensuring consistent and trustworthy results.
+                    </div>
+                </div>
+
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 03         -->
+        <!--            MODES          -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">03 · Modes</span>
+                    How the engine chooses its behavior
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Purpose of Modes -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The tool supports three distinct modeling modes. Each mode determines how expected return,
+                        volatility, and tax behavior are derived. The mode is selected automatically based on user
+                        input, ensuring the engine always behaves in a way that matches the user’s intent.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Mode Definitions + Mode Selection Rules (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Mode Definitions -->
+                    <div>
+                        <div class="section-label">Mode definitions</div>
+
                         <ul class="list" style="margin-top: 6px;">
+
+                            <!-- Single Ticker -->
                             <li class="list-item">
                                 <div class="list-bullet list-bullet-accent"></div>
                                 <div>
                                     <span class="list-label">Real‑Market (Single Ticker):</span>
-                                    One ticker in the Ticker field, Portfolio empty. Uses historical CAGR and volatility
-                                    for that asset.
+                                    Activated when the <span class="strong">Ticker</span> field contains a valid symbol
+                                    and the Portfolio field is empty. The tool fetches historical CAGR and volatility
+                                    for that asset and uses them in the projection.
                                 </div>
                             </li>
+
+                            <!-- Portfolio -->
                             <li class="list-item">
                                 <div class="list-bullet list-bullet-accent"></div>
                                 <div>
                                     <span class="list-label">Real‑Market (Portfolio):</span>
-                                    Multiple tickers with weights in the Portfolio field, Ticker empty. Uses weighted
-                                    portfolio CAGR and volatility (with correlations).
+                                    Activated when the <span class="strong">Portfolio</span> field contains 2+ tickers
+                                    with weights and the Ticker field is empty. The tool computes weighted CAGR,
+                                    weighted volatility, and correlation‑adjusted portfolio behavior.
                                 </div>
                             </li>
+
+                            <!-- Synthetic -->
                             <li class="list-item">
                                 <div class="list-bullet"></div>
                                 <div>
                                     <span class="list-label">Synthetic (Manual Growth):</span>
-                                    No ticker and no portfolio, or real‑market data unavailable. Uses the user’s manual
-                                    growth rate and a default or overridden volatility.
+                                    Activated when no real‑market configuration is provided or when data cannot be
+                                    retrieved. The tool uses the user’s manual growth rate and a default or overridden
+                                    volatility.
                                 </div>
                             </li>
+
                         </ul>
                     </div>
 
-                    <div class="divider"></div>
-
+                    <!-- Mode Selection Rules -->
                     <div>
                         <div class="section-label">Mode selection rules</div>
-                        <ul class="list">
+
+                        <ul class="list" style="margin-top: 6px;">
+
                             <li class="list-item">
                                 <div class="list-bullet"></div>
                                 <div>
                                     <span class="list-label">Single Ticker Mode:</span>
-                                    <span class="strong">Ticker</span> has a valid symbol, <span
-                                        class="strong">Portfolio</span> is empty.
+                                    Ticker has a valid symbol, Portfolio is empty.
                                 </div>
                             </li>
+
                             <li class="list-item">
                                 <div class="list-bullet"></div>
                                 <div>
                                     <span class="list-label">Portfolio Mode:</span>
-                                    <span class="strong">Portfolio</span> has 2+ tickers with weights, <span
-                                        class="strong">Ticker</span> is empty.
+                                    Portfolio contains 2+ tickers with weights, Ticker is empty.
                                 </div>
                             </li>
+
                             <li class="list-item">
                                 <div class="list-bullet"></div>
                                 <div>
                                     <span class="list-label">Synthetic Mode:</span>
-                                    Both fields empty, or real‑market fetch fails. Falls back to manual growth.
+                                    Both fields empty, or real‑market fetch fails.
                                 </div>
                             </li>
+
                         </ul>
                     </div>
 
-                    <div class="callout callout-accent">
-                        <div class="callout-title">Design intent</div>
-                        The user should always feel that the mode is intentional, visible, and aligned with how
-                        they think about their input: “one asset”, “a portfolio”, or “just assume a growth rate.”
-                    </div>
                 </div>
-            </section>
 
-            <!-- RIGHT COLUMN: Mode badge, quick reference -->
-            <aside class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="card-title-pill">Quick Reference</span>
-                        Mode & behavior at a glance
-                    </div>
-                </div>
-                <div class="card-body">
+                <div class="divider"></div>
+
+                <!-- Mode Badge -->
+                <div>
                     <div class="section-label">Mode badge (UI)</div>
-                    <div class="badge-row">
+                    <div>
+                        The mode badge updates in real time as the user types. This ensures the user always knows
+                        which modeling approach is active.
+                    </div>
+
+                    <div class="badge-row" style="margin-top: 6px;">
                         <div class="badge badge-strong">
                             <span class="badge-dot badge-dot-accent"></span>
                             Mode: Real‑Market (Single Ticker)
                         </div>
+
                         <div class="badge badge-strong">
                             <span class="badge-dot badge-dot-accent"></span>
                             Mode: Real‑Market (Portfolio)
                         </div>
+
                         <div class="badge badge-soft">
                             <span class="badge-dot"></span>
                             Mode: Synthetic (Manual Growth)
                         </div>
                     </div>
+
                     <div class="tagline">
-                        The badge should update in real time as the user types in the Ticker or Portfolio fields.
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div>
-                        <div class="section-label">Input expectations</div>
-                        <ul class="list">
-                            <li class="list-item">
-                                <div class="list-bullet"></div>
-                                <div>
-                                    <span class="list-label">Ticker:</span>
-                                    One symbol, 1–5 letters (e.g., VTI, BND, AAPL). Portfolio must be empty.
-                                </div>
-                            </li>
-                            <li class="list-item">
-                                <div class="list-bullet"></div>
-                                <div>
-                                    <span class="list-label">Portfolio:</span>
-                                    Tickers with weights, separated by commas:
-                                    <code>VTI:60, BND:40</code>. Ticker must be empty.
-                                </div>
-                            </li>
-                            <li class="list-item">
-                                <div class="list-bullet"></div>
-                                <div>
-                                    <span class="list-label">Manual growth:</span>
-                                    Used only when no real‑market configuration is active or data is unavailable.
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div>
-                        <div class="section-label">Good defaults</div>
-                        <ul class="list">
-                            <li class="list-item">
-                                <div class="list-bullet"></div>
-                                <div>
-                                    <span class="list-label">Volatility:</span>
-                                    0.15 if no real‑market volatility is available and no override is set.
-                                </div>
-                            </li>
-                            <li class="list-item">
-                                <div class="list-bullet"></div>
-                                <div>
-                                    <span class="list-label">Tax:</span>
-                                    Auto‑tax uses real‑market growth when available; otherwise, manual growth.
-                                </div>
-                            </li>
-                        </ul>
+                        The badge reflects the engine’s interpretation of the user’s input — not just the fields
+                        they filled out.
                     </div>
                 </div>
-            </aside>
-        </main>
 
-        <section class="layout" style="margin-top: 20px;">
-            <!-- LEFT: Inputs & guardrails -->
-            <section class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="card-title-pill">02 · Inputs & Guardrails</span>
-                        How user input is interpreted
+                <div class="divider"></div>
+
+                <!-- Why Modes Exist -->
+                <div>
+                    <div class="section-label">Why modes exist</div>
+                    <div class="callout callout-accent">
+                        Each mode represents a different level of realism and data availability. Real‑market modes
+                        use historical behavior to anchor projections, while Synthetic mode provides a fallback
+                        when users prefer or require a manual assumption. The engine always chooses the most
+                        realistic mode available.
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="two-col">
-                        <div>
-                            <div class="section-label">Ticker field (single asset)</div>
-                            <ul class="list">
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Purpose:</span>
-                                        Model a single asset using real‑market return and volatility.
-                                    </div>
-                                </li>
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Format:</span>
-                                        1–5 letters, e.g., <code>VTI</code>, <code>BND</code>, <code>AAPL</code>.
-                                    </div>
-                                </li>
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Rule:</span>
-                                        Portfolio must be empty for this field to activate Real‑Market (Single Ticker)
-                                        mode.
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <div class="section-label">Portfolio field (multiple assets)</div>
-                            <ul class="list">
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Purpose:</span>
-                                        Model a weighted portfolio using real‑market return and volatility.
-                                    </div>
-                                </li>
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Format:</span>
-                                        <code>TICKER:WEIGHT</code> pairs, separated by commas:
-                                        <code>VTI:60, BND:40</code>.
-                                    </div>
-                                </li>
-                                <li class="list-item">
-                                    <div class="list-bullet"></div>
-                                    <div>
-                                        <span class="list-label">Rule:</span>
-                                        Ticker must be empty for this field to activate Real‑Market (Portfolio) mode.
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
 
-                    <div class="divider"></div>
-
-                    <div class="section-label">Guardrail behaviors</div>
-                    <ul class="list">
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Both fields filled:</span>
-                                The tool blocks execution and prompts:
-                                <span class="strong">“Please choose either a single ticker OR a portfolio, not
-                                    both.”</span>
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Single ticker in portfolio:</span>
-                                If the portfolio parses to exactly one ticker, the tool blocks execution and prompts:
-                                <span class="strong">“It looks like you entered a single ticker in the portfolio box.
-                                    Use the Ticker field instead.”</span>
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">No letters in portfolio:</span>
-                                Blocks execution and prompts:
-                                <span class="strong">“Portfolio must contain tickers with weights, like VTI:60,
-                                    BND:40.”</span>
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Missing weights:</span>
-                                If the user enters <code>VTI, BND</code> or <code>VTI:</code>, the tool prompts:
-                                <span class="strong">“Each portfolio ticker needs a weight, like VTI:60.”</span>
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Invalid ticker:</span>
-                                If the ticker is not 1–5 letters, the tool prompts:
-                                <span class="strong">“That doesn’t look like a valid ticker symbol.”</span>
-                            </div>
-                        </li>
-                    </ul>
-
-                    <div class="callout callout-warning">
-                        <div class="callout-title">Why guardrails matter</div>
-                        These checks prevent users from accidentally entering the wrong mode, feeding malformed
-                        portfolios into the engine, or getting confusing results from invalid tickers.
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="code-label">Guardrail snippet (conceptual)</div>
-                    <div class="code-block">
-                        // After reading and sanitizing inputs<br />
-                        const ticker = $("ticker").value.trim().toUpperCase();<br />
-                        <br />
-                        if (ticker !== "" &amp;&amp; portfolioStr !== "") {<br />
-                        &nbsp;&nbsp;alert("Please choose either a single ticker OR a portfolio, not both.");<br />
-                        &nbsp;&nbsp;return;<br />
-                        }<br />
-                        <br />
-                        if (portfolioStr !== "" &amp;&amp; !/[A-Za-z]/.test(portfolioStr)) {<br />
-                        &nbsp;&nbsp;alert("Portfolio must contain tickers with weights, like VTI:60, BND:40.");<br />
-                        &nbsp;&nbsp;return;<br />
-                        }<br />
-                        <br />
-                        if (portfolioStr !== "" &amp;&amp; portfolioStr.includes(",") &amp;&amp;
-                        !portfolioStr.includes(":")) {<br />
-                        &nbsp;&nbsp;alert("Each portfolio ticker needs a weight, like VTI:60.");<br />
-                        &nbsp;&nbsp;return;<br />
-                        }<br />
-                        <br />
-                        if (portfolioStr !== "") {<br />
-                        &nbsp;&nbsp;const { tickers } = parsePortfolio(portfolioStr);<br />
-                        &nbsp;&nbsp;if (tickers.length === 1) {<br />
-                        &nbsp;&nbsp;&nbsp;&nbsp;alert("It looks like you entered a single ticker in the portfolio box.
-                        Use the Ticker field instead.");<br />
-                        &nbsp;&nbsp;&nbsp;&nbsp;return;<br />
-                        &nbsp;&nbsp;}<br />
-                        }<br />
-                        <br />
-                        if (ticker !== "" &amp;&amp; !/^[A-Za-z]{1,5}$/.test(ticker)) {<br />
-                        &nbsp;&nbsp;alert("That doesn’t look like a valid ticker symbol.");<br />
-                        &nbsp;&nbsp;return;<br />
-                        }
-                    </div>
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 04         -->
+        <!--   DETERMINISTIC ENGINE    -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">04 · Deterministic Engine</span>
+                    How the projection is calculated
                 </div>
-            </section>
+            </div>
 
-            <!-- RIGHT: Modes, outputs, interpretation -->
-            <section class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="card-title-pill">03 · Modes & Outputs</span>
-                        What the user sees and why
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="section-label">Mode behavior</div>
-                    <ul class="list">
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Real‑Market (Single Ticker):</span>
-                                Uses historical prices for the ticker to compute CAGR, volatility, and Monte Carlo
-                                distributions. Mode badge: <span class="strong">“Real‑Market (Single Ticker)”</span>.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Real‑Market (Portfolio):</span>
-                                Uses weighted historical data for all tickers, including correlations, to compute
-                                portfolio CAGR and volatility. Mode badge:
-                                <span class="strong">“Real‑Market (Portfolio)”</span>.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Synthetic (Manual Growth):</span>
-                                Uses the user’s growth rate and a default or overridden volatility. Mode badge:
-                                <span class="strong">“Synthetic (Manual Growth)”</span>.
-                            </div>
-                        </li>
-                    </ul>
-                    </div>
-            </section>
-            <section class="card" style="margin-top: 20px;">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="card-title-pill">04 · Lifecycle Glidepath</span>
-                        Age‑based allocation model
-                    </div>
-                </div>
-            
-                <div class="card-body">
-            
+            <div class="card-body">
+
+                <!-- Purpose -->
+                <div>
                     <div class="section-label">Purpose</div>
                     <div>
-                        The lifecycle glidepath models how real investors typically shift from
-                        growth to preservation as they age. When enabled, the tool automatically
-                        adjusts the stock/bond allocation each year based on the user’s age and
-                        retirement horizon.
+                        The deterministic engine runs a year‑by‑year simulation from the user’s current age through
+                        retirement and into late life. Each year applies growth, contributions, withdrawals, RMDs,
+                        Social Security, and tax drag. This produces a clear, stable projection that forms the basis
+                        of the chart and the Roth vs Traditional comparison.
                     </div>
-            
-                    <div class="divider"></div>
-            
-                    <div class="section-label">Phases</div>
-                    <ul class="list">
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Aggressive:</span>
-                                100% stock until 10 years before retirement.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet list-bullet-accent"></div>
-                            <div>
-                                <span class="list-label">Moderate:</span>
-                                65% stock / 35% bonds from 10 to 2 years before retirement.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Preserve:</span>
-                                50% / 50% from 2 years before retirement until age 70.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Legacy:</span>
-                                35% stock / 65% bonds at age 70 and beyond.
-                            </div>
-                        </li>
-                    </ul>
-            
-                    <div class="divider"></div>
-            
-                    <div class="section-label">How it works</div>
-                    <ul class="list">
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                Each year of the simulation uses a blended expected return and
-                                volatility based on that year’s allocation.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                Monte Carlo simulations use year‑specific volatility, producing more
-                                realistic retirement trajectories.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                Deterministic charts use the first‑year glidepath return for clarity.
-                            </div>
-                        </li>
-                    </ul>
-            
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Yearly Loop (Two Columns) -->
+                <div>
+                    <div class="section-label">Yearly loop</div>
+                    <div>
+                        Each simulation year follows a consistent sequence of steps. This ensures the projection
+                        behaves predictably and mirrors real retirement planning workflows.
+                    </div>
+
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">1. Determine expected return:</span>
+                                        Based on the active mode (real‑market or synthetic) and glidepath allocation for
+                                        that year.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">2. Apply contributions:</span>
+                                        Contributions are added to Roth, Traditional, or both depending on the user’s
+                                        contribution direction settings.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">3. Apply growth:</span>
+                                        Both Roth and Traditional balances grow at the expected return for that year.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">4. Apply withdrawals (if retired):</span>
+                                        If the user is past retirement age, withdrawals are taken from Traditional first
+                                        (to satisfy RMDs), then Roth if needed.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">5. Apply RMDs:</span>
+                                        Starting at age 73, the IRS divisor is applied to Traditional balances. RMDs
+                                        count
+                                        as taxable income and reduce the Traditional balance accordingly.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <!-- <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>
+                                    <span class="list-label">5. Apply RMDs:</span>
+                                    Starting at age 73, the IRS divisor is applied to Traditional balances. RMDs count
+                                    as taxable income and reduce the Traditional balance accordingly.
+                                </div>
+                            </li> -->
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">6. Apply tax drag:</span>
+                                        Taxes are applied to Traditional withdrawals and RMDs using either the user’s
+                                        manual retirement tax rate or the auto‑tax estimate.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">7. Add Social Security (if applicable):</span>
+                                        Social Security income is added at the user’s claim age, with taxable SS rules
+                                        applied based on filing status and other income.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">8. Compute ending balances:</span>
+                                        After growth, contributions, withdrawals, RMDs, and taxes, the year’s ending
+                                        balances become the starting balances for the next year.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Growth Logic + Withdrawal Logic (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Growth Logic -->
+                    <div>
+                        <div class="section-label">Growth logic</div>
+                        <div>
+                            Growth is applied once per year using the expected return for that year. When glidepath is
+                            enabled, expected return changes over time as the allocation shifts from aggressive to
+                            conservative.
+                        </div>
+
+                        <div class="pill-row" style="margin-top: 6px;">
+                            <div class="pill pill-accent">Glidepath‑aware</div>
+                            <div class="pill">Real‑market returns</div>
+                            <div class="pill">Stable deterministic output</div>
+                        </div>
+                    </div>
+
+                    <!-- Withdrawal Logic -->
+                    <div>
+                        <div class="section-label">Withdrawal logic</div>
+                        <div>
+                            Withdrawals begin at retirement age. The tool follows a tax‑efficient withdrawal order:
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">1. RMDs first:</span> Required minimum distributions must
+                                    be
+                                    taken from Traditional.</div>
+                            </li>
+
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">2. Additional need from Traditional:</span> If the user
+                                    needs
+                                    more than the RMD, Traditional is tapped next.</div>
+                            </li>
+
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">3. Roth last:</span> Roth is used only when Traditional
+                                    cannot
+                                    cover the need.</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            This mirrors common advisor practice: preserve Roth for as long as possible due to its
+                            tax‑free growth and tax‑free withdrawals.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Why Deterministic -->
+                <div>
+                    <div class="section-label">Why deterministic?</div>
                     <div class="callout callout-accent">
-                        <div class="callout-title">Design intent</div>
-                        The glidepath option provides an advisor‑grade projection that mirrors
-                        the behavior of target‑date funds and professional retirement planning
-                        models.
+                        Deterministic projections provide a stable, easy‑to‑interpret baseline for comparing Roth
+                        and Traditional outcomes. They avoid the noise of Monte Carlo randomness while still
+                        incorporating realistic return assumptions through real‑market data and glidepath logic.
                     </div>
-            
                 </div>
-            </section>
-                      
 
-                    <div class="divider"></div>
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 05         -->
+        <!--     LIFECYCLE GLIDEPATH   -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">05 · Lifecycle Glidepath</span>
+                    Age‑based allocation model
+                </div>
+            </div>
 
-                    <div class="section-label">Negative return warning</div>
-                    <div class="callout callout-warning">
-                        <div class="callout-title">When expected return is negative</div>
-                        If the real‑market CAGR is negative (e.g., for certain bond funds over specific windows),
-                        the tool should surface a subtle warning such as:
-                        <span class="strong">“This asset has had a negative long‑term return. Results may look
-                            unusual.”</span>
-                        This helps users interpret outcomes where Traditional may outperform Roth simply because
-                        the asset itself has struggled.
+            <div class="card-body">
+
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The lifecycle glidepath models how real investors typically shift from growth to preservation
+                        as they age. When enabled, the tool automatically adjusts the stock/bond allocation each year
+                        based on the user’s age and retirement horizon. This produces more realistic expected returns
+                        than a fixed growth rate.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Allocation Phases (Two Columns) -->
+                <div>
+                    <div class="section-label">Allocation phases</div>
+                    <div>
+                        The glidepath is divided into four intuitive phases. Each phase represents a typical
+                        risk posture for that stage of life.
                     </div>
 
-                    <div class="divider"></div>
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Aggressive:</span>
+                                        100% stock until 10 years before retirement. Maximizes long‑term growth.
+                                    </div>
+                                </li>
 
-                    <div class="section-label">Output interpretation</div>
-                    <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div>
+                                        <span class="list-label">Moderate:</span>
+                                        65% stock / 35% bonds from 10 to 2 years before retirement. Reduces volatility
+                                        while maintaining growth potential.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Preserve:</span>
+                                        50% stock / 50% bonds from 2 years before retirement until age 70. Balances
+                                        stability with inflation protection.
+                                    </div>
+                                </li>
+
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>
+                                        <span class="list-label">Legacy:</span>
+                                        35% stock / 65% bonds at age 70 and beyond. Prioritizes capital preservation
+                                        and income stability.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Expected Return Logic -->
+                <div>
+                    <div class="section-label">Expected return logic</div>
+                    <div>
+                        Each year of the simulation uses a blended expected return based on that year’s stock/bond
+                        allocation. Stock returns come from the active mode (real‑market or synthetic), while bond
+                        returns use historical bond market behavior.
+                    </div>
+
+                    <div class="pill-row" style="margin-top: 6px;">
+                        <div class="pill pill-accent">Allocation‑aware</div>
+                        <div class="pill">Real‑market returns</div>
+                        <div class="pill">Year‑specific growth</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Volatility Logic + Integration (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Volatility Logic -->
+                    <div>
+                        <div class="section-label">Volatility logic</div>
+                        <div>
+                            Volatility is also blended based on the year’s allocation. This affects Monte Carlo
+                            simulations (if enabled) and helps users understand the risk profile of each phase.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Higher stock allocation → higher volatility.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Higher bond allocation → lower volatility.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Integration with Deterministic Engine -->
+                    <div>
+                        <div class="section-label">Integration with deterministic engine</div>
+                        <div>
+                            The glidepath directly influences the deterministic projection by providing the expected
+                            return and volatility for each year. This ensures the projection reflects realistic
+                            age‑based risk changes rather than a flat growth assumption.
+                        </div>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            Deterministic charts use the <span class="strong">first‑year glidepath return</span> for
+                            clarity, while Monte Carlo simulations (if enabled) use year‑specific volatility.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Why Glidepath is Default -->
+                <div>
+                    <div class="section-label">Why glidepath is the default</div>
+                    <div class="callout callout-accent">
+                        Glidepath modeling mirrors the behavior of target‑date funds and professional retirement
+                        planning tools. It provides a more realistic projection of long‑term outcomes and helps
+                        users understand how risk naturally evolves over time. For these reasons, glidepath is
+                        enabled by default.
+                    </div>
+                </div>
+
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 06         -->
+        <!--         RMD ENGINE        -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">06 · RMD Engine</span>
+                    Required Minimum Distribution logic
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Purpose -->
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        Required Minimum Distributions (RMDs) are mandatory withdrawals from Traditional accounts
+                        beginning at age 73. They are a major driver of retirement taxes and a key differentiator
+                        between Roth and Traditional outcomes. The RMD engine ensures the projection reflects
+                        real IRS rules and their impact on long‑term balances.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- IRS Divisor + Gross vs Net (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- IRS Divisor -->
+                    <div>
+                        <div class="section-label">IRS divisor</div>
+                        <div>
+                            The tool uses the official IRS Uniform Lifetime Table to compute RMDs. Each year has a
+                            corresponding divisor based on age. The RMD is calculated as:
+                        </div>
+
+                        <div class="callout" style="margin-top: 6px;">
+                            <span class="strong">RMD = Traditional Balance ÷ IRS Divisor</span>
+                        </div>
+
+                        <div>
+                            As the divisor decreases with age, RMDs grow larger over time — even if the balance stays
+                            the same.
+                        </div>
+                    </div>
+
+                    <!-- Gross vs Net -->
+                    <div>
+                        <div class="section-label">Gross vs net withdrawals</div>
+                        <div>
+                            RMDs are treated as <span class="strong">gross</span> withdrawals. Taxes are applied after
+                            the RMD is taken, reducing the net amount available for spending.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Gross RMD reduces Traditional balance.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Taxes are applied to the RMD amount using the retirement tax rate.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Net RMD contributes to meeting the user’s withdrawal need.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Interaction with Withdrawals (Full Width) -->
+                <div>
+                    <div class="section-label">Interaction with withdrawals</div>
+                    <div>
+                        RMDs are always taken first. If the user’s annual withdrawal need exceeds the RMD, the
+                        additional amount is taken from Traditional (if available) and then Roth.
+                    </div>
+
+                    <div class="callout" style="margin-top: 10px;">
+                        This ordering mirrors tax‑efficient withdrawal strategies used by advisors: satisfy RMDs,
+                        then draw from Traditional, and preserve Roth for last.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Tax Implications + Impact on Roth vs Traditional (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Tax Implications -->
+                    <div>
+                        <div class="section-label">Tax implications</div>
+                        <div>
+                            RMDs increase taxable income, which can:
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Increase the user’s effective retirement tax rate.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Cause more Social Security to become taxable.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Accelerate depletion of Traditional accounts.</div>
+                            </li>
+                        </ul>
+
+                        <div class="tagline">
+                            These effects are automatically captured when Auto‑Tax is enabled.
+                        </div>
+                    </div>
+
+                    <!-- Impact on Roth vs Traditional -->
+                    <div>
+                        <div class="section-label">Impact on Roth vs Traditional comparison</div>
+                        <div>
+                            RMDs are one of the biggest drivers of long‑term differences between Roth and Traditional
+                            outcomes. Because Roth accounts have no RMDs, they:
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Grow tax‑free for life.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Do not force taxable income in retirement.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Preserve more wealth for late‑life and legacy phases.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div class="callout callout-accent" style="margin-top: 12px;">
+                    The RMD engine is essential for producing a fair, realistic comparison between Roth and
+                    Traditional strategies — especially for users with large Traditional balances.
+                </div>
+
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 07         -->
+        <!--        PHASE SHADING      -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">07 · Phase Shading</span>
+                    Visualizing risk posture over time
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        Phase shading provides a visual overlay on the projection chart that reflects the user’s
+                        risk posture at each stage of life. It helps users understand how their allocation — and
+                        therefore their expected return and volatility — evolves over time.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- The Four Phases + How Shading is Computed (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- The Four Phases -->
+                    <div>
+                        <div class="section-label">The four phases</div>
+                        <div>
+                            The shading corresponds directly to the glidepath phases. Each phase has a distinct color
+                            and represents a meaningful shift in investment strategy.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <!-- Aggressive -->
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>
+                                    <span class="list-label">Aggressive:</span>
+                                    100% stock allocation. High growth potential and high volatility. Typically spans
+                                    early career through mid‑career.
+                                </div>
+                            </li>
+
+                            <!-- Moderate -->
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>
+                                    <span class="list-label">Moderate:</span>
+                                    65% stock / 35% bonds. Balances growth and stability as retirement approaches.
+                                </div>
+                            </li>
+
+                            <!-- Preserve -->
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Preserve:</span>
+                                    50% stock / 50% bonds. Reduces volatility during the transition into retirement.
+                                </div>
+                            </li>
+
+                            <!-- Legacy -->
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>
+                                    <span class="list-label">Legacy:</span>
+                                    35% stock / 65% bonds. Prioritizes capital preservation and income stability in
+                                    late retirement.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- How Shading is Computed -->
+                    <div>
+                        <div class="section-label">How shading is computed</div>
+                        <div>
+                            The shading engine evaluates the user’s age each year and assigns the corresponding
+                            glidepath phase. The chart then renders a background color for that year’s segment.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Each year is mapped to a glidepath phase.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Each phase has a unique color with subtle transparency.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Shading spans the full width of the chart behind the projection line.</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            Shading is purely informational — it does not affect the projection itself. It simply
+                            visualizes the glidepath phases already used in the deterministic engine.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Why Shading Helps -->
+                <div>
+                    <div class="section-label">Why shading helps</div>
+                    <div class="callout callout-accent">
+                        Phase shading helps users intuitively understand how their risk posture changes over time.
+                        It highlights the transition from aggressive growth to preservation and legacy phases,
+                        making the projection easier to interpret at a glance.
+                    </div>
+                </div>
+
+        </section>
+        <!-- ========================= -->
+        <!--        SECTION 08         -->
+        <!--           OUTPUTS         -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">08 · Outputs</span>
+                    What the tool produces and how to interpret it
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The output section summarizes the results of the projection and highlights the key
+                        differences between Roth and Traditional strategies. It includes final balances,
+                        tax‑aware comparisons, sustainability insights, and optional Monte Carlo percentiles.
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Comparison Summary + Retirement Tax Estimate (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Comparison Summary -->
+                    <div>
+                        <div class="section-label">Comparison summary</div>
+                        <div>
+                            The comparison summary provides a high‑level view of which strategy performs better under
+                            the modeled assumptions. It includes:
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Final Roth balance</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Final Traditional balance (after taxes)</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Total taxes paid in retirement</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Net after‑tax wealth at end of plan</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            The summary is tax‑aware and incorporates RMDs, taxable Social Security, and filing status.
+                        </div>
+                    </div>
+
+                    <!-- Retirement Tax Estimate -->
+                    <div>
+                        <div class="section-label">Retirement tax estimate</div>
+                        <div>
+                            When Auto‑Tax is enabled, the tool computes an estimated retirement tax rate based on:
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>RMD income</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Social Security income</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Taxable Social Security rules</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Filing status</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            This estimate is used to compute after‑tax Traditional withdrawals and final balances.
+                            Emphasis on <i>estimate</i>.
+                        </div>
+                        <!-- <div class="tagline">
+                        This estimate is used to compute after‑tax Traditional withdrawals and final balances.
+                    </div> -->
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Break-even Tax Rate (Full Width) -->
+                <div>
+                    <div class="section-label">Break‑even tax rate</div>
+                    <div>
+                        The break‑even tax rate is the retirement tax rate at which Roth and Traditional strategies
+                        produce the same after‑tax outcome. It helps users understand how sensitive the comparison
+                        is to future tax assumptions.
+                    </div>
+
+                    <div class="pill-row" style="margin-top: 6px;">
+                        <div class="pill pill-accent">Tax‑aware</div>
+                        <div class="pill">RMD‑aware</div>
+                        <div class="pill">SS‑aware</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Chart Interpretation + Monte Carlo Percentiles (Two Columns) -->
+                <div class="two-col">
+
+                    <!-- Chart Interpretation -->
+                    <div>
+                        <div class="section-label">Chart interpretation</div>
+                        <div>
+                            The projection chart visualizes the deterministic engine’s output. It shows how Roth and
+                            Traditional balances evolve over time, including the impact of contributions, growth,
+                            withdrawals, and RMDs.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Roth grows tax‑free and has no RMDs.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Traditional grows tax‑deferred but is reduced by RMDs and taxes.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Phase shading shows the glidepath risk posture over time.</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            The chart uses deterministic growth for clarity. Monte Carlo (if enabled) adds percentile
+                            bands for risk analysis.
+                        </div>
+                    </div>
+
+                    <!-- Monte Carlo Percentiles -->
+                    <div>
+                        <div class="section-label">Monte Carlo percentiles (optional)</div>
+                        <div>
+                            If Monte Carlo simulation is enabled, the tool displays percentile bands (e.g., 10th, 50th,
+                            90th) to show the range of possible outcomes based on volatility and correlation.
+                        </div>
+
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>50th percentile = median outcome</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>10th percentile = pessimistic scenario</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>90th percentile = optimistic scenario</div>
+                            </li>
+                        </ul>
+
+                        <div class="callout" style="margin-top: 10px;">
+                            Percentiles help users understand risk, but the deterministic line remains the primary
+                            comparison for Roth vs Traditional.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- How to Read the Results (Full Width) -->
+                <div>
+                    <div class="section-label">How to read the results</div>
+                    <div class="callout callout-accent">
+                        The outputs are designed to give users a complete picture of their retirement trajectory:
+                        how much they will have, how much they will pay in taxes, how long their money will last,
+                        and which contribution strategy is more advantageous under realistic assumptions.
+                    </div>
+                </div>
+
+        </section>
+
+        <!-- New work below here  -->
+
+        
+        
+        <!-- ========================= -->
+        <!--        SECTION 09         -->
+        <!--   WITHDRAWAL GUARDRAILS   -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">09 · Withdrawal Guardrails</span>
+                    Setting expectations for sustainable retirement income
+                </div>
+            </div>
+        
+            <div class="card-body">
+        
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        Withdrawal guardrails help retirees understand how much income their portfolio can
+                        realistically support without creating long‑term depletion risk. These guardrails
+                        establish a safe operating range for spending and provide early warnings when
+                        withdrawal expectations may be too aggressive.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Why Guardrails Matter -->
+                <div>
+                    <div class="section-label">Why guardrails matter</div>
+                    <div>
+                        Retirement income planning is fundamentally a balance between lifestyle and longevity.
+                        Without guardrails, it’s easy to withdraw too much too early — especially in the first
+                        decade of retirement — which can quietly undermine long‑term sustainability. Guardrails
+                        provide a structured way to evaluate spending decisions and maintain portfolio health.
+                    </div>
+        
+                    <ul class="list" style="margin-top: 6px;">
                         <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Assumed growth rate:</span>
-                                Shows the effective CAGR used in the projection (real‑market or manual).
-                            </div>
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>They prevent overspending during strong markets.</div>
                         </li>
                         <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Roth vs Traditional totals:</span>
-                                Final projected balances after contributions, growth, and taxes.
-                            </div>
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>They highlight when spending adjustments may be needed.</div>
                         </li>
                         <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Monte Carlo percentiles:</span>
-                                P10, P50, P90 for both Roth and Traditional, based on the volatility and mode.
-                            </div>
-                        </li>
-                        <li class="list-item">
-                            <div class="list-bullet"></div>
-                            <div>
-                                <span class="list-label">Tax context:</span>
-                                Shows current vs retirement tax assumptions, RMDs, and taxable income at retirement.
-                            </div>
+                            <div class="list-bullet list-bullet-accent"></div>
+                            <div>They help align lifestyle expectations with portfolio capacity.</div>
                         </li>
                     </ul>
-
-                    <div class="divider"></div>
-
-                    <div class="section-label">Debug / power‑user view (optional)</div>
-                    <div class="callout">
-                        A collapsible “Debug” panel can expose parsed portfolio, mode, expectedReturn source,
-                        volatility source, and raw Monte Carlo parameters. This is useful for advisors, power
-                        users, and developers validating behavior against expectations.
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Guardrail Philosophy -->
+                <div>
+                    <div class="section-label">The guardrail philosophy</div>
+                    <div>
+                        Guardrails are not rigid rules — they are decision‑support tools. They help retirees
+                        understand when they are within a safe spending range and when they may be drifting
+                        into a zone that increases the risk of running out of money later in life.
+                    </div>
+        
+                    <div class="callout" style="margin-top: 10px;">
+                        Guardrails create a feedback loop: spend confidently when you’re within the safe zone,
+                        and adjust when you’re outside it.
                     </div>
                 </div>
-            </section>
-        </section>
-    </div>
-</body>
+        
+                <div class="divider"></div>
+        
+                <!-- What does this mean? -->
+                <div>
+                    <div class="section-label">What does this mean?</div>
+                    <div class="callout callout-accent">
+                        Withdrawal guardrails set the stage for the 4% and 5% tests. They help you understand
+                        whether your planned withdrawals align with long‑term sustainability — before you
+                        commit to a spending strategy.
+                    </div>
+                </div>
+        
+                </section>
 
-</html>
+        <!-- ========================= -->
+        <!--        SECTION 10         -->
+        <!--   The 4%/5% Withdrawal I  -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">10 · The 4%/5% Withdrawal Insights</span>
+                    Withdrawal Planning for a Successful Retirement and Fund Longevity
+                </div>
+            </div>
+        
+            <div class="card-body">
+        
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        A practical guide to retirement withdrawals to sustain life-style and account survivability (or
+                        something like this . . . to be refined)
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- 4% / 5% Withdrawal Analyses (Two Columns) -->
+                <div class="two-col">
+        
+                    <!-- 4% Withdrawal Analysis -->
+                    <div>
+                        <div class="section-label">4% withdrawal analysis</div>
+                        <div>
+                            The 4% rule is a classic retirement guideline suggesting that withdrawing 4% of the initial
+                            portfolio each year (adjusted for inflation) is historically sustainable for a 30‑year
+                            retirement. The tool evaluates whether the user’s projected balances support this rule.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Determines if 4% withdrawals deplete the portfolio before life expectancy.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Highlights whether Roth or Traditional provides better sustainability.</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout" style="margin-top: 10px;">
+                            A successful 4% test indicates strong long‑term sustainability under conservative
+                            assumptions.
+                        </div>
+                    </div>
+        
+                    <!-- 5% Withdrawal Analysis -->
+                    <div>
+                        <div class="section-label">5% withdrawal analysis</div>
+                        <div>
+                            The 5% test provides a more aggressive scenario. It helps users understand how sensitive
+                            their plan is to higher spending needs or unexpected expenses. The key consideration is how
+                            much is needed and what can be sustained. There is not a one-size fits all answer.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Tests whether the portfolio can sustain a 5% withdrawal rate.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Shows how quickly balances decline under higher spending.</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout" style="margin-top: 10px;">
+                            Passing the 5% test is rare — failing it is normal and not a sign of poor planning. There
+                            are some who advocate for 5% as well.
+                        </div>
+                    </div>
+        
+                </div>
+        
+                <div class="divider">
+                    </div>
+        
+                <!-- Sustainability Score (Full Width) -->
+                <div>
+                    <div class="section-label">Sustainability score</div>
+                    <div>
+                        The sustainability score summarizes how resilient the user’s retirement plan is under
+                        realistic withdrawal assumptions. It incorporates:
+                    </div>
+        
+                    <ul class="list" style="margin-top: 6px;">
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>4% test result</div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>5% test result</div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>Depletion age</div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div>RMD impact</div>
+                        </li>
+                        <li class="list-item">
+                            <!-- <div class="list-bullet"></div> -->
+                            <div></div>
+                        </li>
+                    </ul>
+        
+                    <div class="callout callout-accent">
+                        A higher sustainability score indicates a more robust retirement plan with greater margin
+                        for unexpected expenses or market volatility.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- How Advisors Use These Insights (Full Width) -->
+                <div>
+                    <div class="section-label">How advisors use these insights</div>
+                    <div class="callout callout-accent">
+                        Advisors use sustainability tests, depletion age, and tax‑aware comparisons to guide
+                        contribution strategy, withdrawal sequencing, and long‑term planning. These insights
+                        help users make informed decisions that align with professional best practices.
+                    </div>
+                </div>
+        
+        </section>
+
+        <!-- ========================= -->
+        <!--        SECTION 11         -->
+        <!--   Sustainability Score    -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">11 · The Sustainability Score</span>
+                    A readiness indicator for long‑term retirement success
+                </div>
+            </div>
+        
+            <div class="card-body">
+        
+                <!-- Purpose (Full Width) -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The sustainability score provides a single, intuitive measure of how prepared you are
+                        for long‑term retirement withdrawals. It blends deterministic tests, longevity
+                        projections, and Monte Carlo outcomes into a unified readiness indicator.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- What Goes Into the Score + Confidence Bands (Two Columns) -->
+                <div class="two-col">
+        
+                    <!-- What Goes Into the Score -->
+                    <div>
+                        <div class="section-label">What goes into the score?</div>
+                        <div>
+                            The score evaluates your plan across multiple dimensions of retirement resilience:
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>4% withdrawal test (baseline sustainability)</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>5% withdrawal test (stress scenario)</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Projected depletion age under your assumptions</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>RMD impact on long‑term balances</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Monte Carlo readiness (percentage of simulations ending with meaningful assets)</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout callout-accent">
+                            The sustainability score is not a prediction — it is a readiness indicator that
+                            reflects how well your plan holds up across a range of realistic scenarios.
+                        </div>
+                    </div>
+        
+                    <!-- Confidence Bands -->
+                    <div>
+                        <div class="section-label">Confidence bands</div>
+                        <div>
+                            All of this analysis is a guide.  There is no "right" answer aside from the reality that higher does translate to less risk.  What is 
+                            the risk?  Running out of retirement savings before you are done living.  The sustainability score 
+                            is expressed on a 1–100 scale:
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><strong>90–100:</strong> High confidence — strong readiness for retirement.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><strong>60–89:</strong> Moderate confidence — plan is workable but sensitive to spending or
+                                    markets.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><strong>0–59:</strong> Low confidence — withdrawals may be too aggressive for long‑term
+                                    sustainability.</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout callout-accent">
+                            Confidence bands help translate complex simulations into clear, actionable guidance.
+                        </div>
+                    </div>
+        
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Retirement Readiness Threshold (Full Width) -->
+                <div>
+                    <div class="section-label">Retirement readiness threshold</div>
+                    <div>
+                        Monte Carlo simulations evaluate how often your portfolio ends retirement with at
+                        least <strong>$500,000</strong> remaining — a level that typically supports ongoing
+                        income, healthcare needs, and late‑life flexibility. This threshold acts as a
+                        practical benchmark for long‑term financial independence.
+                    </div>
+        
+                    <div class="callout" style="margin-top: 10px;">
+                        A higher percentage of simulations ending above the threshold indicates stronger
+                        retirement readiness and greater resilience to market volatility.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Depletion Age + Behavioral Interpretation (Two Columns) -->
+                <div class="two-col">
+        
+                    <!-- Depletion Age -->
+                    <div>
+                        <div class="section-label">Depletion age</div>
+                        <div>
+                            Depletion age estimates when your portfolio would reach zero under your current
+                            withdrawal assumptions. It highlights whether your plan supports longevity through
+                            your 80s and 90s — a critical factor in modern retirement planning.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Shows whether withdrawals are sustainable through life expectancy.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Highlights the impact of early‑retirement spending decisions.</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout" style="margin-top: 10px;">
+                            A later depletion age indicates stronger long‑term sustainability.
+                        </div>
+                    </div>
+        
+                    <!-- Behavioral Interpretation -->
+                    <div>
+                        <div class="section-label">Behavioral interpretation</div>
+                        <div>
+                            Behavioral interpretation helps translate the sustainability score into practical
+                            guidance. It frames the score in terms of spending confidence, risk tolerance, and
+                            the likelihood of needing future adjustments.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>High scores suggest strong spending confidence.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Moderate scores indicate a need for periodic review.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Low scores highlight potential overspending risk.</div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout" style="margin-top: 10px;">
+                            Behavioral framing helps retirees make informed, confident decisions without
+                            overreacting to short‑term market changes.
+                        </div>
+                    </div>
+        
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- What does this mean? (Full Width) -->
+                <div>
+                    <div class="section-label">What does this mean?</div>
+                    <div class="callout callout-accent">
+                        The sustainability score brings together all withdrawal insights into one clear
+                        indicator. It helps retirees understand whether their plan is resilient, where
+                        adjustments may be needed, and how spending decisions affect long‑term outcomes.
+                    </div>
+                </div>
+        
+            </div>
+        </section>
+                        
+
+        <!-- ========================= -->
+        <!--        SECTION 12         -->
+        <!--    SYSTEM GUARDRAILS      -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">12 · System Guardrails</span>
+                    Ensuring valid inputs and meaningful results
+                </div>
+            </div>
+        
+            <div class="card-body">
+        
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        Guardrails prevent invalid, ambiguous, or contradictory configurations from entering the
+                        engine. They ensure the tool always runs in a well‑defined mode and produces meaningful,
+                        trustworthy results. These rules protect both the user experience and the integrity of the
+                        projection.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Input Validation + Mode Enforcement (Two Columns) -->
+                <div class="two-col">
+        
+                    <!-- Input Validation -->
+                    <div>
+                        <div class="section-label">Input validation</div>
+                        <div>
+                            The tool validates all user inputs before running the projection. This includes checking
+                            for missing fields, invalid formats, and contradictory configurations.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Age must be between 18 and 100.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Retirement age must be greater than current age.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet list-bullet-accent"></div>
+                                <div>Balances and contributions must be non‑negative.</div>
+                            </li>
+                        </ul>
+                    </div>
+        
+                    <!-- Mode Enforcement -->
+                    <div>
+                        <div class="section-label">Mode enforcement</div>
+                        <div>
+                            Guardrails ensure the engine always selects a single, unambiguous mode. This prevents
+                            situations where the tool might otherwise misinterpret the user’s intent.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">Single Ticker Mode:</span> Only the Ticker field is
+                                    filled.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">Portfolio Mode:</span> Only the Portfolio field is filled
+                                    with 2+ tickers.
+                                </div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div><span class="list-label">Synthetic Mode:</span> Neither field is filled, or
+                                    real‑market data fails.
+                                </div>
+                            </li>
+                        </ul>
+        
+                        <div class="callout" style="margin-top: 10px;">
+                            If both Ticker and Portfolio are filled, the tool blocks the run and prompts the user to
+                            choose one mode.
+                        </div>
+                    </div>
+        
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Warning ABOVE Portfolio Parsing / Ticker Rules -->
+                <div class="callout callout-warning" style="margin-bottom: 12px;">
+                    A single‑ticker portfolio is not allowed — users must use the Ticker field instead.
+                </div>
+        
+                <!-- Portfolio Parsing + Ticker Rules (Two Columns) -->
+                <div class="two-col">
+        
+                    <!-- Portfolio Parsing -->
+                    <div>
+                        <div class="section-label">Portfolio parsing</div>
+                        <div>
+                            Portfolio entries must follow a strict format to ensure accurate parsing and weighting.
+                            Guardrails prevent malformed portfolios from entering the engine.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Format: <code>TICKER:WEIGHT</code> (e.g., <code>VTI:60</code>).</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>Weights must sum to 100%.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>At least 2 tickers are required for Portfolio Mode.</div>
+                            </li>
+                        </ul>
+                    </div>
+        
+                    <!-- Ticker Rules -->
+                    <div>
+                        <div class="section-label">Ticker rules</div>
+                        <div>
+                            Ticker symbols must follow standard market conventions. Guardrails ensure the tool only
+                            attempts to fetch data for valid symbols.
+                        </div>
+        
+                        <ul class="list" style="margin-top: 6px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>1–5 uppercase letters only (e.g., <code>VTI</code>, <code>QQQ</code>).</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>No special characters or numbers.</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>If the symbol fails lookup, the tool falls back to Synthetic Mode.</div>
+                            </li>
+                        </ul>
+                    </div>
+        
+                </div>
+        
+                <!-- Warning BELOW Portfolio Parsing / Ticker Rules -->
+                <div class="callout callout-warning" style="margin-top: 12px;">
+                    A single‑ticker portfolio is not allowed — users must use the Ticker field instead.
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Why Guardrails Matter -->
+                <div>
+                    <div class="section-label">Why guardrails matter</div>
+                    <div class="callout callout-accent">
+                        Guardrails ensure the engine always runs in a clean, predictable state. They prevent
+                        ambiguous inputs, protect users from accidental mistakes, and guarantee that the projection
+                        reflects the user’s true intent. This is essential for producing advisor‑grade results.
+                    </div>
+                </div>
+        
+        </section>
+        <!-- ========================= -->
+        <!--           FOOTER          -->
+        <!-- ========================= -->
+        <div class="page">
+        
+            <footer class="page-footer">
+                <div class="footer-inner">
+                    <div class="footer-left">
+                        © 2026 · Hamilton Designs · Jesse Hamilton
+                    </div>
+        
+                    <div class="footer-right">
+                        <span class="footer-updated-label">Last updated:</span>
+                        <span id="last-updated-date">—</span>
+                    </div>
+                </div>
+            </footer>
+        </div> <!-- end .page -->
+        
+        <button class="scroll-top" id="scroll-top-btn">Top ↑</button>
+        
+        <script type="module" src="scripts/guide.js"></script>
+        
+        </body>
+        
+        </html>

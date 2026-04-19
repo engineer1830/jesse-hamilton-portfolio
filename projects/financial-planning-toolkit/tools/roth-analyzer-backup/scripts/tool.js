@@ -1,3 +1,27 @@
+/* ---------------------------------------------------
+CHART SHADING SET UP
+--------------------------------------------------- */
+
+const phaseShadingPlugin = {
+    id: "phaseShading",
+    beforeDraw(chart, args, options) {
+        const { ctx, chartArea: { left, right, top, bottom }, scales: { x } } = chart;
+
+        const phases = options.phases || [];
+        ctx.save();
+
+        phases.forEach(phase => {
+            const xStart = x.getPixelForValue(phase.startAge);
+            const xEnd = x.getPixelForValue(phase.endAge);
+
+            ctx.fillStyle = phase.color;
+            ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+        });
+
+        ctx.restore();
+    }
+};
+
 function limitToLastNYears(prices, years = 10) {
     if (!prices || prices.length === 0) return prices;
 
@@ -16,6 +40,42 @@ import { Finance } from "../../../scripts/engine.js";
 import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.js";
 import { calculateCAGR, priceSeriesToDailyReturns } from "../../../scripts/transforms.js";
 import { estimateRetirementTaxRate } from "./retirement.js";
+
+
+// Simple IRS Uniform Lifetime Table approximation
+function getRmdDivisor(age) {
+    if (age < 73) return Infinity;      // no RMD yet
+    if (age === 73) return 26.5;
+    if (age === 74) return 25.5;
+    if (age === 75) return 24.6;
+    if (age === 76) return 23.7;
+    if (age === 77) return 22.9;
+    if (age === 78) return 22.0;
+    if (age === 79) return 21.1;
+    if (age === 80) return 20.2;
+    if (age === 81) return 19.4;
+    if (age === 82) return 18.5;
+    if (age === 83) return 17.7;
+    if (age === 84) return 16.8;
+    if (age === 85) return 16.0;
+    // beyond: just keep decreasing slowly
+    return 16 - (age - 85) * 0.7;
+}
+
+function computeTaxableSS(ssAnnual, filingStatus) {
+    // IRS simplified provisional income thresholds
+    const base = filingStatus === "married" ? 32000 : 25000;
+    const max = filingStatus === "married" ? 44000 : 34000;
+
+    // For now, provisional income = SS only (you can expand later)
+    const provisional = ssAnnual;
+
+    if (provisional <= base) return 0;
+    if (provisional <= max) return 0.5 * (provisional - base);
+
+    return 0.85 * (provisional - max) + 0.5 * (max - base);
+}
+
 
 // -------------------------------------------------------
 // TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
@@ -96,6 +156,46 @@ document.getElementById("overrideVolToggle").addEventListener("change", (e) => {
         e.target.checked ? "block" : "none";
 });
 
+function applyWithdrawals({
+    age,
+    roth,
+    trad,
+    spendingNeed,
+    ssIncome,
+    retireTax
+}) {
+    // Social Security offset (0 before claim age)
+    const netNeed = Math.max(spendingNeed - ssIncome, 0);
+
+    if (netNeed <= 0) {
+        return { roth, trad };
+    }
+
+    // Withdrawal order: Traditional first (taxable), then Roth
+    let remainingNeed = netNeed;
+
+    // Traditional withdrawal (pre-tax)
+    if (trad > 0) {
+        const tradGross = remainingNeed / (1 - retireTax); // gross needed to net the spending
+        const tradWithdrawal = Math.min(tradGross, trad);
+        trad -= tradWithdrawal;
+        remainingNeed -= tradWithdrawal * (1 - retireTax);
+    }
+
+    // Roth withdrawal (tax-free)
+    if (remainingNeed > 0 && roth > 0) {
+        const rothWithdrawal = Math.min(remainingNeed, roth);
+        roth -= rothWithdrawal;
+        remainingNeed -= rothWithdrawal;
+    }
+
+    return {
+        roth: Math.max(roth, 0),
+        trad: Math.max(trad, 0)
+    };
+}
+
+
 /* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
 ------------------------------------------------------- */
@@ -145,6 +245,39 @@ const $ = id => document.getElementById(id);
 let growthChart = null;
 let taxChart = null;
 
+/* -------------------------------------------------------
+PHASE BUILDER (Option B)
+------------------------------------------------------- */
+
+function buildPhases(currentAge, lifeExpectancy) {
+    return [
+        {
+            name: "Aggressive",
+            startAge: currentAge,
+            endAge: 50,
+            color: "rgba(255, 99, 132, 0.15)"
+        },
+        {
+            name: "Moderate",
+            startAge: 50,
+            endAge: 60,
+            color: "rgba(255, 159, 64, 0.15)"
+        },
+        {
+            name: "Preserve",
+            startAge: 60,
+            endAge: 70,
+            color: "rgba(75, 192, 192, 0.15)"
+        },
+        {
+            name: "Legacy",
+            startAge: 70,
+            endAge: Number(lifeExpectancy),
+            color: "rgba(153, 102, 255, 0.15)"
+        }
+    ];
+}
+
 $("runBtn").addEventListener("click", async () => {
     const loading = $("loading");
     const output = $("output");
@@ -173,8 +306,6 @@ $("runBtn").addEventListener("click", async () => {
     // Sanitize portfolio string
     let portfolioStr = $("portfolio").value;
     portfolioStr = portfolioStr.replace(/[\s\u200B-\u200D\uFEFF]/g, "");
-    console.log("SANITIZED PORTFOLIO:", JSON.stringify(portfolioStr));
-
 
     const mcRuns = parseInt($("mcRuns").value) || 0;
     const useAutoTax = $("autoTax") ? $("autoTax").checked : false;
@@ -450,6 +581,7 @@ $("runBtn").addEventListener("click", async () => {
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
+    
     /* ---------------------------------------------------
     DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
  --------------------------------------------------- */
@@ -463,13 +595,21 @@ $("runBtn").addEventListener("click", async () => {
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
-        useGlidepath
+        useGlidepath,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
+        lifeExpectancy
     }) {
         const chartData = [];
         const totalYears = lifeExpectancy - currentAge;
 
         let roth = currentRoth;
         let trad = currentTrad;
+
+        let tradAt73 = null;
 
         for (let i = 0; i < totalYears; i++) {
             const age = currentAge + i;
@@ -490,21 +630,127 @@ $("runBtn").addEventListener("click", async () => {
                 trad += contribution;
             }
 
+            // Apply withdrawals after retirement (need-based OR RMD, whichever is larger)
+            let withdrawal = undefined;
+            let taxDrag = undefined;
+            let rmdComponent = 0;
+            let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
+
+            if (age >= retirementAge) {
+
+                // 1) Need-based withdrawal (after-tax)
+                const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
+
+                // 2) Compute RMD (gross)
+                let rmdGross = 0;
+                if (age >= 73 && trad > 0) {
+                    const divisor = getRmdDivisor(age);
+                    rmdGross = trad / divisor;
+                }
+
+                // After-tax RMD
+                const rmdNet = rmdGross * (1 - retireTax);
+
+                // 3) Total after-tax cash required this year
+                //    = RMD net + any additional need beyond RMD
+                const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
+                const targetNet = rmdNet + extraNeedNet;
+
+                // 4) Withdraw RMD gross from Traditional (always)
+                let tradGrossActual = Math.min(trad, rmdGross);
+                let tradNet = tradGrossActual * (1 - retireTax);
+
+                // Track RMD component for tooltip
+                rmdComponent = Math.round(tradNet);
+
+                // 5) If extra need exists, fund it:
+                //    First from Traditional (grossed up), then Roth
+                if (extraNeedNet > 0) {
+
+                    // Gross needed from Traditional to cover extra need
+                    const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
+
+                    // Actual gross from Traditional
+                    const extraTradGrossActual = Math.min(trad - tradGrossActual, extraTradGrossNeeded);
+                    const extraTradNet = extraTradGrossActual * (1 - retireTax);
+
+                    tradGrossActual += extraTradGrossActual;
+                    tradNet += extraTradNet;
+
+                    // If still short, take from Roth (no tax)
+                    const remainingNet = extraNeedNet - extraTradNet;
+                    const rothActual = Math.min(roth, remainingNet);
+
+                    roth -= rothActual;
+                    trad -= extraTradGrossActual;
+
+                    withdrawal = Math.round(tradNet + rothActual);
+                    taxDrag = Math.round(tradGrossActual * retireTax);
+
+                } else {
+                    // No extra need — only RMD
+                    trad -= tradGrossActual;
+                    withdrawal = Math.round(tradNet);
+                    taxDrag = Math.round(tradGrossActual * retireTax);
+                }
+            }
+
+            if (age === 73) {
+                tradAt73 = trad; // pre-tax Traditional balance at 73
+            }
+            
+            
+
+            // Determine glidepath allocation (if enabled)
+            let stockWeight = undefined;
+            let bondWeight = undefined;
+
+            if (useGlidepath && typeof getGlidepathAllocation === "function") {
+                const alloc = getGlidepathAllocation(age, retirementAge);
+                stockWeight = alloc.stockWeight;
+                bondWeight = alloc.bondWeight;
+            }
+
+            // Determine volatility for this year (if glidepath)
+            const vol = yearlyVols ? yearlyVols[i] : undefined;
+
+            // Determine contribution (pre‑retirement)
+            const contributionThisYear = age < retirementAge ? contribution : undefined;
+
+            // Now push the FINAL values for this year
             chartData.push({
                 age,
                 roth,
-                trad
+                trad,
+
+                // Hover insights
+                mu,
+                vol,
+                stockWeight,
+                bondWeight,
+                contribution: contributionThisYear,
+                withdrawal,
+                ssIncome,
+                taxDrag,
+                rmdComponent
             });
+
         }
 
-        return chartData;
+        // console.log("Ages in chartData:", chartData.map(d => d.age).join(", "));
+
+
+        return {
+            chartData,
+            tradAt73
+        };
     }
- 
+
     /* ---------------------------------------------------
        BUILD & RENDER GROWTH CHART
     --------------------------------------------------- */
 
-    const chartData = buildDeterministicChart({
+    const { chartData, tradAt73 } = buildDeterministicChart({
         currentAge,
         currentRoth,
         currentTrad,
@@ -513,23 +759,56 @@ $("runBtn").addEventListener("click", async () => {
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
-        useGlidepath
+        useGlidepath,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
+        lifeExpectancy
     });
 
-    renderGrowthChart(chartData);
+    const phases = buildPhases(currentAge, lifeExpectancy);
+
+    const tradAtRetirement =
+        chartData.find(row => row.age === retirementAge)?.trad || 0;
+
+    renderGrowthChart(chartData, phases, currentAge, lifeExpectancy);
+    
 
     /* ---------------------------------------------------
-   BUILD & RENDER TAX CHART
---------------------------------------------------- */
+    BUILD & RENDER TAX CHART (USING REAL tradAt73)
+ --------------------------------------------------- */
 
+    // Compute RMD from the actual deterministic Traditional balance at 73
+    const rmdDivisor = getRmdDivisor(73);
+    const rmd = tradAt73 ? tradAt73 / rmdDivisor : 0;
+
+    // Compute taxable Social Security (use your existing function)
+    const taxableSS = computeTaxableSS(ssAnnualStatement, filingStatus);
+
+    // Build the tax estimate details using REAL values
+    retirementTaxDetails = {
+        tradAtRetirement,          // whatever you already compute elsewhere
+        tradAt73,                  // <-- from deterministic engine
+        rmd,                       // <-- computed from tradAt73
+        ssAtClaimAge: ssAnnualStatement,
+        taxableSS,
+        taxableIncome: rmd + taxableSS,
+        estimatedRate: retireTax,
+        filingStatus
+    };
+
+    // Render the tax chart using the updated details
     renderTaxChart({
         contribution,
         expectedReturn,
         years,
         currentTax,
-        rothFinal
+        rothFinal,
+        retirementTaxDetails
     });
-
+ 
     /* ---------------------------------------------------
        MONTE CARLO
     --------------------------------------------------- */
@@ -741,56 +1020,119 @@ function buildYearlyCurves({ contribution, rothContribution, expectedReturn, yea
     return { roth, trad };
 }
 
+
 /* -------------------------------------------------------
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(chartData) {
+function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
     const ctx = $("growthChart").getContext("2d");
 
-    const labels = chartData.map(p => `Age ${p.age}`);
-    const rothData = chartData.map(p => p.roth);
-    const tradData = chartData.map(p => p.trad);
+    console.log("renderGrowthChart args:", { currentAge, lifeExpectancy });
+
 
     if (growthChart) growthChart.destroy();
 
     growthChart = new Chart(ctx, {
         type: "line",
         data: {
-            labels,
+            // labels: chartData.map(d => d.age),
             datasets: [
                 {
                     label: "Roth (after-tax)",
-                    data: rothData,
-                    borderColor: "#2b6cb0",
-                    backgroundColor: "rgba(43,108,176,0.1)",
-                    tension: 0.2
+                    data: chartData.map(d => ({ x: d.age, y: d.roth })),
+                    borderColor: "blue",
+                    fill: false
                 },
                 {
                     label: "Traditional (after-tax)",
-                    data: tradData,
-                    borderColor: "#e53e3e",
-                    backgroundColor: "rgba(229,62,62,0.1)",
-                    tension: 0.2
+                    data: chartData.map(d => ({ x: d.age, y: d.trad })),
+                    borderColor: "red",
+                    fill: false
                 }
             ]
         },
+
         options: {
-            responsive: true,
             plugins: {
-                legend: { position: "bottom" }
-            },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: v => `$${v.toLocaleString()}`
+                phaseShading: {
+                    phases: phases
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const index = context.dataIndex;
+                            const point = chartData[index];
+
+                            let lines = [];
+
+                            lines.push(`${context.dataset.label}: $${context.parsed.y.toLocaleString()}`);
+
+                            if (point.mu !== undefined) {
+                                lines.push(`Return: ${(point.mu * 100).toFixed(2)}%`);
+                            }
+
+                            if (point.vol !== undefined) {
+                                lines.push(`Volatility: ${(point.vol * 100).toFixed(2)}%`);
+                            }
+
+                            if (point.stockWeight !== undefined && point.bondWeight !== undefined) {
+                                lines.push(
+                                    `Allocation: ${(point.stockWeight * 100).toFixed(0)}% stocks / ${(point.bondWeight * 100).toFixed(0)}% bonds`
+                                );
+                            }
+
+                            if (point.contribution !== undefined) {
+                                lines.push(`Contribution: $${point.contribution.toLocaleString()}`);
+                            }
+
+                            if (point.withdrawal !== undefined) {
+                                lines.push(`Withdrawal: $${point.withdrawal.toLocaleString()}`);
+                            }
+
+                            if (point.ssIncome !== undefined) {
+                                lines.push(`Social Security: $${point.ssIncome.toLocaleString()}`);
+                            }
+
+                            if (point.taxDrag !== undefined) {
+                                lines.push(`Tax drag: $${point.taxDrag.toLocaleString()}`);
+                            }
+
+                            if (context.raw.rmdComponent > 0) {
+                                lines.push(`RMD component: $${context.raw.rmdComponent.toLocaleString()}`);
+                            }
+
+                            if (point.age === 73) {
+                                lines.push("Note: Hover withdrawal is net; tax table RMD is gross.");
+                            }
+
+                            
+                            return lines;
+                        }
                     }
                 }
-            }
-        }
-    });
-}
+            },
 
+            scales: {
+                x: {
+                    type: "linear",
+
+                    min: currentAge,
+                    max: lifeExpectancy,
+
+                    title: { text: "Age", display: true }
+                },
+                y: {
+                    title: { text: "Value ($)", display: true }
+                }
+            }
+        },
+
+        plugins: [phaseShadingPlugin]   // ← this was missing in your pasted version
+    });
+
+    }
+    
 
 function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
@@ -1040,6 +1382,34 @@ function generateGuidance(result) {
 ------------------------------------------------------- */
 
 function computeProInsights(result) {
+
+    // -------------------------------------------------------
+    // 4% / 5% WITHDRAWAL HELPERS
+    // -------------------------------------------------------
+    function simulateWithdrawal(balance, rate, growthRate, years) {
+        const annual = balance * rate;
+        let b = balance;
+
+        for (let i = 0; i < years; i++) {
+            b = b * (1 + growthRate) - annual;
+            if (b <= 0) return 0;
+        }
+        return b;
+    }
+
+    function withdrawalInsight(balance, rate, growthRate, years) {
+        const endBalance = simulateWithdrawal(balance, rate, growthRate, years);
+        return {
+            rate,
+            annual: balance * rate,
+            endBalance,
+            sustainable: endBalance > 0
+        };
+    }
+
+    // -------------------------------------------------------
+    // INPUT EXTRACTION
+    // -------------------------------------------------------
     const {
         currentRoth,
         currentTrad,
@@ -1077,11 +1447,15 @@ function computeProInsights(result) {
     let nextBracketRate = null;
     let taxJump = null;
 
+    // NEW: 4%/5% INSIGHT DEFAULTS
+    let fourPercent = null;
+    let fivePercent = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
     // -------------------------------------------------------
     if (retirementTaxDetails && taxContext) {
+
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
         const {
             filingStatus,
@@ -1134,25 +1508,18 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // BRACKET INSIGHTS (CURRENT + NEXT BRACKET)
+        // BRACKET INSIGHTS
         // -------------------------------------------------------
-
         if (currentBracket) {
             currentBracketRate = currentBracket.rate;
-
-            // Room left in the CURRENT bracket
             currentBracketFill = Math.max(currentBracket.top - taxable, 0);
 
-            // Room left until the NEXT bracket top
             if (nextBracket) {
                 nextBracketFill = Math.max(nextBracket.top - taxable, 0);
                 nextBracketRate = nextBracket.rate;
-
-                // Tax jump (e.g., 22% → 24%)
                 taxJump = nextBracketRate - currentBracketRate;
             }
         }
-
 
         // -------------------------------------------------------
         // IRMAA RISK SCORE
@@ -1168,7 +1535,7 @@ function computeProInsights(result) {
         irmaaRiskScore = Math.min(100, band * 20);
 
         // -------------------------------------------------------
-        // SAFE CONVERSION RANGE (BRACKET + IRMAA AWARE)
+        // SAFE CONVERSION RANGE
         // -------------------------------------------------------
         let irmaaHeadroom = null;
         const nextIrmaa = irmaaThresholds.find(t => magi < t);
@@ -1186,7 +1553,7 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // SIMULATION: CONVERT SAFE AMOUNT EVERY YEAR UNTIL 73
+        // SIMULATION: SAFE CONVERSIONS UNTIL 73
         // -------------------------------------------------------
         if (safeConversionMax !== null && safeConversionMax > 0) {
             const startAge = retirementAge;
@@ -1218,7 +1585,7 @@ function computeProInsights(result) {
         }
 
         // -------------------------------------------------------
-        // MAXIMUM ALLOWABLE CONVERSION (BEFORE CROSSING BRACKET/IRMAA)
+        // MAXIMUM ALLOWABLE CONVERSION
         // -------------------------------------------------------
         if (bracketFillAmount !== null) {
             const maxByBracket = bracketFillAmount;
@@ -1234,6 +1601,27 @@ function computeProInsights(result) {
             retireRate: retireTax,
             rmdRate: retireTax
         };
+
+        // -------------------------------------------------------
+        // 4% / 5% WITHDRAWAL SUSTAINABILITY
+        // -------------------------------------------------------
+        const retirementBalance = currentRoth + currentTrad;
+        const growthRate = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+        const yearsTo85 = Math.max(0, 85 - retirementAge);
+
+        fourPercent = withdrawalInsight(
+            retirementBalance,
+            0.04,
+            growthRate,
+            yearsTo85
+        );
+
+        fivePercent = withdrawalInsight(
+            retirementBalance,
+            0.05,
+            growthRate,
+            yearsTo85
+        );
     }
 
     // -------------------------------------------------------
@@ -1256,11 +1644,11 @@ function computeProInsights(result) {
         nextBracketFill,
         currentBracketRate,
         nextBracketRate,
-        taxJump
+        taxJump,
+        fourPercentInsight: fourPercent,
+        fivePercentInsight: fivePercent
     };
 }
-
-
 
 function renderProInsights(result) {
     const el = document.getElementById("pro-insights");
@@ -1283,7 +1671,10 @@ function renderProInsights(result) {
         nextBracketFill,
         currentBracketRate,
         nextBracketRate,
-        taxJump
+        taxJump,
+        fourPercentInsight: fourPercent,
+        fivePercentInsight: fivePercent
+
     } = computeProInsights(result);
 
     const retirementAge = result.taxContext?.retirementAge;
@@ -1436,6 +1827,36 @@ function renderProInsights(result) {
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Roth Conversion Strategy</div>
                 <div><strong>${conversionWindow}</strong> — ${conversionComment}</div>
+            </div>
+        `;
+    }
+
+    if (fourPercent && fivePercent) {
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
+
+                <div class="withdrawal-row">
+                    <div class="withdrawal-label">4% Rule</div>
+                    <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
+                        ${fourPercent.sustainable ? "Sustainable" : "Not Sustainable"}
+                        <span class="withdrawal-sub">
+                            Starts at ${formatCurrency(fourPercent.annual)} —
+                            Ends at ${formatCurrency(fourPercent.endBalance)}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="withdrawal-row">
+                    <div class="withdrawal-label">5% Rule</div>
+                    <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
+                        ${fivePercent.sustainable ? "Borderline" : "Not Sustainable"}
+                        <span class="withdrawal-sub">
+                            Starts at ${formatCurrency(fivePercent.annual)} —
+                            Ends at ${formatCurrency(fivePercent.endBalance)}
+                        </span>
+                    </div>
+                </div>
             </div>
         `;
     }
