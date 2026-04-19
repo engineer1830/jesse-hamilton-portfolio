@@ -1383,6 +1383,8 @@ function generateGuidance(result) {
 
 function computeProInsights(result) {
 
+    console.log("computeProInsights START");
+
     // -------------------------------------------------------
     // 4% / 5% WITHDRAWAL HELPERS
     // -------------------------------------------------------
@@ -1685,7 +1687,8 @@ function computeProInsights(result) {
 
     }
 
-    
+    console.log("computeProInsights END");
+
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
