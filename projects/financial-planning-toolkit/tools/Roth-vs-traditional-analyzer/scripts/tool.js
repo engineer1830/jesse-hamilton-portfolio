@@ -22,6 +22,12 @@ const phaseShadingPlugin = {
     }
 };
 
+function formatCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) return "$0";
+    return "$" + Number(value).toLocaleString();
+}
+
+
 function limitToLastNYears(prices, years = 10) {
     if (!prices || prices.length === 0) return prices;
 
