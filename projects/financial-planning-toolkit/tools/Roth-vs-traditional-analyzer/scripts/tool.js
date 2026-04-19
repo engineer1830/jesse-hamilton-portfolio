@@ -1915,8 +1915,8 @@ function renderProInsights(result) {
                     <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
                         ${fourPercent.sustainable ? "Sustainable" : "Not Sustainable"}
                         <span class="withdrawal-sub">
-                            Starts at ${formatCurrency(fourPercent.annual)} —
-                            Ends at ${formatCurrency(fourPercent.endBalance)}
+                            First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fourPercent.endBalance)}
                         </span>
                     </div>
                 </div>
@@ -1926,8 +1926,8 @@ function renderProInsights(result) {
                     <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
                         ${fivePercent.sustainable ? "Borderline" : "Not Sustainable"}
                         <span class="withdrawal-sub">
-                            Starts at ${formatCurrency(fivePercent.annual)} —
-                            Ends at ${formatCurrency(fivePercent.endBalance)}
+                            First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fivePercent.endBalance)}
                         </span>
                     </div>
                 </div>
