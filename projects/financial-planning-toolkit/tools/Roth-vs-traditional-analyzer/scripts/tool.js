@@ -1390,13 +1390,9 @@ function generateGuidance(result) {
 
 function computeProInsights(result) {
 
-    console.log("computeProInsights START");
-    console.log("Spending need:", spendingNeedAtRetirement);
-    console.log("Required withdrawal rate:", requiredWithdrawalRate);
-    console.log("Catastrophic:", catastrophic);
-
-
+    
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
+   
 
     // -------------------------------------------------------
     // 4% / 5% WITHDRAWAL HELPERS
