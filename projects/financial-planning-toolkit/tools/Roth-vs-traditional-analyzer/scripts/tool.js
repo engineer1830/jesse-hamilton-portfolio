@@ -883,9 +883,12 @@ $("runBtn").addEventListener("click", async () => {
     
 
 
-    renderSummary(result);
+    const insights = computeProInsights(result);
+    renderSummary({ ...result, ...insights });
+
     loading.style.display = "none";
-    output.textContent = JSON.stringify(result, null, 2);
+    output.textContent = JSON.stringify({ ...result, ...insights }, null, 2);
+
 });
 
 /* -------------------------------------------------------
