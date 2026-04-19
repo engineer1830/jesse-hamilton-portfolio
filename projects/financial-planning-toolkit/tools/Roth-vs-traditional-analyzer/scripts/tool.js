@@ -1445,11 +1445,21 @@ function computeProInsights(result) {
 
     function withdrawalInsight(balance, rate, growthRate, years) {
         const endBalance = simulateWithdrawal(balance, rate, growthRate, years);
+
+        const ratio = endBalance / balance;
+
+        let label;
+        if (ratio >= 0.5) label = "Sustainable";
+        else if (ratio >= 0.1) label = "Borderline";
+        else if (ratio > 0) label = "High Risk";
+        else label = "Not Sustainable";
+
         return {
             rate,
             annual: balance * rate,
             endBalance,
-            sustainable: endBalance > 0
+            ratio,
+            label
         };
     }
 
@@ -1947,8 +1957,8 @@ function renderProInsights(result) {
     
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
-                    <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
-                        ${fourPercent.sustainable ? "Sustainable" : "Not Sustainable"}
+                    <div class="withdrawal-value ${fourPercent.label.toLowerCase().replace(" ", "-")}">
+                        ${fourPercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
                             Projected balance at age 85: ${formatCurrency(fourPercent.endBalance)}
@@ -1958,8 +1968,8 @@ function renderProInsights(result) {
     
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">5% Rule</div>
-                    <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
-                        ${fivePercent.sustainable ? "Borderline" : "Not Sustainable"}
+                    <div class="withdrawal-value ${fivePercent.label.toLowerCase().replace(" ", "-")}">
+                        ${fivePercent.label}
                         <span class="withdrawal-sub">
                             First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
                             Projected balance at age 85: ${formatCurrency(fivePercent.endBalance)}
