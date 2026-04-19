@@ -2290,6 +2290,18 @@ function renderCatastrophicUX(result) {
     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
     const depletionAge = result.depletionAge ?? null;
 
+    const depletionMsgEl = document.getElementById("catastrophic-depletion-message");
+
+    if (depletionMsgEl) {
+        const depletionLine = depletionAge
+            ? `At your current spending level, your savings will be depleted near age <strong>${depletionAge}</strong>.`
+            : `At your current spending level, your savings would be depleted well before age 85.`;
+
+        depletionMsgEl.innerHTML = `
+        ${depletionLine}
+        This is a high‑risk scenario that requires immediate adjustment.
+    `;
+    }
 
     // Banner
     if (catastrophic) {
