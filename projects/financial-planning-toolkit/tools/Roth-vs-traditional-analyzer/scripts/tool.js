@@ -1669,7 +1669,6 @@ function computeProInsights(result) {
         const mcYears = Math.max(0, 85 - retirementAge);
         const mcMeanGrowth = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
 
-        console.log("Running readiness block");
 
 
         retirementReadiness = runMonteCarlo({
@@ -1682,7 +1681,8 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
-        
+        console.log("Readiness result:", retirementReadiness);
+
     }
 
     
