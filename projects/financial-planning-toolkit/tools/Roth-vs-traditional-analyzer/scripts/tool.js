@@ -1390,7 +1390,7 @@ function generateGuidance(result) {
 function computeProInsights(result) {
 
     console.log("computeProInsights START");
-    
+
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
     // -------------------------------------------------------
@@ -1511,8 +1511,12 @@ function computeProInsights(result) {
             grossIncome,
             currentTax,
             retireTax,
-            retirementAge
+            retirementAge,
+            currentAge
         } = taxContext;
+
+        // Compute years to retirement
+        const yearsToRetirement = retirementAge - currentAge;
 
         // -------------------------------------------------------
         // RMD PRESSURE SCORE
