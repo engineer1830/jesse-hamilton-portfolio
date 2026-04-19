@@ -1701,7 +1701,7 @@ function computeProInsights(result) {
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
         // const growthRate = retirementGrowthRate;
-        const growthRate = expectedReturn;
+        const growthRate = result.expectedReturn;
 
         // -------------------------------------------------------
         // SPENDING NEED AT RETIREMENT
