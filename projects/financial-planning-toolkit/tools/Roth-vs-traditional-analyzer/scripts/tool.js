@@ -1740,20 +1740,7 @@ function computeProInsights(result) {
 
     console.log("computeProInsights END");
 
-    function getWithdrawalTooltip(label) {
-        switch (label) {
-            case "Sustainable":
-                return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
-            case "Borderline":
-                return "You do not run out of money, but your balance declines meaningfully. A poor market sequence could increase risk.";
-            case "High Risk":
-                return "You end with very little remaining. Even mild market volatility could cause depletion before age 85.";
-            case "Not Sustainable":
-                return "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
-            default:
-                return "";
-        }
-    }
+    
     
 
     // -------------------------------------------------------
@@ -1781,6 +1768,21 @@ function computeProInsights(result) {
         fivePercentInsight: fivePercent,
         retirementReadiness
     };
+}
+
+function getWithdrawalTooltip(label) {
+    switch (label) {
+        case "Sustainable":
+            return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
+        case "Borderline":
+            return "You do not run out of money, but your balance declines meaningfully. A poor market sequence could increase risk.";
+        case "High Risk":
+            return "You end with very little remaining. Even mild market volatility could cause depletion before age 85.";
+        case "Not Sustainable":
+            return "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
+        default:
+            return "";
+    }
 }
 
 function renderProInsights(result) {
