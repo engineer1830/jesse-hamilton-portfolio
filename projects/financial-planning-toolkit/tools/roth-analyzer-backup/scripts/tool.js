@@ -22,6 +22,12 @@ const phaseShadingPlugin = {
     }
 };
 
+function formatCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) return "$0";
+    return "$" + Number(value).toLocaleString();
+}
+
+
 function limitToLastNYears(prices, years = 10) {
     if (!prices || prices.length === 0) return prices;
 
@@ -865,6 +871,7 @@ $("runBtn").addEventListener("click", async () => {
         taxContext,
         expectedReturn,
         stockVol,
+        spendingNeedAtRetirement: spendingNeed,
 
         glidepath: useGlidepath ? {
             yearlyExpectedReturns,
@@ -876,9 +883,14 @@ $("runBtn").addEventListener("click", async () => {
     
 
 
-    renderSummary(result);
+    const insights = computeProInsights(result);
+    renderSummary({ ...result, ...insights });
+    
+
+
     loading.style.display = "none";
-    output.textContent = JSON.stringify(result, null, 2);
+    output.textContent = JSON.stringify({ ...result, ...insights }, null, 2);
+
 });
 
 /* -------------------------------------------------------
@@ -1381,7 +1393,20 @@ function generateGuidance(result) {
    PRO INSIGHTS (COMPUTATION)
 ------------------------------------------------------- */
 
+
 function computeProInsights(result) {
+
+    let catastrophic = null;
+    let spendingNeedAtRetirement = null;
+    let fourPercent = null;
+    let fivePercent = null;
+    let retirementReadiness = null;
+    let requiredWithdrawalRate = null;
+    let spendingGap = null;
+
+    
+    const glidepath = result.glidepath?.yearlyExpectedReturns || null;
+   
 
     // -------------------------------------------------------
     // 4% / 5% WITHDRAWAL HELPERS
@@ -1397,13 +1422,59 @@ function computeProInsights(result) {
         return b;
     }
 
+    function runMonteCarlo({
+        startingBalance,
+        annualWithdrawal,
+        years,
+        meanGrowth = 0.05,
+        stdev = 0.12,
+        simulations = 500,
+        readinessThreshold = 500000
+    }) {
+        let successCount = 0;
+
+        for (let i = 0; i < simulations; i++) {
+            let balance = startingBalance;
+
+            for (let y = 0; y < years; y++) {
+                // Random growth using normal distribution
+                const rand = Math.random();
+                const z = Math.sqrt(-2 * Math.log(rand)) * Math.cos(2 * Math.PI * rand);
+                const growth = meanGrowth + stdev * z;
+
+                balance = balance * (1 + growth) - annualWithdrawal;
+                if (balance <= 0) {
+                    balance = 0;
+                    break;
+                }
+            }
+
+            if (balance >= readinessThreshold) {
+                successCount++;
+            }
+        }
+
+        return Math.round((successCount / simulations) * 100);
+    }
+    
+
     function withdrawalInsight(balance, rate, growthRate, years) {
         const endBalance = simulateWithdrawal(balance, rate, growthRate, years);
+
+        const ratio = endBalance / balance;
+
+        let label;
+        if (ratio >= 0.5) label = "Sustainable";
+        else if (ratio >= 0.1) label = "Borderline";
+        else if (ratio > 0) label = "High Risk";
+        else label = "Not Sustainable";
+
         return {
             rate,
             annual: balance * rate,
             endBalance,
-            sustainable: endBalance > 0
+            ratio,
+            label
         };
     }
 
@@ -1447,9 +1518,6 @@ function computeProInsights(result) {
     let nextBracketRate = null;
     let taxJump = null;
 
-    // NEW: 4%/5% INSIGHT DEFAULTS
-    let fourPercent = null;
-    let fivePercent = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -1463,8 +1531,12 @@ function computeProInsights(result) {
             grossIncome,
             currentTax,
             retireTax,
-            retirementAge
+            retirementAge,
+            currentAge
         } = taxContext;
+
+        // Compute years to retirement
+        const yearsToRetirement = retirementAge - currentAge;
 
         // -------------------------------------------------------
         // RMD PRESSURE SCORE
@@ -1602,27 +1674,108 @@ function computeProInsights(result) {
             rmdRate: retireTax
         };
 
+        const yearsTo85 = Math.max(0, 85 - retirementAge);
+        // -------------------------------------------------------
+        // Compute retirement-phase growth rate from glidepath
+        // -------------------------------------------------------
+        let retirementGrowthRate = 0.05; // fallback default
+
+        if (Array.isArray(glidepath) && glidepath.length > 0) {
+            const start = yearsToRetirement;
+            const end = yearsToRetirement + yearsTo85;
+
+            // Slice the glidepath for retirement years only
+            const retirementReturns = glidepath.slice(start, end);
+
+            if (retirementReturns.length > 0) {
+                // Average the retirement-year returns
+                retirementGrowthRate =
+                    retirementReturns.reduce((sum, r) => sum + r, 0) /
+                    retirementReturns.length;
+            }
+        }
+
+        console.log("Retirement-phase growth rate:", retirementGrowthRate);
+        
+
         // -------------------------------------------------------
         // 4% / 5% WITHDRAWAL SUSTAINABILITY
         // -------------------------------------------------------
-        const retirementBalance = currentRoth + currentTrad;
-        const growthRate = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
-        const yearsTo85 = Math.max(0, 85 - retirementAge);
+        const yearsInRetirement = Math.max(0, 85 - retirementAge);
+        
+        const retirementBalance =
+            (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
+            (result.rothFinal ?? 0);
 
+        console.log("Retirement balance used for 4%/5%:", retirementBalance);
+
+        // const growthRate = retirementGrowthRate;
+        const growthRate = result.expectedReturn;
+
+        // -------------------------------------------------------
+        // SPENDING NEED AT RETIREMENT
+        // -------------------------------------------------------
+        spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
+
+        // -------------------------------------------------------
+        // SANITY CHECK: Can the portfolio support the spending gap?
+        // -------------------------------------------------------
+        const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
+        spendingGap = spendingNeedAtRetirement - ssIncome;
+
+        requiredWithdrawalRate =
+            retirementBalance > 0 ? spendingGap / retirementBalance : 1;
+
+        catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
+
+        
         fourPercent = withdrawalInsight(
             retirementBalance,
             0.04,
             growthRate,
-            yearsTo85
+            yearsInRetirement
         );
 
         fivePercent = withdrawalInsight(
             retirementBalance,
             0.05,
             growthRate,
-            yearsTo85
+            yearsInRetirement
         );
+
+        if (catastrophic) {
+            fourPercent.label = "Not Sustainable";
+            fourPercent.endBalance = 0;
+
+            fivePercent.label = "Not Sustainable";
+            fivePercent.endBalance = 0;
+        }
+        
+
+        // -------------------------------------------------------
+        // RETIREMENT READINESS GAUGE (MONTE CARLO)
+        // -------------------------------------------------------
+        const mcStartingBalance = currentRoth + currentTrad;
+        const mcWithdrawal = mcStartingBalance * 0.04; // 4% baseline
+        const mcYears = Math.max(0, 85 - retirementAge);
+        const mcMeanGrowth = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+
+
+
+        retirementReadiness = runMonteCarlo({
+            startingBalance: mcStartingBalance,
+            annualWithdrawal: mcWithdrawal,
+            years: mcYears,
+            meanGrowth: mcMeanGrowth,
+            stdev: 0.12,
+            simulations: 500,
+            readinessThreshold: 500000
+        });
+
+        console.log("Readiness result:", retirementReadiness);
+
     }
+        
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
@@ -1646,8 +1799,35 @@ function computeProInsights(result) {
         nextBracketRate,
         taxJump,
         fourPercentInsight: fourPercent,
-        fivePercentInsight: fivePercent
+        fivePercentInsight: fivePercent,
+        retirementReadiness,
+        spendingNeedAtRetirement,
+        requiredWithdrawalRate,
+        spendingGap,
+        catastrophic
     };
+}
+
+/* -------------------------------------------------------
+   SUMMARY RENDERER
+------------------------------------------------------- */
+
+function getWithdrawalTooltip(label, catastrophic) {
+    switch (label) {
+        
+        case "Sustainable":
+            return "You maintain a strong financial buffer through age 85. Your plan shows no risk of depletion under these assumptions.";
+        case "Borderline":
+            return "You do not run out of money, but your balance declines meaningfully. A poor market sequence could increase risk.";
+        case "High Risk":
+            return "You end with very little remaining. Even mild market volatility could cause depletion before age 85.";
+        case "Not Sustainable":
+            return catastrophic
+                ? "Your spending need is far above what your savings can support. The portfolio is projected to deplete rapidly regardless of withdrawal strategy."
+                : "Your projected balance reaches zero before age 85. This withdrawal rate is not safe under current assumptions.";
+        default:
+            return "";
+    }
 }
 
 function renderProInsights(result) {
@@ -1673,9 +1853,11 @@ function renderProInsights(result) {
         nextBracketRate,
         taxJump,
         fourPercentInsight: fourPercent,
-        fivePercentInsight: fivePercent
+        fivePercentInsight: fivePercent,
+        retirementReadiness,
+        catastrophic
 
-    } = computeProInsights(result);
+    } = result;
 
     const retirementAge = result.taxContext?.retirementAge;
 
@@ -1835,27 +2017,67 @@ function renderProInsights(result) {
         html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
-
+    
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
-                    <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
-                        ${fourPercent.sustainable ? "Sustainable" : "Not Sustainable"}
+                    <div class="withdrawal-value ${fourPercent.label.toLowerCase().replace(" ", "-")}"
+                         title="${getWithdrawalTooltip(fourPercent.label, catastrophic)}">
+                        ${fourPercent.label}
                         <span class="withdrawal-sub">
-                            Starts at ${formatCurrency(fourPercent.annual)} —
-                            Ends at ${formatCurrency(fourPercent.endBalance)}
+                            First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fourPercent.endBalance)}
                         </span>
                     </div>
                 </div>
-
+    
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">5% Rule</div>
-                    <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
-                        ${fivePercent.sustainable ? "Borderline" : "Not Sustainable"}
+                    <div class="withdrawal-value ${fivePercent.label.toLowerCase().replace(" ", "-")}"
+                         title="${getWithdrawalTooltip(fivePercent.label, catastrophic)}">
+                        ${fivePercent.label}
                         <span class="withdrawal-sub">
-                            Starts at ${formatCurrency(fivePercent.annual)} —
-                            Ends at ${formatCurrency(fivePercent.endBalance)}
+                            First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fivePercent.endBalance)}
                         </span>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // -------------------------------------------------------
+    // RETIREMENT READINESS GAUGE  (⭐ now correctly placed)
+    // -------------------------------------------------------
+    if (retirementReadiness !== null) {
+
+        let readinessClass = "bad";
+        if (retirementReadiness >= 90) readinessClass = "good";
+        else if (retirementReadiness >= 60) readinessClass = "warn";
+
+        let readinessLabel = "Low Readiness";
+        if (retirementReadiness >= 90) readinessLabel = "High Readiness";
+        else if (retirementReadiness >= 60) readinessLabel = "Moderate Readiness";
+
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Retirement Readiness Gauge</div>
+    
+                <div class="readiness-score ${readinessClass}">
+                    ${retirementReadiness}/100
+                </div>
+    
+                <div class="readiness-label ${readinessClass}">
+                    ${readinessLabel}
+                </div>
+    
+                <div class="readiness-bar">
+                    <div class="readiness-bar-fill ${readinessClass}" style="width:${retirementReadiness}%;"></div>
+                </div>
+    
+                <div class="pro-insights-note">
+                    This gauge reflects how often your retirement plan succeeds in Monte Carlo simulations,
+                    ending with at least $500,000 remaining at age 85. Higher scores indicate stronger
+                    long‑term readiness and resilience.
                 </div>
             </div>
         `;
@@ -1874,11 +2096,6 @@ function renderProInsights(result) {
 }
 
 
-
-/* -------------------------------------------------------
-   SUMMARY RENDERER
-------------------------------------------------------- */
-
 function renderSummary(result) {
     const el = $("summary");
 
@@ -1894,7 +2111,8 @@ function renderSummary(result) {
         currentTrad,
         monteCarlo,
         retirementTaxDetails,
-        conversionImpact
+        conversionImpact,
+        spendingNeedAtRetirement
     } = result;
 
     const diffLabel = difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -1978,7 +2196,10 @@ function renderSummary(result) {
    PRO INSIGHTS RENDER CALL
 ------------------------------------------------------- */
 
-    renderProInsights(result);
+    const insights = computeProInsights(result);
+    renderCatastrophicUX({ ...result, ...insights });
+    renderProInsights(insights);
+
 
     // -------------------------------------------------------
     // CUSTOM CONVERSION SLIDER LISTENER
@@ -2031,3 +2252,95 @@ function renderSummary(result) {
     }
 }
 
+function renderCatastrophicUX(result) {
+    const bannerEl = document.getElementById("catastrophic-banner");
+    const sanityEl = document.getElementById("sanity-check");
+    const actionsEl = document.getElementById("recommended-actions");
+
+    if (!bannerEl || !sanityEl || !actionsEl) return;
+
+    const catastrophic = !!result.catastrophic;
+    const requiredRate = result.requiredWithdrawalRate ?? null;
+    const spendingGap = result.spendingGap ?? null;
+    const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? null;
+    const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+
+    // Banner
+    if (catastrophic) {
+        bannerEl.style.display = "flex";
+
+        const rateEl = document.getElementById("catastrophic-withdrawal-rate");
+        const gapEl = document.getElementById("catastrophic-spending-gap");
+        const ssEl = document.getElementById("catastrophic-ss-income");
+
+        if (rateEl && requiredRate != null) {
+            rateEl.textContent = (requiredRate * 100).toFixed(1) + "%";
+        }
+
+        if (gapEl && spendingGap != null) {
+            gapEl.textContent = formatCurrency(spendingGap);
+        }
+
+        if (ssEl && ssIncome != null) {
+            ssEl.textContent = formatCurrency(ssIncome);
+        }
+
+    } else {
+        bannerEl.style.display = "none";
+    }
+    
+
+    // Will I run out of money?
+    let statusLine = "";
+    if (catastrophic) {
+        statusLine = "Yes — at your current spending level, your savings would run out early.";
+    } else if (requiredRate != null && requiredRate > 0.05 && requiredRate <= 0.08) {
+        statusLine = "Possibly — your plan is fragile and may not withstand market volatility.";
+    } else {
+        statusLine = "Unlikely — your plan appears sustainable under typical market conditions.";
+    }
+
+    const yearsText = yearsUntilDepletion
+        ? `Estimated years until savings run out: <strong>${yearsUntilDepletion}</strong>`
+        : "";
+
+    sanityEl.innerHTML = `
+        <div class="sanity-block">
+          <h3>Will I Run Out of Money?</h3>
+          <p class="sanity-status">${statusLine}</p>
+          ${catastrophic
+            ? `<p class="sanity-detail">
+                  Your annual spending need is <strong>${formatCurrency(
+                result.spendingNeedAtRetirement ?? 0
+            )}</strong>, but your portfolio can safely support only
+                  <strong>${formatCurrency(
+                result.fourPercentInsight?.annual ?? 0
+            )}–${formatCurrency(
+                result.fivePercentInsight?.annual ?? 0
+            )}</strong> per year under the 4%–5% rule.
+                  This mismatch creates a withdrawal rate that guarantees early depletion.
+                </p>`
+            : ""
+        }
+          ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+        </div>
+      `;
+    // Recommended actions
+    if (catastrophic) {
+        actionsEl.innerHTML = `
+        <div class="actions-block">
+          <h3>Recommended Next Steps</h3>
+          <ol>
+            <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+            <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+            <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+            <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+            <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+          </ol>
+        </div>
+      `;
+    } else {
+        actionsEl.innerHTML = "";
+    }
+}
+  
