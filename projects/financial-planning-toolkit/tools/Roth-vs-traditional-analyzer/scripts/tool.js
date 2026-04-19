@@ -1795,7 +1795,8 @@ function computeProInsights(result) {
         fourPercentInsight: fourPercent,
         fivePercentInsight: fivePercent,
         retirementReadiness,
-        spendingNeedAtRetirement: spendingNeed
+        spendingNeedAtRetirement: spendingNeed,
+        catastrophic
     };
 }
 
@@ -1840,9 +1841,10 @@ function renderProInsights(result) {
         taxJump,
         fourPercentInsight: fourPercent,
         fivePercentInsight: fivePercent,
-        retirementReadiness
+        retirementReadiness,
+        catastrophic
 
-    } = computeProInsights(result);
+    } = result;
 
     const retirementAge = result.taxContext?.retirementAge;
 
