@@ -1403,6 +1403,9 @@ function computeProInsights(result) {
     let retirementReadiness = null;
     let requiredWithdrawalRate = null;
     let spendingGap = null;
+    let yearsUntilDepletion = null;
+    let depletionAge = null;
+
 
     
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
