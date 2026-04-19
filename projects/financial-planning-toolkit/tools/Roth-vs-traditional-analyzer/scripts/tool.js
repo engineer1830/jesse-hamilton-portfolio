@@ -2188,7 +2188,9 @@ function renderSummary(result) {
    PRO INSIGHTS RENDER CALL
 ------------------------------------------------------- */
 
-    renderProInsights(result);
+    const insights = computeProInsights(result);
+    renderProInsights(insights);
+
 
     // -------------------------------------------------------
     // CUSTOM CONVERSION SLIDER LISTENER
