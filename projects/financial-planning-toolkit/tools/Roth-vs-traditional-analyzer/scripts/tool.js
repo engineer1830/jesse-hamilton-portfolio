@@ -2313,6 +2313,12 @@ function renderCatastrophicUX(result) {
 
     const depletionMsgEl = document.getElementById("catastrophic-depletion-message");
 
+    const needsAdjustment =
+        catastrophic ||
+        (requiredRate != null && requiredRate > 0.05) ||
+        (result.safeSpendingDelta != null && result.safeSpendingDelta > 0);
+
+
     if (depletionMsgEl) {
         const depletionLine = depletionAge
             ? `At your current spending level, your savings will be depleted near age <strong>${depletionAge}</strong>.`
@@ -2364,12 +2370,12 @@ function renderCatastrophicUX(result) {
         : "";
 
     const safeSpendingText =
-        catastrophic && result.safeSpendingMin != null && result.safeSpendingMax != null
+        needsAdjustment && result.safeSpendingMin != null && result.safeSpendingMax != null
             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
                <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(result.safeSpendingMax)}</strong> per year.`
             : "";
     const safeDeltaText =
-        catastrophic && result.safeSpendingDelta != null
+        needsAdjustment && result.safeSpendingDelta != null
             ? `You would need to reduce spending by 
                    <strong>${formatCurrency(result.safeSpendingDelta)}</strong> 
                    to reach the safe range.`
@@ -2397,7 +2403,7 @@ function renderCatastrophicUX(result) {
           ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
           ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
           ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
-          ${result.requiredPortfolioSize
+          ${needsAdjustment && result.requiredPortfolioSize
             ? `<p class="sanity-required">
                  To safely sustain your current lifestyle, you would need a portfolio of 
                  <strong>${formatCurrency(result.requiredPortfolioSize)}</strong>.
