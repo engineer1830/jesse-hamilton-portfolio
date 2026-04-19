@@ -1691,6 +1691,8 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // 4% / 5% WITHDRAWAL SUSTAINABILITY
         // -------------------------------------------------------
+        const yearsInRetirement = Math.max(0, 85 - retirementAge);
+        
         const retirementBalance =
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
             (result.rothFinal ?? 0);
@@ -1703,14 +1705,14 @@ function computeProInsights(result) {
             retirementBalance,
             0.04,
             growthRate,
-            yearsTo85
+            yearsInRetirement
         );
 
         fivePercent = withdrawalInsight(
             retirementBalance,
             0.05,
             growthRate,
-            yearsTo85
+            yearsInRetirement
         );
 
 
