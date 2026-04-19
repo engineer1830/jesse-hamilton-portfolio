@@ -1397,6 +1397,42 @@ function computeProInsights(result) {
         return b;
     }
 
+    function runMonteCarlo({
+        startingBalance,
+        annualWithdrawal,
+        years,
+        meanGrowth = 0.05,
+        stdev = 0.12,
+        simulations = 500,
+        readinessThreshold = 500000
+    }) {
+        let successCount = 0;
+
+        for (let i = 0; i < simulations; i++) {
+            let balance = startingBalance;
+
+            for (let y = 0; y < years; y++) {
+                // Random growth using normal distribution
+                const rand = Math.random();
+                const z = Math.sqrt(-2 * Math.log(rand)) * Math.cos(2 * Math.PI * rand);
+                const growth = meanGrowth + stdev * z;
+
+                balance = balance * (1 + growth) - annualWithdrawal;
+                if (balance <= 0) {
+                    balance = 0;
+                    break;
+                }
+            }
+
+            if (balance >= readinessThreshold) {
+                successCount++;
+            }
+        }
+
+        return Math.round((successCount / simulations) * 100);
+    }
+    
+
     function withdrawalInsight(balance, rate, growthRate, years) {
         const endBalance = simulateWithdrawal(balance, rate, growthRate, years);
         return {
@@ -1450,6 +1486,8 @@ function computeProInsights(result) {
     // NEW: 4%/5% INSIGHT DEFAULTS
     let fourPercent = null;
     let fivePercent = null;
+
+    let retirementReadiness = null;
 
     // -------------------------------------------------------
     // ADVANCED METRICS ONLY IF TAX DETAILS ARE AVAILABLE
@@ -1622,7 +1660,29 @@ function computeProInsights(result) {
             growthRate,
             yearsTo85
         );
+
+        // -------------------------------------------------------
+        // RETIREMENT READINESS GAUGE (MONTE CARLO)
+        // -------------------------------------------------------
+        const mcStartingBalance = currentRoth + currentTrad;
+        const mcWithdrawal = mcStartingBalance * 0.04; // 4% baseline
+        const mcYears = Math.max(0, 85 - retirementAge);
+        const mcMeanGrowth = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
+
+        retirementReadiness = runMonteCarlo({
+            startingBalance: mcStartingBalance,
+            annualWithdrawal: mcWithdrawal,
+            years: mcYears,
+            meanGrowth: mcMeanGrowth,
+            stdev: 0.12,
+            simulations: 500,
+            readinessThreshold: 500000
+        });
+
+        
     }
+
+    
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
@@ -1673,7 +1733,8 @@ function renderProInsights(result) {
         nextBracketRate,
         taxJump,
         fourPercentInsight: fourPercent,
-        fivePercentInsight: fivePercent
+        fivePercentInsight: fivePercent,
+        retirementReadiness
 
     } = computeProInsights(result);
 
@@ -1859,6 +1920,46 @@ function renderProInsights(result) {
                 </div>
             </div>
         `;
+    
+        // -------------------------------------------------------
+        // RETIREMENT READINESS GAUGE
+        // -------------------------------------------------------
+        if (retirementReadiness !== null) {
+
+            // Determine color class based on readiness score
+            let readinessClass = "bad";
+            if (retirementReadiness >= 90) readinessClass = "good";
+            else if (retirementReadiness >= 60) readinessClass = "warn";
+
+            // Determine readiness label
+            let readinessLabel = "Low Readiness";
+            if (retirementReadiness >= 90) readinessLabel = "High Readiness";
+            else if (retirementReadiness >= 60) readinessLabel = "Moderate Readiness";
+
+            html += `
+        <div class="pro-insights-metric">
+            <div class="pro-insights-label">Retirement Readiness Gauge</div>
+
+            <div class="readiness-score ${readinessClass}">
+                ${retirementReadiness}/100
+            </div>
+
+            <div class="readiness-label ${readinessClass}">
+                ${readinessLabel}
+            </div>
+
+            <div class="readiness-bar">
+                <div class="readiness-bar-fill ${readinessClass}" style="width:${retirementReadiness}%;"></div>
+            </div>
+
+            <div class="pro-insights-note">
+                This gauge reflects how often your retirement plan succeeds in Monte Carlo simulations,
+                ending with at least $500,000 remaining at age 85. Higher scores indicate stronger
+                long‑term readiness and resilience.
+            </div>
+        </div>
+    `;}
+        
     }
 
     html += `</div>`;
