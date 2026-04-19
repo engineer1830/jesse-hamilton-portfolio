@@ -1721,9 +1721,9 @@ function computeProInsights(result) {
         // SANITY CHECK: Can the portfolio support the spending gap?
         // -------------------------------------------------------
         const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
-        const spendingGap = spendingNeedAtRetirement - ssIncome;
+        spendingGap = spendingNeedAtRetirement - ssIncome;
 
-        const requiredWithdrawalRate =
+        requiredWithdrawalRate =
             retirementBalance > 0 ? spendingGap / retirementBalance : 1;
 
         catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
