@@ -1405,6 +1405,8 @@ function computeProInsights(result) {
     let spendingGap = null;
     let yearsUntilDepletion = null;
     let depletionAge = null;
+    let retirementBalance = 0;
+
 
 
     
@@ -1706,9 +1708,14 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         const yearsInRetirement = Math.max(0, 85 - retirementAge);
         
-        const retirementBalance =
+        // const retirementBalance =
+        //     (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
+        //     (result.rothFinal ?? 0);
+
+        retirementBalance =
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
             (result.rothFinal ?? 0);
+
 
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
@@ -1731,21 +1738,7 @@ function computeProInsights(result) {
 
         catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
 
-        // -------------------------------------------------------
-        // YEARS UNTIL DEPLETION (simple deterministic estimate)
-        // -------------------------------------------------------
-        let yearsUntilDepletion = null;
-        let depletionAge = null;
-
-        if (retirementBalance > 0 && spendingGap > 0) {
-            // Simple depletion estimate: how many years until balance hits zero
-            yearsUntilDepletion = Math.floor(retirementBalance / spendingGap);
-
-            if (taxContext?.retirementAge != null) {
-                depletionAge = taxContext.retirementAge + yearsUntilDepletion;
-            }
-        }
-
+    
 
         fourPercent = withdrawalInsight(
             retirementBalance,
@@ -1792,8 +1785,19 @@ function computeProInsights(result) {
 
         console.log("Readiness result:", retirementReadiness);
 
-    }
+    } // End of Tax block
         
+    // -------------------------------------------------------
+    // YEARS UNTIL DEPLETION (simple deterministic estimate)
+    // -------------------------------------------------------
+    if (retirementBalance > 0 && spendingGap > 0) {
+        // Simple depletion estimate: how many years until balance hits zero
+        yearsUntilDepletion = Math.floor(retirementBalance / spendingGap);
+
+        if (taxContext?.retirementAge != null) {
+            depletionAge = taxContext.retirementAge + yearsUntilDepletion;
+        }
+    }
 
     // -------------------------------------------------------
     // RETURN ALL INSIGHTS
