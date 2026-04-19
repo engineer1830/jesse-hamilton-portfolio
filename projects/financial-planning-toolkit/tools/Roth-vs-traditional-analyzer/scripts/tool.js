@@ -1706,7 +1706,8 @@ function computeProInsights(result) {
         nextBracketRate,
         taxJump,
         fourPercentInsight: fourPercent,
-        fivePercentInsight: fivePercent
+        fivePercentInsight: fivePercent,
+        retirementReadiness
     };
 }
 
