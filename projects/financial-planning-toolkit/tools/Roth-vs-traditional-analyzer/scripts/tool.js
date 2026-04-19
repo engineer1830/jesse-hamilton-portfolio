@@ -1728,7 +1728,22 @@ function computeProInsights(result) {
 
         catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
 
-        
+        // -------------------------------------------------------
+        // YEARS UNTIL DEPLETION (simple deterministic estimate)
+        // -------------------------------------------------------
+        let yearsUntilDepletion = null;
+        let depletionAge = null;
+
+        if (retirementBalance > 0 && spendingGap > 0) {
+            // Simple depletion estimate: how many years until balance hits zero
+            yearsUntilDepletion = Math.floor(retirementBalance / spendingGap);
+
+            if (taxContext?.retirementAge != null) {
+                depletionAge = taxContext.retirementAge + yearsUntilDepletion;
+            }
+        }
+
+
         fourPercent = withdrawalInsight(
             retirementBalance,
             0.04,
@@ -1804,6 +1819,8 @@ function computeProInsights(result) {
         spendingNeedAtRetirement,
         requiredWithdrawalRate,
         spendingGap,
+        yearsUntilDepletion,
+        depletionAge,
         catastrophic
     };
 }
@@ -2264,6 +2281,8 @@ function renderCatastrophicUX(result) {
     const spendingGap = result.spendingGap ?? null;
     const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? null;
     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+    const depletionAge = result.depletionAge ?? null;
+
 
     // Banner
     if (catastrophic) {
@@ -2301,8 +2320,9 @@ function renderCatastrophicUX(result) {
     }
 
     const yearsText = yearsUntilDepletion
-        ? `Estimated years until savings run out: <strong>${yearsUntilDepletion}</strong>`
+        ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
         : "";
+
 
     sanityEl.innerHTML = `
         <div class="sanity-block">
