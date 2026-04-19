@@ -1896,7 +1896,7 @@ function renderProInsights(result) {
         html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
-
+    
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
                     <div class="withdrawal-value ${fourPercent.sustainable ? "good" : "bad"}">
@@ -1907,7 +1907,7 @@ function renderProInsights(result) {
                         </span>
                     </div>
                 </div>
-
+    
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">5% Rule</div>
                     <div class="withdrawal-value ${fivePercent.sustainable ? "warn" : "bad"}">
@@ -1920,46 +1920,44 @@ function renderProInsights(result) {
                 </div>
             </div>
         `;
+    }
+
+    // -------------------------------------------------------
+    // RETIREMENT READINESS GAUGE  (⭐ now correctly placed)
+    // -------------------------------------------------------
+    if (retirementReadiness !== null) {
+
+        let readinessClass = "bad";
+        if (retirementReadiness >= 90) readinessClass = "good";
+        else if (retirementReadiness >= 60) readinessClass = "warn";
+
+        let readinessLabel = "Low Readiness";
+        if (retirementReadiness >= 90) readinessLabel = "High Readiness";
+        else if (retirementReadiness >= 60) readinessLabel = "Moderate Readiness";
+
+        html += `
+            <div class="pro-insights-metric">
+                <div class="pro-insights-label">Retirement Readiness Gauge</div>
     
-        // -------------------------------------------------------
-        // RETIREMENT READINESS GAUGE
-        // -------------------------------------------------------
-        if (retirementReadiness !== null) {
-
-            // Determine color class based on readiness score
-            let readinessClass = "bad";
-            if (retirementReadiness >= 90) readinessClass = "good";
-            else if (retirementReadiness >= 60) readinessClass = "warn";
-
-            // Determine readiness label
-            let readinessLabel = "Low Readiness";
-            if (retirementReadiness >= 90) readinessLabel = "High Readiness";
-            else if (retirementReadiness >= 60) readinessLabel = "Moderate Readiness";
-
-            html += `
-        <div class="pro-insights-metric">
-            <div class="pro-insights-label">Retirement Readiness Gauge</div>
-
-            <div class="readiness-score ${readinessClass}">
-                ${retirementReadiness}/100
+                <div class="readiness-score ${readinessClass}">
+                    ${retirementReadiness}/100
+                </div>
+    
+                <div class="readiness-label ${readinessClass}">
+                    ${readinessLabel}
+                </div>
+    
+                <div class="readiness-bar">
+                    <div class="readiness-bar-fill ${readinessClass}" style="width:${retirementReadiness}%;"></div>
+                </div>
+    
+                <div class="pro-insights-note">
+                    This gauge reflects how often your retirement plan succeeds in Monte Carlo simulations,
+                    ending with at least $500,000 remaining at age 85. Higher scores indicate stronger
+                    long‑term readiness and resilience.
+                </div>
             </div>
-
-            <div class="readiness-label ${readinessClass}">
-                ${readinessLabel}
-            </div>
-
-            <div class="readiness-bar">
-                <div class="readiness-bar-fill ${readinessClass}" style="width:${retirementReadiness}%;"></div>
-            </div>
-
-            <div class="pro-insights-note">
-                This gauge reflects how often your retirement plan succeeds in Monte Carlo simulations,
-                ending with at least $500,000 remaining at age 85. Higher scores indicate stronger
-                long‑term readiness and resilience.
-            </div>
-        </div>
-    `;}
-        
+        `;
     }
 
     html += `</div>`;
