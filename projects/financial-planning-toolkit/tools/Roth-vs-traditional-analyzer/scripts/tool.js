@@ -437,6 +437,15 @@ $("runBtn").addEventListener("click", async () => {
             const stockPrices = data[glidepathStockTicker] || [];
             const bondPrices = data[glidepathBondTicker] || [];
 
+            console.log("Glidepath raw data:", {
+                stockTicker: glidepathStockTicker,
+                bondTicker: glidepathBondTicker,
+                stockLen: stockPrices.length,
+                bondLen: bondPrices.length,
+                sampleStock: stockPrices.slice(0, 3),
+                sampleBond: bondPrices.slice(0, 3)
+            });
+
             // TEMPORARY TEST VALUES — force glidepath to show a slope
             // const stockReturn = 0.09;
             // const bondReturn = 0.03;
@@ -449,6 +458,8 @@ $("runBtn").addEventListener("click", async () => {
                 ? calculateCAGR(bondPrices)
                 : growth;
 
+            console.log("Glidepath returns:", { stockReturn, bondReturn, growth });
+            
             const stockVolDaily = stockPrices.length
                 ? Finance.stddev(
                     stockPrices.slice(1).map((p, i) => {
