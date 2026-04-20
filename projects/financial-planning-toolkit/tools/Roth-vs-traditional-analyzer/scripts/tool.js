@@ -1935,10 +1935,41 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
         formatCurrency(ss);
 }
 
+function computeSafeSpending(result) {
+    const balance = result.retirementBalance ?? 0;
+    return {
+        low: balance * 0.04,
+        high: balance * 0.05
+    };
+}
+
+function renderSafeSpending(result) {
+    const safe = computeSafeSpending(result);
+
+    document.getElementById("safe-spending-range").textContent =
+        `${formatCurrency(safe.low)} – ${formatCurrency(safe.high)}`;
+}
+
+function attachChartExplanation() {
+    const el = document.getElementById("chart-explanation-note");
+    if (!el) return;
+
+    el.addEventListener("click", () => {
+        alert(
+            "The growth chart shows projected balances year-by-year, " +
+            "but the depletion age is based on the sustainability engine, " +
+            "which includes taxes, Social Security timing, and spending patterns. " +
+            "These models use different assumptions, so the depletion age may not " +
+            "match the exact point where the chart crosses zero."
+        );
+    });
+}
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
 ------------------------------------------------------- */
+renderSafeSpending(result);
+attachChartExplanation();
 
 function getWithdrawalTooltip(label, catastrophic) {
     switch (label) {

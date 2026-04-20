@@ -449,3 +449,40 @@
 {
     margin-bottom: 6px;
 }
+
+.safe-spending-block
+{
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4a90e2;
+}
+
+.safe-spending-block h3
+{
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.safe-spending-value
+{
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.chart-note
+{
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    color: #4a90e2;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.chart-note:hover
+{
+    color: #2d6bb3;
+}
