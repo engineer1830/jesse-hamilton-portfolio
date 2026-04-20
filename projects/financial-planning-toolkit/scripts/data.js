@@ -45,7 +45,7 @@ export async function getHistoricalPrices(
 
     try {
         const response = await fetch(
-            `https://hamiltondesigns.vercel.app/api/yahoo?ticker=${ticker}&range=${range}&interval=${interval}`
+            `https://hamiltondesigns.vercel.app/api/yahoo3?ticker=${ticker}&range=${range}&interval=${interval}`
         );
 
         if (!response.ok) {
