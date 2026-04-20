@@ -1897,7 +1897,7 @@ function showSustainability(isCatastrophic) {
     }
 }
 
-function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate }) {
+function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate, result }) {
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
@@ -1918,7 +1918,7 @@ function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate,
     bar.style.width = `${Math.min(Math.max(successRate, 0), 100)}%`;
 }
 
-function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap }) {
+function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
@@ -2421,7 +2421,7 @@ function renderSummary(result) {
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
-            ssIncome: insights.ssIncome
+            result
         });
     } else {
         renderPositiveSustainability({
@@ -2429,8 +2429,8 @@ function renderSummary(result) {
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingNeed: insights.spendingNeedAtRetirement,
-            ssIncome: insights.ssIncome,
-            successRate: insights.retirementReadiness
+            successRate: insights.retirementReadiness,
+            result
         });
     }
 
