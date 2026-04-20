@@ -23,8 +23,18 @@ const phaseShadingPlugin = {
 };
 
 function formatCurrency(value) {
-    if (value === null || value === undefined || isNaN(value)) return "$0";
-    return "$" + Number(value).toLocaleString();
+    if (value === null || value === undefined || isNaN(value)) return "$0.00";
+    return Number(value).toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatPercent(value) {
+    if (value === null || value === undefined || isNaN(value)) return "0.0%";
+    return (value * 100).toFixed(1) + "%";
 }
 
 
@@ -857,12 +867,12 @@ $("runBtn").addEventListener("click", async () => {
 
     const result = {
         mode,
-        assumedGrowthRate: Finance.round(expectedReturn * 100, 2) + "%",
-        rothFinal: Finance.round(rothFinal),
-        traditionalFinal: Finance.round(tradFinal),
-        difference: Finance.round(rothFinal - tradFinal),
+        assumedGrowthRate: formatPercent(expectedReturn),
+        rothFinal: formatCurrency(rothFinal),
+        traditionalFinal: formatCurrency(tradFinal),
+        difference: formatCurrency(rothFinal - tradFinal),
         betterOption: rothFinal > tradFinal ? "Roth" : "Traditional",
-        breakEvenTaxRate: Finance.round(currentTax * 100, 2) + "%",
+        breakEvenTaxRate: formatPercent(currentTax),
         currentRoth,
         currentTrad,
         years,
@@ -1078,14 +1088,14 @@ function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
 
                             let lines = [];
 
-                            lines.push(`${context.dataset.label}: $${context.parsed.y.toLocaleString()}`);
+                            lines.push(`${context.dataset.label}: ${formatCurrency(context.parsed.y)}`);
 
                             if (point.mu !== undefined) {
-                                lines.push(`Return: ${(point.mu * 100).toFixed(2)}%`);
+                                lines.push(`Return: ${formatPercent(point.mu)}`);
                             }
 
                             if (point.vol !== undefined) {
-                                lines.push(`Volatility: ${(point.vol * 100).toFixed(2)}%`);
+                                lines.push(`Volatility: ${formatPercent(point.vol)}`);
                             }
 
                             if (point.stockWeight !== undefined && point.bondWeight !== undefined) {
@@ -1095,28 +1105,70 @@ function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
                             }
 
                             if (point.contribution !== undefined) {
-                                lines.push(`Contribution: $${point.contribution.toLocaleString()}`);
+                                lines.push(`Contribution: ${formatCurrency(point.contribution)}`);
                             }
 
                             if (point.withdrawal !== undefined) {
-                                lines.push(`Withdrawal: $${point.withdrawal.toLocaleString()}`);
+                                lines.push(`Withdrawal: ${formatCurrency(point.withdrawal)}`);
                             }
 
                             if (point.ssIncome !== undefined) {
-                                lines.push(`Social Security: $${point.ssIncome.toLocaleString()}`);
+                                lines.push(`Social Security: ${formatCurrency(point.ssIncome)}`);
                             }
 
                             if (point.taxDrag !== undefined) {
-                                lines.push(`Tax drag: $${point.taxDrag.toLocaleString()}`);
+                                lines.push(`Tax drag: ${formatCurrency(point.taxDrag)}`);
                             }
 
                             if (context.raw.rmdComponent > 0) {
-                                lines.push(`RMD component: $${context.raw.rmdComponent.toLocaleString()}`);
+                                lines.push(`RMD component: ${formatCurrency(context.raw.rmdComponent)}`);
                             }
 
                             if (point.age === 73) {
                                 lines.push("Note: Hover withdrawal is net; tax table RMD is gross.");
                             }
+
+
+                            // below here is replaced
+                            // lines.push(`${context.dataset.label}: $${context.parsed.y.toLocaleString()}`);
+
+                            // if (point.mu !== undefined) {
+                            //     lines.push(`Return: ${(point.mu * 100).toFixed(2)}%`);
+                            // }
+
+                            // if (point.vol !== undefined) {
+                            //     lines.push(`Volatility: ${(point.vol * 100).toFixed(2)}%`);
+                            
+
+                            // if (point.stockWeight !== undefined && point.bondWeight !== undefined) {
+                            //     lines.push(
+                            //         `Allocation: ${(point.stockWeight * 100).toFixed(0)}% stocks / ${(point.bondWeight * 100).toFixed(0)}% bonds`
+                            //     );
+                            // }
+
+                            // if (point.contribution !== undefined) {
+                            //     lines.push(`Contribution: $${point.contribution.toLocaleString()}`);
+                            // }
+
+                            // if (point.withdrawal !== undefined) {
+                            //     lines.push(`Withdrawal: $${point.withdrawal.toLocaleString()}`);
+                            // }
+
+                            // if (point.ssIncome !== undefined) {
+                            //     lines.push(`Social Security: $${point.ssIncome.toLocaleString()}`);
+                            // }
+
+                            // if (point.taxDrag !== undefined) {
+                            //     lines.push(`Tax drag: $${point.taxDrag.toLocaleString()}`);
+                            // }
+
+                            // if (context.raw.rmdComponent > 0) {
+                            //     lines.push(`RMD component: $${context.raw.rmdComponent.toLocaleString()}`);
+                            // }
+
+                            // if (point.age === 73) {
+                            //     lines.push("Note: Hover withdrawal is net; tax table RMD is gross.");
+                            // }
 
                             
                             return lines;
@@ -1197,7 +1249,7 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
             scales: {
                 y: {
                     ticks: {
-                        callback: v => `$${v.toLocaleString()}`
+                        callback: v => formatCurrency(v)
                     }
                 }
             }
@@ -1293,9 +1345,9 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
         const sorted = [...arr].sort((a, b) => a - b);
         const pct = p => sorted[Math.floor(p * (sorted.length - 1))];
         return {
-            p10: Finance.round(pct(0.1)),
-            p50: Finance.round(pct(0.5)),
-            p90: Finance.round(pct(0.9))
+            p10: formatCurrency(pct(0.1)),
+            p50: formatCurrency(pct(0.5)),
+            p90: formatCurrency(pct(0.9))
         };
     };
 
@@ -1309,7 +1361,7 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
         runs,
         roth: rothSummary,
         traditional: tradSummary,
-        rothWinProbability: Finance.round(rothWinProb, 1) + "%"
+        rothWinProbability: formatPercent(rothWinProb / 100)
     };
 }
 
@@ -1582,20 +1634,20 @@ function computeProInsights(result) {
 
         if (nextBracket) {
             const space = Math.max(nextBracket.top - taxable, 0);
-            bracketFillAmount = Finance.round(space);
-            bracketFillRate = currentBracket.rate;
+            bracketFillAmount = Finance.round(space);   // raw number (format on display)
+            bracketFillRate = currentBracket.rate;      // raw percent (format on display)
         }
 
         // -------------------------------------------------------
         // BRACKET INSIGHTS
         // -------------------------------------------------------
         if (currentBracket) {
-            currentBracketRate = currentBracket.rate;
+            currentBracketRate = currentBracket.rate;   // raw percent
             currentBracketFill = Math.max(currentBracket.top - taxable, 0);
 
             if (nextBracket) {
                 nextBracketFill = Math.max(nextBracket.top - taxable, 0);
-                nextBracketRate = nextBracket.rate;
+                nextBracketRate = nextBracket.rate;     // raw percent
                 taxJump = nextBracketRate - currentBracketRate;
             }
         }
@@ -1611,7 +1663,7 @@ function computeProInsights(result) {
             if (magi > irmaaThresholds[i]) band = i + 1;
         }
 
-        irmaaRiskScore = Math.min(100, band * 20);
+        irmaaRiskScore = Math.min(100, band * 20);   // raw score (format on display)
 
         // -------------------------------------------------------
         // SAFE CONVERSION RANGE
@@ -1619,7 +1671,7 @@ function computeProInsights(result) {
         let irmaaHeadroom = null;
         const nextIrmaa = irmaaThresholds.find(t => magi < t);
         if (nextIrmaa) {
-            irmaaHeadroom = Math.max(nextIrmaa - magi, 0);
+            irmaaHeadroom = Math.max(nextIrmaa - magi, 0);   // raw currency
         }
 
         if (bracketFillAmount !== null) {
@@ -1628,7 +1680,7 @@ function computeProInsights(result) {
             const safeMax = Math.max(0, Math.min(maxByBracket, maxByIrmaa));
 
             safeConversionMin = 0;
-            safeConversionMax = Finance.round(safeMax);
+            safeConversionMax = Finance.round(safeMax);   // raw currency
         }
 
         // -------------------------------------------------------
@@ -1655,7 +1707,7 @@ function computeProInsights(result) {
             });
 
             conversionImpact = {
-                annualConversion,
+                annualConversion,                          // raw currency
                 tradAfter: Finance.round(sim.tradAfterConversions),
                 rmdAfter: Finance.round(sim.rmdAt73),
                 rmdBefore: Finance.round(rmd),
@@ -1669,19 +1721,20 @@ function computeProInsights(result) {
         if (bracketFillAmount !== null) {
             const maxByBracket = bracketFillAmount;
             const maxByIrmaa = irmaaHeadroom !== null ? irmaaHeadroom : maxByBracket;
-            maxConversion = Math.max(maxByBracket, maxByIrmaa);
+            maxConversion = Math.max(maxByBracket, maxByIrmaa);   // raw currency
         }
 
         // -------------------------------------------------------
         // TAX TRAJECTORY
         // -------------------------------------------------------
         taxTrajectory = {
-            currentRate: currentTax,
-            retireRate: retireTax,
-            rmdRate: retireTax
+            currentRate: currentTax,   // raw percent
+            retireRate: retireTax,     // raw percent
+            rmdRate: retireTax         // raw percent
         };
 
         const yearsTo85 = Math.max(0, 85 - retirementAge);
+
         // -------------------------------------------------------
         // Compute retirement-phase growth rate from glidepath
         // -------------------------------------------------------
@@ -1691,11 +1744,9 @@ function computeProInsights(result) {
             const start = yearsToRetirement;
             const end = yearsToRetirement + yearsTo85;
 
-            // Slice the glidepath for retirement years only
             const retirementReturns = glidepath.slice(start, end);
 
             if (retirementReturns.length > 0) {
-                // Average the retirement-year returns
                 retirementGrowthRate =
                     retirementReturns.reduce((sum, r) => sum + r, 0) /
                     retirementReturns.length;
@@ -1703,25 +1754,18 @@ function computeProInsights(result) {
         }
 
         console.log("Retirement-phase growth rate:", retirementGrowthRate);
-        
 
         // -------------------------------------------------------
         // 4% / 5% WITHDRAWAL SUSTAINABILITY
         // -------------------------------------------------------
         const yearsInRetirement = Math.max(0, 85 - retirementAge);
-        
-        // const retirementBalance =
-        //     (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
-        //     (result.rothFinal ?? 0);
 
         retirementBalance =
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
             (result.rothFinal ?? 0);
 
-
         console.log("Retirement balance used for 4%/5%:", retirementBalance);
 
-        // const growthRate = retirementGrowthRate;
         const growthRate = result.expectedReturn;
 
         // -------------------------------------------------------
@@ -1729,8 +1773,7 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         spendingNeedAtRetirement = result.spendingNeedAtRetirement ?? 0;
 
-        requiredPortfolioSize = spendingNeedAtRetirement / 0.04;
-
+        requiredPortfolioSize = spendingNeedAtRetirement / 0.04;   // raw currency
 
         // -------------------------------------------------------
         // SANITY CHECK: Can the portfolio support the spending gap?
@@ -1741,9 +1784,7 @@ function computeProInsights(result) {
         requiredWithdrawalRate =
             retirementBalance > 0 ? spendingGap / retirementBalance : 1;
 
-        catastrophic = requiredWithdrawalRate > 0.08; // >8% withdrawal rate
-
-    
+        catastrophic = requiredWithdrawalRate > 0.08;
 
         fourPercent = withdrawalInsight(
             retirementBalance,
@@ -1762,13 +1803,11 @@ function computeProInsights(result) {
         // -------------------------------------------------------
         // SAFE SPENDING LEVELS (4%–5% RULE)
         // -------------------------------------------------------
-        safeSpendingMin = fourPercent?.annual ?? 0;
-        safeSpendingMax = fivePercent?.annual ?? 0;
+        safeSpendingMin = fourPercent?.annual ?? 0;   // raw currency
+        safeSpendingMax = fivePercent?.annual ?? 0;   // raw currency
 
-        // How much spending must be reduced to reach the safe range
         safeSpendingDelta = spendingNeedAtRetirement - safeSpendingMax;
-        if (safeSpendingDelta < 0) safeSpendingDelta = 0; // no reduction needed
-
+        if (safeSpendingDelta < 0) safeSpendingDelta = 0;
 
         if (catastrophic) {
             fourPercent.label = "Not Sustainable";
@@ -1777,17 +1816,14 @@ function computeProInsights(result) {
             fivePercent.label = "Not Sustainable";
             fivePercent.endBalance = 0;
         }
-        
 
         // -------------------------------------------------------
         // RETIREMENT READINESS GAUGE (MONTE CARLO)
         // -------------------------------------------------------
         const mcStartingBalance = currentRoth + currentTrad;
-        const mcWithdrawal = mcStartingBalance * 0.04; // 4% baseline
+        const mcWithdrawal = mcStartingBalance * 0.04;
         const mcYears = Math.max(0, 85 - retirementAge);
         const mcMeanGrowth = parseFloat(result.assumedGrowthRate) / 100 || 0.07;
-
-
 
         retirementReadiness = runMonteCarlo({
             startingBalance: mcStartingBalance,
@@ -1802,7 +1838,7 @@ function computeProInsights(result) {
         console.log("Readiness result:", retirementReadiness);
 
     } // End of Tax block
-        
+   
     // -------------------------------------------------------
     // YEARS UNTIL DEPLETION (simple deterministic estimate)
     // -------------------------------------------------------
@@ -2305,7 +2341,9 @@ function renderCatastrophicUX(result) {
 
     if (!bannerEl || !sanityEl || !actionsEl) return;
 
-    // Core values
+    // -------------------------------------------------------
+    // CORE VALUES
+    // -------------------------------------------------------
     const catastrophic = !!result.catastrophic;
     const requiredRate = result.requiredWithdrawalRate ?? null;
     const spendingGap = result.spendingGap ?? null;
@@ -2313,14 +2351,14 @@ function renderCatastrophicUX(result) {
     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
     const depletionAge = result.depletionAge ?? null;
 
-    // Determine if plan needs adjustment (fragile OR catastrophic)
+    // Plan needs adjustment if catastrophic, high withdrawal rate, or above safe spending
     const needsAdjustment =
         catastrophic ||
         (requiredRate != null && requiredRate > 0.05) ||
         (result.safeSpendingDelta != null && result.safeSpendingDelta > 0);
 
     // -------------------------------------------------------
-    // DEPLETION MESSAGE (only when adjustment is needed)
+    // DEPLETION MESSAGE (ONLY WHEN ADJUSTMENT IS NEEDED)
     // -------------------------------------------------------
     if (depletionMsgEl) {
         if (needsAdjustment && yearsUntilDepletion != null) {
@@ -2333,7 +2371,7 @@ function renderCatastrophicUX(result) {
                 Your plan requires adjustment to improve long‑term sustainability.
             `;
         } else {
-            depletionMsgEl.innerHTML = ""; // Clear if sustainable
+            depletionMsgEl.innerHTML = "";
         }
     }
 
@@ -2348,7 +2386,7 @@ function renderCatastrophicUX(result) {
         const ssEl = document.getElementById("catastrophic-ss-income");
 
         if (rateEl && requiredRate != null) {
-            rateEl.textContent = (requiredRate * 100).toFixed(1) + "%";
+            rateEl.textContent = formatPercent(requiredRate);
         }
         if (gapEl && spendingGap != null) {
             gapEl.textContent = formatCurrency(spendingGap);
@@ -2380,15 +2418,24 @@ function renderCatastrophicUX(result) {
         : "";
 
     const safeSpendingText =
-        needsAdjustment && result.safeSpendingMin != null && result.safeSpendingMax != null
+        needsAdjustment &&
+            result.safeSpendingMin != null &&
+            result.safeSpendingMax != null
             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
-               <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(result.safeSpendingMax)}</strong> per year.`
+               <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(
+                result.safeSpendingMax
+            )}</strong> per year.`
             : "";
 
-    const safeDeltaText =
+    const safeSpendingDelta =
         needsAdjustment && result.safeSpendingDelta != null
+            ? result.safeSpendingDelta
+            : null;
+
+    const safeDeltaText =
+        safeSpendingDelta !== null && safeSpendingDelta > 0
             ? `You would need to reduce spending by 
-               <strong>${formatCurrency(result.safeSpendingDelta)}</strong> 
+               <strong>${formatCurrency(safeSpendingDelta)}</strong> 
                to reach the safe range.`
             : "";
 
@@ -2421,57 +2468,237 @@ function renderCatastrophicUX(result) {
     // SANITY BLOCK
     // -------------------------------------------------------
     sanityEl.innerHTML = `
-                <div class="sanity-block fade-in">
-                  <h3>Will I Run Out of Money?</h3>
-            
-                  <p class="sanity-status ${statusClass}">
-                    <span class="status-icon">${statusIcon}</span>
-                    ${statusLine}
-                  </p>
-            
-                  ${needsAdjustment
+        <div class="sanity-block fade-in">
+          <h3>Will I Run Out of Money?</h3>
+
+          <p class="sanity-status ${statusClass}">
+            <span class="status-icon">${statusIcon}</span>
+            ${statusLine}
+          </p>
+
+          ${needsAdjustment
             ? `<p class="sanity-detail">
-                          Your annual spending need is <strong>${formatCurrency(
+                       Your annual spending need is <strong>${formatCurrency(
                 result.spendingNeedAtRetirement ?? 0
             )}</strong>, but your portfolio can safely support only
-                          <strong>${formatCurrency(
+                       <strong>${formatCurrency(
                 result.fourPercentInsight?.annual ?? 0
             )}–${formatCurrency(
                 result.fivePercentInsight?.annual ?? 0
             )}</strong> per year under the 4%–5% rule.
-                          This mismatch creates a withdrawal rate that leads to early depletion.
-                       </p>`
-            : ""}
-            
-                  ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-                  ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
-                  ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
-                  ${requiredPortfolioText}
-                </div>
-            `;
+                       This mismatch creates a withdrawal rate that leads to early depletion.
+                     </p>`
+            : ""
+        }
+
+          ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+          ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
+          ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
+          ${requiredPortfolioText}
+        </div>
+    `;
 
     sanityEl.style.display = "block";
 
     // -------------------------------------------------------
-    // RECOMMENDED ACTIONS (catastrophic only)
+    // RECOMMENDED ACTIONS (CATASTROPHIC ONLY)
     // -------------------------------------------------------
     if (catastrophic) {
         actionsEl.innerHTML = `
-                    <div class="actions-block fade-in">
-                      <h3>Recommended Next Steps</h3>
-                      <ol>
-                        <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
-                        <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
-                        <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
-                        <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
-                        <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
-                      </ol>
-                    </div>
-                `;
+            <div class="actions-block fade-in">
+              <h3>Recommended Next Steps</h3>
+              <ol>
+                <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+                <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+                <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+                <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+                <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+              </ol>
+            </div>
+        `;
         actionsEl.style.display = "block";
     } else {
         actionsEl.innerHTML = "";
         actionsEl.style.display = "none";
     }
+}
+
+
+// function renderCatastrophicUX(result) {
+//     const bannerEl = document.getElementById("catastrophic-banner");
+//     const sanityEl = document.getElementById("sanity-check");
+//     const actionsEl = document.getElementById("recommended-actions");
+//     const depletionMsgEl = document.getElementById("catastrophic-depletion-message");
+
+//     if (!bannerEl || !sanityEl || !actionsEl) return;
+
+//     // Core values
+//     const catastrophic = !!result.catastrophic;
+//     const requiredRate = result.requiredWithdrawalRate ?? null;
+//     const spendingGap = result.spendingGap ?? null;
+//     const ssIncome = result.retirementTaxDetails?.ssAtClaimAge ?? null;
+//     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+//     const depletionAge = result.depletionAge ?? null;
+
+//     // Determine if plan needs adjustment (fragile OR catastrophic)
+//     const needsAdjustment =
+//         catastrophic ||
+//         (requiredRate != null && requiredRate > 0.05) ||
+//         (result.safeSpendingDelta != null && result.safeSpendingDelta > 0);
+
+//     // -------------------------------------------------------
+//     // DEPLETION MESSAGE (only when adjustment is needed)
+//     // -------------------------------------------------------
+//     if (depletionMsgEl) {
+//         if (needsAdjustment && yearsUntilDepletion != null) {
+//             const depletionLine = depletionAge
+//                 ? `At your current spending level, your savings may be depleted near age <strong>${depletionAge}</strong>.`
+//                 : `At your current spending level, your savings may be depleted well before age 85.`;
+
+//             depletionMsgEl.innerHTML = `
+//                 ${depletionLine}
+//                 Your plan requires adjustment to improve long‑term sustainability.
+//             `;
+//         } else {
+//             depletionMsgEl.innerHTML = ""; // Clear if sustainable
+//         }
+//     }
+
+//     // -------------------------------------------------------
+//     // CATASTROPHIC BANNER
+//     // -------------------------------------------------------
+//     if (catastrophic) {
+//         bannerEl.style.display = "flex";
+
+//         const rateEl = document.getElementById("catastrophic-withdrawal-rate");
+//         const gapEl = document.getElementById("catastrophic-spending-gap");
+//         const ssEl = document.getElementById("catastrophic-ss-income");
+
+//         if (rateEl && requiredRate != null) {
+//             rateEl.textContent = formatPercent(requiredRate);
+//         }
+//         if (gapEl && spendingGap != null) {
+//             gapEl.textContent = formatCurrency(spendingGap);
+//         }
+//         if (ssEl && ssIncome != null) {
+//             ssEl.textContent = formatCurrency(ssIncome);
+//         }
+//     } else {
+//         bannerEl.style.display = "none";
+//     }
+
+//     // -------------------------------------------------------
+//     // STATUS LINE
+//     // -------------------------------------------------------
+//     let statusLine = "";
+//     if (catastrophic) {
+//         statusLine = "Yes — at your current spending level, your savings would run out early.";
+//     } else if (requiredRate != null && requiredRate > 0.05 && requiredRate <= 0.08) {
+//         statusLine = "Possibly — your plan is fragile and may not withstand market volatility.";
+//     } else {
+//         statusLine = "Unlikely — your plan appears sustainable under typical market conditions.";
+//     }
+
+//     // -------------------------------------------------------
+//     // TEXT BLOCKS
+//     // -------------------------------------------------------
+//     const yearsText = yearsUntilDepletion
+//         ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
+//         : "";
+
+//     const safeSpendingText =
+//         needsAdjustment && result.safeSpendingMin != null && result.safeSpendingMax != null
+//             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
+//                <strong>${formatCurrency(result.safeSpendingMin)}–${formatCurrency(result.safeSpendingMax)}</strong> per year.`
+//             : "";
+
+//     const safeDeltaText =
+//         needsAdjustment && result.safeSpendingDelta != null
+//             ? `You would need to reduce spending by 
+//                <strong>${formatCurrency(result.safeSpendingDelta)}</strong> 
+//                to reach the safe range.`
+//             : "";
+
+//     const requiredPortfolioText =
+//         needsAdjustment && result.requiredPortfolioSize
+//             ? `<p class="sanity-required">
+//                  To safely sustain your current lifestyle, you would need a portfolio of 
+//                  <strong>${formatCurrency(result.requiredPortfolioSize)}</strong>.
+//                </p>`
+//             : "";
+
+//     // -------------------------------------------------------
+//     // STATUS CLASS + ICON
+//     // -------------------------------------------------------
+//     let statusClass = "";
+//     let statusIcon = "";
+
+//     if (catastrophic) {
+//         statusClass = "bad";
+//         statusIcon = "⛔";
+//     } else if (requiredRate != null && requiredRate > 0.05) {
+//         statusClass = "warn";
+//         statusIcon = "⚠️";
+//     } else {
+//         statusClass = "good";
+//         statusIcon = "✓";
+//     }
+
+//     // -------------------------------------------------------
+//     // SANITY BLOCK
+//     // -------------------------------------------------------
+//     sanityEl.innerHTML = `
+//                 <div class="sanity-block fade-in">
+//                   <h3>Will I Run Out of Money?</h3>
             
-}            
+//                   <p class="sanity-status ${statusClass}">
+//                     <span class="status-icon">${statusIcon}</span>
+//                     ${statusLine}
+//                   </p>
+            
+//                   ${needsAdjustment
+//             ? `<p class="sanity-detail">
+//                           Your annual spending need is <strong>${formatCurrency(
+//                 result.spendingNeedAtRetirement ?? 0
+//             )}</strong>, but your portfolio can safely support only
+//                           <strong>${formatCurrency(
+//                 result.fourPercentInsight?.annual ?? 0
+//             )}–${formatCurrency(
+//                 result.fivePercentInsight?.annual ?? 0
+//             )}</strong> per year under the 4%–5% rule.
+//                           This mismatch creates a withdrawal rate that leads to early depletion.
+//                        </p>`
+//             : ""}
+            
+//                   ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+//                   ${safeSpendingText ? `<p class="sanity-safe">${safeSpendingText}</p>` : ""}
+//                   ${safeDeltaText ? `<p class="sanity-delta">${safeDeltaText}</p>` : ""}
+//                   ${requiredPortfolioText}
+//                 </div>
+//             `;
+
+//     sanityEl.style.display = "block";
+
+//     // -------------------------------------------------------
+//     // RECOMMENDED ACTIONS (catastrophic only)
+//     // -------------------------------------------------------
+//     if (catastrophic) {
+//         actionsEl.innerHTML = `
+//                     <div class="actions-block fade-in">
+//                       <h3>Recommended Next Steps</h3>
+//                       <ol>
+//                         <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+//                         <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+//                         <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+//                         <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+//                         <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+//                       </ol>
+//                     </div>
+//                 `;
+//         actionsEl.style.display = "block";
+//     } else {
+//         actionsEl.innerHTML = "";
+//         actionsEl.style.display = "none";
+//     }
+            
+// }            
