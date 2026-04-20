@@ -446,11 +446,6 @@ $("runBtn").addEventListener("click", async () => {
                 sampleBond: bondPrices.slice(0, 3)
             });
 
-            // TEMPORARY TEST VALUES — force glidepath to show a slope
-            // const stockReturn = 0.09;
-            // const bondReturn = 0.03;
-
-
             const stockReturn = stockPrices.length
                 ? calculateCAGR(stockPrices)
                 : growth;
@@ -1889,6 +1884,54 @@ function computeProInsights(result) {
     };
 }
 
+function showSustainability(isCatastrophic) {
+    const pos = document.getElementById("sustain-positive");
+    const neg = document.getElementById("sustain-negative");
+
+    if (isCatastrophic) {
+        pos.style.display = "none";
+        neg.style.display = "block";
+    } else {
+        pos.style.display = "block";
+        neg.style.display = "none";
+    }
+}
+
+function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, ssIncome, successRate }) {
+
+    document.getElementById("positive-depletion-message").textContent =
+        `Estimated depletion age: ${depletionAge} (in ${yearsLeft} years)`;
+
+    document.getElementById("positive-withdrawal-rate").textContent =
+        `${withdrawalRate.toFixed(1)}%`;
+
+    document.getElementById("positive-spending-need").textContent =
+        formatCurrency(spendingNeed);
+
+    document.getElementById("positive-ss-income").textContent =
+        formatCurrency(ssIncome);
+
+    // Confidence bar (Monte Carlo success rate)
+    const bar = document.getElementById("sustain-bar-fill");
+    bar.style.width = `${Math.min(Math.max(successRate, 0), 100)}%`;
+}
+
+function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, ssIncome }) {
+
+    document.getElementById("catastrophic-depletion-message").textContent =
+        `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years).`;
+
+    document.getElementById("catastrophic-withdrawal-rate").textContent =
+        `${withdrawalRate.toFixed(1)}%`;
+
+    document.getElementById("catastrophic-spending-gap").textContent =
+        formatCurrency(spendingGap);
+
+    document.getElementById("catastrophic-ss-income").textContent =
+        formatCurrency(ssIncome);
+}
+
+
 /* -------------------------------------------------------
    SUMMARY RENDERER
 ------------------------------------------------------- */
@@ -2365,7 +2408,28 @@ function renderSummary(result) {
     document.getElementById("guidance").innerHTML = guidanceHtml;
 
     const insights = computeProInsights(result);
-    renderCatastrophicUX({ ...result, ...insights });
+
+    showSustainability(insights.catastrophic);
+
+    if (insights.catastrophic) {
+        renderNegativeSustainability({
+            depletionAge: insights.depletionAge,
+            yearsLeft: insights.yearsUntilDepletion,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingGap: insights.spendingGap,
+            ssIncome: insights.ssIncome
+        });
+    } else {
+        renderPositiveSustainability({
+            depletionAge: insights.depletionAge,
+            yearsLeft: insights.yearsUntilDepletion,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingNeed: insights.spendingNeedAtRetirement,
+            ssIncome: insights.ssIncome,
+            successRate: insights.retirementReadiness
+        });
+    }
+
     renderProInsights(insights);
 
     const slider = document.getElementById("conversionSlider");

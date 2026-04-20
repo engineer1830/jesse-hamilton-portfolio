@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roth vs. Traditional Analyzer</title>
+
+    <link rel="stylesheet" href="../../styles/shared.css">
+    <link rel="stylesheet" href="./styles/tool-new.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <header class="site-header">
+        <h1>Roth vs. Traditional Analyzer</h1>
+        <p class="subtitle">Compare long-term after-tax outcomes</p>
+    </header>
+
+    <div class="guide-btn-fixed">
+        <button onclick="window.open('guide.html', '_blank')" class="guide-btn">
+            Help / Service Guide
+        </button>
+    </div>
+
+    <main class="container">
+        <section>
+            <h2>Plan Inputs</h2>
+            <p class="inputs-subtitle">
+                Enter your current balances, assumptions, and retirement timing to analyze your plan.
+            </p>
+        
+            <!-- 1. Account Balances & Contributions -->
+            <div class="inputs-section">
+                <h3 class="inputs-section-title">Account Balances & Contributions</h3>
+                <div class="input-grid">
+                    <label>
+                        Current Roth Balance
+                        <input id="currentRoth" type="number" value="0" min="0" autocomplete="off">
+                        <small class="note">After‑tax Roth IRA / 401(k) balance today.</small>
+                    </label>
+        
+                    <label>
+                        Current Traditional Balance
+                        <input id="currentTrad" type="number" value="0" min="0" autocomplete="off">
+                        <small class="note">Pre‑tax IRA / 401(k) balance today.</small>
+                    </label>
+        
+                    <label>
+                        Annual Contribution
+                        <input id="contribution" type="number" value="6000" min="0" autocomplete="off">
+                        <small class="note">Total annual contributions across retirement accounts.</small>
+                    </label>
+                </div>
+            </div>
+        
+            <!-- 2. Tax Assumptions -->
+            <div class="inputs-section">
+                <h3 class="inputs-section-title">Tax Assumptions</h3>
+                <div class="input-grid">
+                    <label>
+                        Current Tax Rate (%)
+                        <input id="currentTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
+                        <small class="note">Approximate marginal tax rate on new contributions.</small>
+                    </label>
+        
+                    <label>
+                        Retirement Tax Rate (%)
+                        <input id="retireTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
+                        <small class="note">Used when auto tax estimate is turned off.</small>
+                    </label>
+        
+                    <label>
+                        Filing Status
+                        <select id="filingStatus">
+                            <option value="married" selected>Married</option>
+                            <option value="single">Single</option>
+                        </select>
+                    </label>
+        
+                    <label class="checkbox-inline">
+                        <input id="autoTax" type="checkbox">
+                        Estimate retirement tax rate automatically
+                    </label>
+                </div>
+            </div>
+        
+            <!-- 3. Investment Assumptions -->
+            <div class="inputs-section">
+                <h3 class="inputs-section-title">Investment Assumptions</h3>
+                <div class="input-grid">
+                    <label>
+                        Expected Growth Rate (%)
+                        <input id="growth" type="number" value="7" step="0.01" min="0" autocomplete="off">
+                        <small class="note">Used only if no ticker or portfolio is provided.</small>
+                    </label>
+        
+                    <label>
+                        Optional Ticker (e.g., VTI)
+                        <input id="ticker" type="text" placeholder="VTI" autocomplete="off">
+                        <small class="note">Leave blank to use assumed growth rate.</small>
+                    </label>
+        
+                    <label>
+                        Optional Portfolio (e.g., VTI:0.60,VXUS:0.20,BND:0.20)
+                        <input id="portfolio" type="text" placeholder="VTI:60,VXUS:20,BND:20" autocomplete="off">
+                        <small class="note">Overrides single ticker if provided.</small>
+                    </label>
+        
+                    <label class="checkbox-inline">
+                        <input type="checkbox" id="overrideVolToggle">
+                        Use custom volatility
+                    </label>
+        
+                    <div id="customVolInputs" style="display:none;">
+                        <label>
+                            Stock Volatility (%)
+                            <input id="customStockVol" type="number" value="15">
+                        </label>
+                        <label>
+                            Bond Volatility (%)
+                            <input id="customBondVol" type="number" value="5">
+                        </label>
+                    </div>
+        
+                    <label>
+                        Monte Carlo Simulations
+                        <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
+                        <small class="note">Set &gt; 0 to run Monte Carlo.</small>
+                    </label>
+                </div>
+            </div>
+        
+            <!-- 4. Retirement & Social Security -->
+            <div class="inputs-section">
+                <h3 class="inputs-section-title">Retirement &amp; Social Security</h3>
+                <div class="input-grid">
+                    <label>
+                        Current Age
+                        <input id="currentAge" type="number" value="60" min="0">
+                    </label>
+        
+                    <label>
+                        Planned Retirement Age
+                        <input id="retirementAge" type="number" value="65" min="0">
+                    </label>
+        
+                    <label>
+                        Planned Work Stoppage Age
+                        <input id="workStopAge" type="number" value="65" min="0">
+                        <small class="note">If different from retirement age.</small>
+                    </label>
+        
+                    <label>
+                        Social Security Annual Benefit (statement estimate)
+                        <input id="ssAnnual" type="number" value="40000" min="0">
+                    </label>
+        
+                    <label>
+                        Claiming Age
+                        <select id="claimAge">
+                            <option value="62">62</option>
+                            <option value="67" selected>FRA (67)</option>
+                            <option value="70">70</option>
+                        </select>
+                    </label>
+        
+                    <label>
+                        Annual Spending Need at Retirement (optional)
+                        <input id="spendingNeed" type="number" value="0" min="0">
+                        <small class="note">Required for sustainability and depletion analysis.</small>
+                    </label>
+        
+                    <label class="option-row">
+                        <input type="checkbox" id="useGlidepath">
+                        <span>Use lifecycle glidepath (age-based allocation)</span>
+                    </label>
+                </div>
+            </div>
+        
+            <!-- 5. Analyze -->
+            <div class="inputs-section inputs-footer">
+                <div class="assumption-summary">
+                    Using: <span id="assumptionSummaryText">
+                        lifecycle glidepath • auto tax estimate • real‑market returns
+                    </span>
+                </div>
+                <button id="runBtn" class="btn btn-primary">Analyze</button>
+            </div>
+        </section>
+        <!-- ========================= -->
+        <!--   SUMMARY (Unified Card)  -->
+        <!-- ========================= -->
+        <section>
+            <h2>Summary</h2>
+            <div id="loading" class="loading" style="display:none;">Calculating...</div>
+        
+            <div id="summary" class="summary-card">
+                <!-- JS will populate this -->
+            </div>
+        </section>
+        
+        
+        <!-- ===================================== -->
+        <!--   SUSTAINABILITY (Positive or Negative) -->
+        <!-- ===================================== -->
+        <section id="sustainability-section">
+        
+            <!-- POSITIVE VERSION (shown when NOT catastrophic) -->
+            <div id="sustain-positive" class="sustain-card sustain-positive" style="display:none;">
+                <div class="sustain-header">
+                    <span class="sustain-icon">✔️</span>
+                    <h3>Your Plan Appears Sustainable</h3>
+                </div>
+        
+                <p id="positive-depletion-message" class="sustain-age"></p>
+        
+                <!-- Confidence bar (JS sets width) -->
+                <div class="sustain-bar">
+                    <div id="sustain-bar-fill" class="sustain-bar-fill" style="width: 80%;"></div>
+                </div>
+        
+                <div class="sustain-metrics">
+                    <span class="metric-pill">
+                        Required withdrawal rate: <strong id="positive-withdrawal-rate"></strong>
+                    </span>
+                    <span class="metric-pill">
+                        Spending need: <strong id="positive-spending-need"></strong>
+                    </span>
+                    <span class="metric-pill">
+                        Social Security: <strong id="positive-ss-income"></strong>
+                    </span>
+                </div>
+        
+                <p class="summary-note">
+                    Based on your spending need, taxes, RMDs, glidepath returns, and retirement timing.
+                </p>
+            </div>
+        
+        
+            <!-- NEGATIVE VERSION (Catastrophic) -->
+            <div id="sustain-negative" class="sustain-card sustain-negative" style="display:none;">
+                <div class="sustain-header">
+                    <span class="sustain-icon">⚠️</span>
+                    <h3>Your Current Plan Needs Adjustment</h3>
+                </div>
+        
+                <p id="catastrophic-depletion-message" class="sustain-age"></p>
+        
+                <div class="sustain-metrics">
+                    <span class="metric-pill">
+                        Required withdrawal rate: <strong id="catastrophic-withdrawal-rate"></strong>
+                    </span>
+                    <span class="metric-pill">
+                        Safe range: <strong>4%–5%</strong>
+                    </span>
+                    <span class="metric-pill">
+                        Spending gap: <strong id="catastrophic-spending-gap"></strong>
+                    </span>
+                    <span class="metric-pill">
+                        Social Security: <strong id="catastrophic-ss-income"></strong>
+                    </span>
+                </div>
+        
+                <!-- WHY THIS HAPPENED -->
+                <div class="sustain-why">
+                    <h4>Why this result occurred</h4>
+                    <ul>
+                        <li>Your spending need exceeds what your portfolio can sustainably support.</li>
+                        <li>Your withdrawal rate is above the safe 4%–5% range.</li>
+                        <li>Your retirement horizon is long relative to your savings.</li>
+                        <li>Social Security covers only part of your annual need.</li>
+                    </ul>
+                </div>
+        
+                <!-- RECOMMENDED ACTIONS -->
+                <div class="sustain-actions">
+                    <h4>Most impactful improvements</h4>
+                    <ul>
+                        <li>Reduce annual spending by 10–20%.</li>
+                        <li>Delay retirement by 1–3 years.</li>
+                        <li>Increase savings in the final working years.</li>
+                        <li>Adjust investment allocation for more growth potential.</li>
+                        <li>Delay Social Security to increase lifetime income.</li>
+                    </ul>
+                </div>
+            </div>
+        
+        </section>
+
+        
+
+    </main>
+
+    <script type="module" src="scripts/tool.js"></script>
+
+</body>
+
+</html>
