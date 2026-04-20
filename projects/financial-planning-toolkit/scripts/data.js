@@ -34,7 +34,7 @@ function getCache(key) {
  */
 export async function getHistoricalPrices(
     ticker,
-    range = "max",
+    range = "10y",
     interval = "1d"
 ) {
     const key = `${ticker}-${range}-${interval}`;
@@ -45,7 +45,7 @@ export async function getHistoricalPrices(
 
     try {
         const response = await fetch(
-            `/api/yahoo?ticker=${ticker}&range=${range}&interval=${interval}`
+            `https://hamiltondesigns.vercel.app/api/yahoo?ticker=${ticker}&range=${range}&interval=${interval}`
         );
 
         if (!response.ok) {
@@ -55,15 +55,12 @@ export async function getHistoricalPrices(
 
         const data = await response.json();
 
-        // Defensive guard — Yahoo sometimes returns empty arrays
         if (!Array.isArray(data) || data.length === 0) {
             console.warn(`No price data returned for ${ticker}`);
             return [];
         }
 
-        // Cache the result
         setCache(key, data);
-
         return data;
 
     } catch (err) {
@@ -72,13 +69,14 @@ export async function getHistoricalPrices(
     }
 }
 
+
 /**
  * Fetch multiple tickers at once.
  * Returns an object keyed by ticker.
  */
 export async function getMultipleTickers(
     tickers = [],
-    range = "max",
+    range = "10y",
     interval = "1d"
 ) {
     const results = {};

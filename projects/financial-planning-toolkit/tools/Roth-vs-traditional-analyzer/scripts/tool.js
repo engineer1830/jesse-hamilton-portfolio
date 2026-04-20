@@ -134,7 +134,7 @@ function getIrmaaThresholds({ filingStatus }) {
 }
 
 async function fetchHistoricalPrices(ticker = "VTI") {
-    const url = `/api/yahoo?ticker=${ticker}&range=max&interval=1d`;
+    const url = `https://hamiltondesigns.vercel.app/api/yahoo?ticker=${ticker}&range=10y&interval=1d`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch price data");
     return await response.json();
@@ -438,16 +438,16 @@ $("runBtn").addEventListener("click", async () => {
             const bondPrices = data[glidepathBondTicker] || [];
 
             // TEMPORARY TEST VALUES — force glidepath to show a slope
-            const stockReturn = 0.09;
-            const bondReturn = 0.03;
+            // const stockReturn = 0.09;
+            // const bondReturn = 0.03;
 
 
-            // const stockReturn = stockPrices.length
-            //     ? calculateCAGR(stockPrices)
-            //     : growth;
-            // const bondReturn = bondPrices.length
-            //     ? calculateCAGR(bondPrices)
-            //     : growth;
+            const stockReturn = stockPrices.length
+                ? calculateCAGR(stockPrices)
+                : growth;
+            const bondReturn = bondPrices.length
+                ? calculateCAGR(bondPrices)
+                : growth;
 
             const stockVolDaily = stockPrices.length
                 ? Finance.stddev(

@@ -2523,8 +2523,6 @@ function renderCatastrophicUX(result) {
     }
 }
 
-
-// function renderCatastrophicUX(result) {
 //     const bannerEl = document.getElementById("catastrophic-banner");
 //     const sanityEl = document.getElementById("sanity-check");
 //     const actionsEl = document.getElementById("recommended-actions");
