@@ -1897,38 +1897,42 @@ function showSustainability(isCatastrophic) {
     }
 }
 
-function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, ssIncome, successRate }) {
+function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate }) {
+
+    const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
     document.getElementById("positive-depletion-message").textContent =
         `Estimated depletion age: ${depletionAge} (in ${yearsLeft} years)`;
 
     document.getElementById("positive-withdrawal-rate").textContent =
-        `${withdrawalRate.toFixed(1)}%`;
+        `${(withdrawalRate * 100).toFixed(1)}%`;
 
     document.getElementById("positive-spending-need").textContent =
         formatCurrency(spendingNeed);
 
     document.getElementById("positive-ss-income").textContent =
-        formatCurrency(ssIncome);
+        formatCurrency(ss);
 
     // Confidence bar (Monte Carlo success rate)
     const bar = document.getElementById("sustain-bar-fill");
     bar.style.width = `${Math.min(Math.max(successRate, 0), 100)}%`;
 }
 
-function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, ssIncome }) {
+function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap }) {
+
+    const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
     document.getElementById("catastrophic-depletion-message").textContent =
         `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years).`;
 
     document.getElementById("catastrophic-withdrawal-rate").textContent =
-        `${withdrawalRate.toFixed(1)}%`;
+        `${(withdrawalRate * 100).toFixed(1)}%`;
 
     document.getElementById("catastrophic-spending-gap").textContent =
         formatCurrency(spendingGap);
 
     document.getElementById("catastrophic-ss-income").textContent =
-        formatCurrency(ssIncome);
+        formatCurrency(ss);
 }
 
 
