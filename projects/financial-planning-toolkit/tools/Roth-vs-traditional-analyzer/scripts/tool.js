@@ -1938,6 +1938,12 @@ function renderProInsights(result) {
         catastrophic
     } = result;
 
+    const fmt = (v) =>
+        Number(v).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    
     const retirementAge = result.taxContext?.retirementAge;
 
     let html = `
@@ -2004,13 +2010,13 @@ function renderProInsights(result) {
                 <div class="pro-insights-label">Bracket Fill Opportunity</div>
                 <div>
                     <strong>Total space before you spill beyond the next tax bracket:</strong>
-                    $${totalRoom.toLocaleString()}
+                    $${fmt(totalRoom) }
                 </div>
     
                 <div class="pro-insights-note">
-                    The first $${roomInCurrent.toLocaleString()} fills the rest of the 
+                    The first $${fmt(roomInCurrent)} fills the rest of the 
                     <strong>${(currentBracketRate * 100).toFixed(0)}% bucket</strong>.<br>
-                    The remaining $${roomInNext.toLocaleString()} fills the 
+                    The remaining $${fmt(roomInNext)} fills the 
                     <strong>${(nextBracketRate * 100).toFixed(0)}% bucket</strong>.
                 </div>
             </div>
@@ -2020,12 +2026,12 @@ function renderProInsights(result) {
     
                 <div>
                     <strong>Room left in the ${(currentBracketRate * 100).toFixed(0)}% bracket:</strong>
-                    $${roomInCurrent.toLocaleString()}
+                    $${fmt(roomInCurrent)}
                 </div>
     
                 <div>
                     <strong>Additional room in the ${(nextBracketRate * 100).toFixed(0)}% bracket:</strong>
-                    $${roomInNext.toLocaleString()}
+                    $${fmt(roomInNext)}
                 </div>
     
                 <div class="pro-insights-note">
@@ -2042,7 +2048,7 @@ function renderProInsights(result) {
         html += `
             <div class="pro-insights-metric">
                 <div class="pro-insights-label">Safe Conversion Range</div>
-                <div>You can likely convert up to $${safeConversionMax.toLocaleString()} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
+                <div>You can likely convert up to $${fmt(safeConversionMax)} this year without leaving your current bracket or crossing the next IRMAA tier.</div>
             </div>
         `;
     }
@@ -2054,12 +2060,12 @@ function renderProInsights(result) {
 
                 <div>
                     Converting your <strong>safe maximum</strong> of 
-                    $${conversionImpact.annualConversion.toLocaleString()} per year until age 73 
+                    $${fmt(conversionImpact.annualConversion)} per year until age 73 
                     reduces your RMD from 
-                    $${conversionImpact.rmdBefore.toLocaleString()} 
+                    $${fmt(conversionImpact.rmdBefore)} 
                     to 
-                    $${conversionImpact.rmdAfter.toLocaleString()} 
-                    (a reduction of $${conversionImpact.rmdReduction.toLocaleString()}).
+                    $${fmt(conversionImpact.rmdAfter)} 
+                    (a reduction of $${fmt(conversionImpact.rmdReduction)}).
                 </div>
 
                 <div class="pro-insights-note">
