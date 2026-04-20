@@ -1944,11 +1944,13 @@ function computeSafeSpending(result) {
 }
 
 function renderSafeSpending(result) {
-    const safe = computeSafeSpending(result);
+    const low = result.safeSpendingMin ?? 0;
+    const high = result.safeSpendingMax ?? 0;
 
     document.getElementById("safe-spending-range").textContent =
-        `${formatCurrency(safe.low)} – ${formatCurrency(safe.high)}`;
+        `${formatCurrency(low)} – ${formatCurrency(high)}`;
 }
+
 
 function attachChartExplanation() {
     const el = document.getElementById("chart-explanation-note");
@@ -1968,8 +1970,6 @@ function attachChartExplanation() {
 /* -------------------------------------------------------
    SUMMARY RENDERER
 ------------------------------------------------------- */
-renderSafeSpending(result);
-attachChartExplanation();
 
 function getWithdrawalTooltip(label, catastrophic) {
     switch (label) {
@@ -2511,6 +2511,8 @@ function renderSummary(result) {
             }
         });
     }
+    renderSafeSpending(result);
+    attachChartExplanation();
 }
 
 function renderCatastrophicUX(result) {
