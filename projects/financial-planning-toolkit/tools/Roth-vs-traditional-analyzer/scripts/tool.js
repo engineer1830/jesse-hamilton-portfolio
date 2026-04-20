@@ -1513,10 +1513,22 @@ function computeProInsights(result) {
     let safeSpendingDelta = null;
     let requiredPortfolioSize = null;
 
+    let tradDepletionAge = null;          // declare only
+    let rothDepletionAge = null;          // declare only
+    let tradFirstYearWithdrawal = result.retirementTaxDetails?.rmd ?? 0;
+    let rothFirstYearWithdrawal = null;
+
+    let tradRmdAt73 = null;
+    let tradRmdAt80 = null;
+    let tradRmdAt90 = null;
+
+    let withdrawalStrategyLabel = "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth.";
+
+    let zone = null;
+
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
-    let tradDepletionAge = depletionAge;   // temporary approximation
-    let rothDepletionAge = depletionAge + 10; // placeholder until you model it
+    
 
     function simulateWithdrawal(balance, rate, growthRate, years) {
         const annual = balance * rate;
