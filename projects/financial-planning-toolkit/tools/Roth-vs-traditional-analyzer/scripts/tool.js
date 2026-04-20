@@ -1794,14 +1794,9 @@ function computeProInsights(result) {
 
         // catastrophic = requiredWithdrawalRate > 0.08;
 
-        const catastrophic =
-            requiredWithdrawalRate > 0.06 ||
-            spendingGap > 0 ||
-            retirementReadiness < 50 ||
-            yearsUntilDepletion < 20 ||
-            depletionAge < 90;
-
-
+    
+        // start here
+        // 4% / 5% insights
         fourPercent = withdrawalInsight(
             retirementBalance,
             0.04,
@@ -1822,19 +1817,11 @@ function computeProInsights(result) {
         safeSpendingDelta = spendingNeedAtRetirement - safeSpendingMax;
         if (safeSpendingDelta < 0) safeSpendingDelta = 0;
 
-        if (catastrophic) {
-            fourPercent.label = "Not Sustainable";
-            fourPercent.endBalance = 0;
-
-            fivePercent.label = "Not Sustainable";
-            fivePercent.endBalance = 0;
-        }
-
+        // ⭐ Compute retirement readiness BEFORE catastrophic logic
         const mcStartingBalance = currentRoth + currentTrad;
         const mcWithdrawal = mcStartingBalance * 0.04;
         const mcYears = Math.max(0, 85 - retirementAge);
-        const mcMeanGrowth =
-            parseFloat(result.assumedGrowthRate) || 0.07;
+        const mcMeanGrowth = parseFloat(result.assumedGrowthRate) || 0.07;
 
         retirementReadiness = runReadinessMonteCarlo({
             startingBalance: mcStartingBalance,
@@ -1845,18 +1832,35 @@ function computeProInsights(result) {
             simulations: 500,
             readinessThreshold: 500000
         });
-    }
 
-    if (retirementBalance > 0 && spendingGap > 0) {
-        yearsUntilDepletion = Math.floor(
-            retirementBalance / spendingGap
-        );
+        // ⭐ Compute depletion AFTER readiness
+        if (retirementBalance > 0 && spendingGap > 0) {
+            yearsUntilDepletion = Math.floor(retirementBalance / spendingGap);
 
-        if (taxContext?.retirementAge != null) {
-            depletionAge =
-                taxContext.retirementAge + yearsUntilDepletion;
+            if (taxContext?.retirementAge != null) {
+                depletionAge = taxContext.retirementAge + yearsUntilDepletion;
+            }
         }
+
+        // ⭐ NOW catastrophic logic (correct placement)
+        catastrophic =
+            requiredWithdrawalRate > 0.06 ||
+            spendingGap > 0 ||
+            retirementReadiness < 50 ||
+            yearsUntilDepletion < 20 ||
+            depletionAge < 90;
+
+        // Apply catastrophic overrides
+        if (catastrophic) {
+            fourPercent.label = "Not Sustainable";
+            fourPercent.endBalance = 0;
+
+            fivePercent.label = "Not Sustainable";
+            fivePercent.endBalance = 0;
+        }
+
     }
+
 
     return {
         diversificationScore,
