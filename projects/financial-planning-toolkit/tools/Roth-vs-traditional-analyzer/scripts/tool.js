@@ -1792,7 +1792,15 @@ function computeProInsights(result) {
                 ? spendingGap / retirementBalance
                 : 1;
 
-        catastrophic = requiredWithdrawalRate > 0.08;
+        // catastrophic = requiredWithdrawalRate > 0.08;
+
+        const catastrophic =
+            requiredWithdrawalRate > 0.06 ||
+            spendingGap > 0 ||
+            retirementReadiness < 50 ||
+            yearsUntilDepletion < 20 ||
+            depletionAge < 90;
+
 
         fourPercent = withdrawalInsight(
             retirementBalance,
