@@ -252,8 +252,62 @@
                     Based on your spending need, taxes, RMDs, glidepath returns, and retirement timing.
                 </p>
             </div>
-        
-        
+
+            <!-- YELLOW VERSION (Fragile but Fixable) -->
+            <div id="sustain-yellow" class="sustain-card sustain-yellow" style="display:none;">
+                <div class="sustain-header">
+                    <span class="sustain-icon">⚠️</span>
+                    <h3>Your Plan Is Workable, But Fragile</h3>
+                </div>
+            
+                <p id="yellow-depletion-message" class="sustain-age"
+                    data-tooltip="Your projected depletion age reflects taxes, spending, and Social Security timing.">
+                </p>
+            
+                <div class="sustain-metrics">
+                    <span class="metric-pill">
+                        Withdrawal rate:
+                        <strong id="yellow-withdrawal-rate"></strong>
+                    </span>
+            
+                    <span class="metric-pill">
+                        Safe range:
+                        <strong>4%–5%</strong>
+                    </span>
+            
+                    <span class="metric-pill">
+                        Spending gap:
+                        <strong id="yellow-spending-gap"></strong>
+                    </span>
+            
+                    <span class="metric-pill">
+                        Social Security:
+                        <strong id="yellow-ss-income"></strong>
+                    </span>
+                </div>
+            
+                <div class="sustain-why">
+                    <h4>Why this result occurred</h4>
+                    <ul>
+                        <li>Your spending need is above the safe spending range.</li>
+                        <li>Your withdrawal rate is near the upper edge of the 4%–5% guideline.</li>
+                        <li>Your portfolio is doing most of the work relative to Social Security.</li>
+                        <li>Your projected depletion age leaves limited buffer for longevity or market shocks.</li>
+                    </ul>
+                </div>
+            
+                <div class="sustain-actions">
+                    <h4>Most impactful improvements</h4>
+                    <ul>
+                        <li>Increase savings during your remaining working years.</li>
+                        <li>Reduce spending expectations by 5–15%.</li>
+                        <li>Delay retirement by 1–2 years to widen the margin.</li>
+                        <li>Consider delaying Social Security to strengthen guaranteed income.</li>
+                        <li>Review your allocation to ensure it supports long-term growth.</li>
+                    </ul>
+                </div>
+            </div>
+                
             <!-- NEGATIVE VERSION (Catastrophic) -->
             <div id="sustain-negative" class="sustain-card sustain-negative" style="display:none;">
                 <div class="sustain-header">
@@ -336,6 +390,55 @@
         <p id="chart-explanation-note" class="chart-note">
             Why the chart may not match the depletion age
         </p>
+
+        <!-- ========================= -->
+        <!--   Withdrawal Strategy     -->
+        <!-- ========================= -->
+        <section class="withdrawal-strategy-block">
+            <h3>Withdrawal Strategy</h3>
+        
+            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label">
+                <!-- JS fills this with withdrawalStrategyLabel -->
+            </p>
+        
+            <div class="withdrawal-metrics">
+                <div class="withdrawal-column">
+                    <h4>Traditional IRA</h4>
+                    <p>
+                        Projected depletion age:
+                        <strong id="trad-depletion-age"></strong>
+                    </p>
+                    <p>
+                        First-year withdrawals:
+                        <strong id="trad-first-year-withdrawal"></strong>
+                    </p>
+                    <p>
+                        RMDs (estimated):
+                    </p>
+                    <ul class="rmd-list">
+                        <li>Age 73: <strong id="trad-rmd-73"></strong></li>
+                        <li>Age 80: <strong id="trad-rmd-80"></strong></li>
+                        <li>Age 90: <strong id="trad-rmd-90"></strong></li>
+                    </ul>
+                </div>
+        
+                <div class="withdrawal-column">
+                    <h4>Roth IRA</h4>
+                    <p>
+                        Projected depletion age:
+                        <strong id="roth-depletion-age"></strong>
+                    </p>
+                    <p>
+                        First-year withdrawals:
+                        <strong id="roth-first-year-withdrawal"></strong>
+                    </p>
+                    <p class="withdrawal-note">
+                        Roth is used later to preserve tax-free growth and flexibility.
+                    </p>
+                </div>
+            </div>
+        </section>
+
         <section>
             <h2>Guidance</h2>
             <div id="guidance" class="card guidance-card"></div>

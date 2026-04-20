@@ -1515,6 +1515,9 @@ function computeProInsights(result) {
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
+    let tradDepletionAge = depletionAge;   // temporary approximation
+    let rothDepletionAge = depletionAge + 10; // placeholder until you model it
+
     function simulateWithdrawal(balance, rate, growthRate, years) {
         const annual = balance * rate;
         let b = balance;
@@ -1613,6 +1616,8 @@ function computeProInsights(result) {
     let currentBracketRate = null;
     let nextBracketRate = null;
     let taxJump = null;
+    let zone = null;
+
 
     if (retirementTaxDetails && taxContext) {
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
@@ -1792,10 +1797,6 @@ function computeProInsights(result) {
                 ? spendingGap / retirementBalance
                 : 1;
 
-        // catastrophic = requiredWithdrawalRate > 0.08;
-
-    
-        // start here
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
             retirementBalance,
@@ -1842,10 +1843,8 @@ function computeProInsights(result) {
             }
         }
 
-        // ⭐ NOW catastrophic logic (correct placement)
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
-            spendingGap > 0 ||
             retirementReadiness < 50 ||
             yearsUntilDepletion < 20 ||
             depletionAge < 90;
@@ -1858,6 +1857,20 @@ function computeProInsights(result) {
             fivePercent.label = "Not Sustainable";
             fivePercent.endBalance = 0;
         }
+
+        let zone = "green";
+
+        if (catastrophic) {
+            zone = "red";
+        } else if (
+            requiredWithdrawalRate > 0.045 ||     // near top of safe band
+            safeSpendingDelta > 0 ||              // above safe spending range
+            depletionAge < 95 ||                  // depletion inside longevity window
+            retirementReadiness < 80              // not catastrophic, but not robust
+        ) {
+            zone = "yellow";
+        }
+
 
     }
 
@@ -1888,6 +1901,15 @@ function computeProInsights(result) {
         spendingGap,
         yearsUntilDepletion,
         depletionAge,
+        tradDepletionAge,
+        rothDepletionAge,
+        tradFirstYearWithdrawal,
+        rothFirstYearWithdrawal,
+        tradRmdAt73,
+        tradRmdAt80,
+        tradRmdAt90,
+        withdrawalStrategyLabel,
+        zone,
         catastrophic,
         safeSpendingMin,
         safeSpendingMax,
@@ -1896,17 +1918,32 @@ function computeProInsights(result) {
     };
 }
 
-function showSustainability(isCatastrophic) {
-    const pos = document.getElementById("sustain-positive");
-    const neg = document.getElementById("sustain-negative");
+function showSustainability(zone) {
+    document.getElementById("sustain-positive").style.display = "none";
+    document.getElementById("sustain-yellow").style.display = "none";
+    document.getElementById("sustain-negative").style.display = "none";
 
-    if (isCatastrophic) {
-        pos.style.display = "none";
-        neg.style.display = "block";
+    if (zone === "green") {
+        document.getElementById("sustain-positive").style.display = "block";
+    } else if (zone === "yellow") {
+        document.getElementById("sustain-yellow").style.display = "block";
     } else {
-        pos.style.display = "block";
-        neg.style.display = "none";
+        document.getElementById("sustain-negative").style.display = "block";
     }
+}
+
+function renderWithdrawalStrategy(insights) {
+    setText("withdrawal-strategy-label", insights.withdrawalStrategyLabel);
+
+    setText("trad-depletion-age", insights.tradDepletionAge ? `Age ${insights.tradDepletionAge}` : "N/A");
+    setText("roth-depletion-age", insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A");
+
+    setText("trad-first-year-withdrawal", formatCurrency(insights.tradFirstYearWithdrawal));
+    setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
+
+    setText("trad-rmd-73", formatCurrency(insights.tradRmdAt73));
+    setText("trad-rmd-80", formatCurrency(insights.tradRmdAt80));
+    setText("trad-rmd-90", formatCurrency(insights.tradRmdAt90));
 }
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate, result }) {
@@ -1928,6 +1965,13 @@ function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate,
     // Confidence bar (Monte Carlo success rate)
     const bar = document.getElementById("sustain-bar-fill");
     bar.style.width = `${Math.min(Math.max(successRate, 0), 100)}%`;
+}
+
+function renderYellowSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
+    setText("yellow-depletion-message", `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years).`);
+    setText("yellow-withdrawal-rate", formatPercent(withdrawalRate));
+    setText("yellow-spending-gap", formatCurrency(spendingGap));
+    setText("yellow-ss-income", formatCurrency(result.retirementTaxDetails?.ssAtClaimAge));
 }
 
 function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
@@ -2482,10 +2526,18 @@ function renderSummary(result) {
 
     const insights = computeProInsights(result);
 
-    showSustainability(insights.catastrophic);
+    showSustainability(insights.zone);
 
-    if (insights.catastrophic) {
+    if (insights.zone === "red") {
         renderNegativeSustainability({
+            depletionAge: insights.depletionAge,
+            yearsLeft: insights.yearsUntilDepletion,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingGap: insights.spendingGap,
+            result
+        });
+    } else if (insights.zone === "yellow") {
+        renderYellowSustainability({
             depletionAge: insights.depletionAge,
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
@@ -2502,6 +2554,8 @@ function renderSummary(result) {
             result
         });
     }
+    
+    renderWithdrawalStrategy(insights);
 
     renderProInsights(insights);
 

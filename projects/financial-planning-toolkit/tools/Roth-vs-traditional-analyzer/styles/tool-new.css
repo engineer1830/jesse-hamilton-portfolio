@@ -502,3 +502,65 @@
     opacity: 0.95;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
+.withdrawal-strategy-block
+{
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    background-color: #f7f9fc;
+    border: 1px solid #dde3f0;
+}
+
+.withdrawal-strategy-label
+{
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.withdrawal-metrics
+{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.withdrawal-column
+{
+    flex: 1 1 220px;
+}
+
+.withdrawal-column h4
+{
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.rmd-list
+{
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.9rem;
+}
+
+.withdrawal-note
+{
+    font-size: 0.9rem;
+    color: #555;
+}
+.sustain-yellow
+{
+    border-left: 6px solid #f4c542;
+    background-color: #fff8e1;
+}
+
+.sustain-yellow .sustain-header h3
+{
+    color: #b88600;
+}
+
+.sustain-yellow .metric-pill
+{
+    background-color: #fff3c4;
+    border: 1px solid #f0d98c;
+}
