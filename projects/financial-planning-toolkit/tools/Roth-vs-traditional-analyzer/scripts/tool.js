@@ -134,7 +134,7 @@ function getIrmaaThresholds({ filingStatus }) {
 }
 
 async function fetchHistoricalPrices(ticker = "VTI") {
-    const url = `https://hamiltondesigns.vercel.app/api/yahoo?ticker=${ticker}&range=10y&interval=1d`;
+    const url = `https://hamiltondesigns.vercel.app/api/yahoo3?ticker=${ticker}&interval=1d`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to fetch price data");
     return await response.json();
