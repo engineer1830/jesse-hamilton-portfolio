@@ -432,7 +432,7 @@ $("runBtn").addEventListener("click", async () => {
 
         try {
             const tickers = [glidepathStockTicker, glidepathBondTicker];
-            const data = await getMultipleTickers(tickers, "max", "1d");
+            const data = await getMultipleTickers(tickers, "10y", "1d");
 
             const stockPrices = data[glidepathStockTicker] || [];
             const bondPrices = data[glidepathBondTicker] || [];
@@ -531,7 +531,7 @@ $("runBtn").addEventListener("click", async () => {
                 try {
                     const data = await getMultipleTickers(
                         tickers,
-                        "max",
+                        "10y",
                         "1d"
                     );
                     const weightedCagr = await computeWeightedCAGR(
@@ -562,7 +562,7 @@ $("runBtn").addEventListener("click", async () => {
                 try {
                     const prices = await getHistoricalPrices(
                         ticker,
-                        "max",
+                        "10y",
                         "1d"
                     );
                     if (prices.length) {
