@@ -2101,25 +2101,23 @@ function renderProInsights(result) {
     if (fourPercent && fivePercent) {
         html += `
             <div class="pro-insights-metric">
-                <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
+                <div class="pro-insights-label">Withdrawal Rules of Thumb (4% / 5%)</div>
+    
+                <div class="pro-insights-note">
+                    These benchmarks ignore taxes, RMDs, IRMAA, and your actual spending need.
+                    They provide quick context, while your personalized plan uses full tax‑aware modeling.
+                </div>
     
                 <div class="withdrawal-row">
                     <div class="withdrawal-label">4% Rule</div>
                     <div class="withdrawal-value ${fourPercent.label
                 .toLowerCase()
                 .replace(" ", "-")}"
-                         title="${getWithdrawalTooltip(
-                    fourPercent.label,
-                    catastrophic
-                )}">
+                         title="A simplified rule of thumb. Ignores taxes, RMDs, and spending needs.">
                         ${fourPercent.label}
                         <span class="withdrawal-sub">
-                            First-year withdrawal: ${formatCurrency(
-                    fourPercent.annual
-                )}<br>
-                            Projected balance at age 85: ${formatCurrency(
-                    fourPercent.endBalance
-                )}
+                            First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fourPercent.endBalance)}
                         </span>
                     </div>
                 </div>
@@ -2129,24 +2127,67 @@ function renderProInsights(result) {
                     <div class="withdrawal-value ${fivePercent.label
                 .toLowerCase()
                 .replace(" ", "-")}"
-                         title="${getWithdrawalTooltip(
-                    fivePercent.label,
-                    catastrophic
-                )}">
+                         title="A simplified rule of thumb. Ignores taxes, RMDs, and spending needs.">
                         ${fivePercent.label}
                         <span class="withdrawal-sub">
-                            First-year withdrawal: ${formatCurrency(
-                    fivePercent.annual
-                )}<br>
-                            Projected balance at age 85: ${formatCurrency(
-                    fivePercent.endBalance
-                )}
+                            First-year withdrawal: ${formatCurrency(fivePercent.annual)}<br>
+                            Projected balance at age 85: ${formatCurrency(fivePercent.endBalance)}
                         </span>
                     </div>
                 </div>
             </div>
         `;
     }
+    
+    // if (fourPercent && fivePercent) {
+    //     html += `
+    //         <div class="pro-insights-metric">
+    //             <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
+    
+    //             <div class="withdrawal-row">
+    //                 <div class="withdrawal-label">4% Rule</div>
+    //                 <div class="withdrawal-value ${fourPercent.label
+    //             .toLowerCase()
+    //             .replace(" ", "-")}"
+    //                      title="${getWithdrawalTooltip(
+    //                 fourPercent.label,
+    //                 catastrophic
+    //             )}">
+    //                     ${fourPercent.label}
+    //                     <span class="withdrawal-sub">
+    //                         First-year withdrawal: ${formatCurrency(
+    //                 fourPercent.annual
+    //             )}<br>
+    //                         Projected balance at age 85: ${formatCurrency(
+    //                 fourPercent.endBalance
+    //             )}
+    //                     </span>
+    //                 </div>
+    //             </div>
+    
+    //             <div class="withdrawal-row">
+    //                 <div class="withdrawal-label">5% Rule</div>
+    //                 <div class="withdrawal-value ${fivePercent.label
+    //             .toLowerCase()
+    //             .replace(" ", "-")}"
+    //                      title="${getWithdrawalTooltip(
+    //                 fivePercent.label,
+    //                 catastrophic
+    //             )}">
+    //                     ${fivePercent.label}
+    //                     <span class="withdrawal-sub">
+    //                         First-year withdrawal: ${formatCurrency(
+    //                 fivePercent.annual
+    //             )}<br>
+    //                         Projected balance at age 85: ${formatCurrency(
+    //                 fivePercent.endBalance
+    //             )}
+    //                     </span>
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     `;
+    // }
 
     if (retirementReadiness !== null) {
         let readinessClass = "bad";
