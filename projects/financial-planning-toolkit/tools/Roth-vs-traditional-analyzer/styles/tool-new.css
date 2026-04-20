@@ -1,3 +1,43 @@
+/* GUIDE BUTTON */
+
+.guide-btn-wrapper
+{
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.guide-btn
+{
+    padding: 8px 14px;
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.guide-btn:hover
+{
+    background: #0284c7;
+}
+
+.guide-btn:active
+{
+    transform: scale(0.97);
+}
+
+/* .guide-btn
+{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+} */
+
 /* --- INPUT PANEL LAYOUT -------------------------------------------------- */
 
 .inputs-subtitle
