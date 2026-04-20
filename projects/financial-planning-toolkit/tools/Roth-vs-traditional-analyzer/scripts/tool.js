@@ -1951,7 +1951,6 @@ function renderSafeSpending(result) {
         `${formatCurrency(low)} – ${formatCurrency(high)}`;
 }
 
-
 function attachChartExplanation() {
     const el = document.getElementById("chart-explanation-note");
     if (!el) return;
@@ -1966,6 +1965,33 @@ function attachChartExplanation() {
         );
     });
 }
+
+function attachTooltipHandlers() {
+    const tooltipTargets = document.querySelectorAll("[data-tooltip]");
+
+    tooltipTargets.forEach(el => {
+        el.addEventListener("mouseenter", () => {
+            const tip = document.createElement("div");
+            tip.className = "tooltip-bubble";
+            tip.textContent = el.getAttribute("data-tooltip");
+            document.body.appendChild(tip);
+
+            const rect = el.getBoundingClientRect();
+            tip.style.left = `${rect.left + rect.width / 2}px`;
+            tip.style.top = `${rect.top - 8}px`;
+
+            el._tooltip = tip;
+        });
+
+        el.addEventListener("mouseleave", () => {
+            if (el._tooltip) {
+                el._tooltip.remove();
+                el._tooltip = null;
+            }
+        });
+    });
+}
+
 
 /* -------------------------------------------------------
    SUMMARY RENDERER
@@ -2513,6 +2539,8 @@ function renderSummary(result) {
     }
     renderSafeSpending(result);
     attachChartExplanation();
+    attachTooltipHandlers();
+
 }
 
 function renderCatastrophicUX(result) {

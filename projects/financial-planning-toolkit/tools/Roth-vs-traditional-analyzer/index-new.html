@@ -215,24 +215,32 @@
                     <h3>Your Plan Appears Sustainable</h3>
                 </div>
         
-                <p id="positive-depletion-message" class="sustain-age"></p>
-        
-                <!-- Confidence bar (JS sets width) -->
-                <div class="sustain-bar">
-                    <div id="sustain-bar-fill" class="sustain-bar-fill" style="width: 80%;"></div>
-                </div>
-        
+                <p id="positive-depletion-message" class="sustain-age"
+                    data-tooltip="The estimated age at which your savings may run out based on taxes, spending, and Social Security timing.">
+                </p>
+                
                 <div class="sustain-metrics">
                     <span class="metric-pill">
-                        Required withdrawal rate: <strong id="positive-withdrawal-rate"></strong>
+                        Required withdrawal rate:
+                        <strong id="positive-withdrawal-rate"
+                            data-tooltip="Your annual withdrawals divided by your portfolio balance. Higher values indicate higher risk.">
+                        </strong>
                     </span>
+                
                     <span class="metric-pill">
-                        Spending need: <strong id="positive-spending-need"></strong>
+                        Spending need:
+                        <strong id="positive-spending-need" data-tooltip="Your projected annual spending requirement at retirement.">
+                        </strong>
                     </span>
+                
                     <span class="metric-pill">
-                        Social Security: <strong id="positive-ss-income"></strong>
+                        Social Security:
+                        <strong id="positive-ss-income"
+                            data-tooltip="Your estimated annual Social Security benefit at your chosen claim age.">
+                        </strong>
                     </span>
                 </div>
+
         
                 <p class="summary-note">
                     Based on your spending need, taxes, RMDs, glidepath returns, and retirement timing.
@@ -247,22 +255,41 @@
                     <h3>Your Current Plan Needs Adjustment</h3>
                 </div>
         
-                <p id="catastrophic-depletion-message" class="sustain-age"></p>
-        
+                <p id="catastrophic-depletion-message" class="sustain-age"
+                    data-tooltip="The estimated age at which your savings may run out based on taxes, spending, and Social Security timing.">
+                </p>
+                
                 <div class="sustain-metrics">
                     <span class="metric-pill">
-                        Required withdrawal rate: <strong id="catastrophic-withdrawal-rate"></strong>
+                        Required withdrawal rate:
+                        <strong id="catastrophic-withdrawal-rate"
+                            data-tooltip="Your annual withdrawals divided by your portfolio balance. Higher values indicate higher risk.">
+                        </strong>
                     </span>
+                
                     <span class="metric-pill">
-                        Safe range: <strong>4%–5%</strong>
+                        Safe range:
+                        <strong
+                            data-tooltip="A widely used guideline for sustainable long-term withdrawals. Staying within this range reduces depletion risk.">
+                            4%–5%
+                        </strong>
                     </span>
+                
                     <span class="metric-pill">
-                        Spending gap: <strong id="catastrophic-spending-gap"></strong>
+                        Spending gap:
+                        <strong id="catastrophic-spending-gap"
+                            data-tooltip="The difference between your spending need and what your portfolio can sustainably support.">
+                        </strong>
                     </span>
+                
                     <span class="metric-pill">
-                        Social Security: <strong id="catastrophic-ss-income"></strong>
+                        Social Security:
+                        <strong id="catastrophic-ss-income"
+                            data-tooltip="Your estimated annual Social Security benefit at your chosen claim age.">
+                        </strong>
                     </span>
                 </div>
+
         
                 <!-- WHY THIS HAPPENED -->
                 <div class="sustain-why">
