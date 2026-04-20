@@ -237,6 +237,54 @@
     line-height: 1.4;
 }
 
+/* Summary Card Improvements */
+.summary-card
+{
+    padding: 20px 24px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+}
+
+.summary-card h3
+{
+    margin-top: 20px;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.summary-table
+{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    /* <-- row spacing */
+    margin-bottom: 20px;
+}
+
+.summary-table th,
+.summary-table td
+{
+    padding: 10px 14px;
+    /* <-- cell padding */
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+.summary-table th
+{
+    font-weight: 600;
+    background: #f1f5f9;
+}
+
+.summary-table tr td:first-child
+{
+    width: 40%;
+    font-weight: 500;
+}
+
 
 /* --- SUSTAINABILITY CARD ------------------------------------------------- */
 
