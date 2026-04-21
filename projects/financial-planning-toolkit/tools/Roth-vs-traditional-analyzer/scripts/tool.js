@@ -1564,15 +1564,6 @@ function computeProInsights(result) {
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
-    rothAtRetirement = result.currentRoth;
-    const yearsToRetirement = taxContext.retirementAge - taxContext.currentAge;
-    const growth = result.expectedReturn ?? 0.05;
-
-    for (let i = 0; i < yearsToRetirement; i++) {
-        rothAtRetirement *= (1 + growth);
-    }
-    
-
     function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
         let age = startAge;
         let balance = startBalance;
@@ -1731,7 +1722,13 @@ function computeProInsights(result) {
             currentAge
         } = taxContext;
 
-        const yearsToRetirement = retirementAge - currentAge;
+        rothAtRetirement = result.currentRoth;
+        const yearsToRetirement = taxContext.retirementAge - taxContext.currentAge;
+        const growth = result.expectedReturn ?? 0.05;
+
+        for (let i = 0; i < yearsToRetirement; i++) {
+            rothAtRetirement *= (1 + growth);
+        }
 
         const rmdFactor = Math.min(rmd / 100000, 2);
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
