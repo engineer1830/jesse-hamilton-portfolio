@@ -1568,7 +1568,8 @@ function computeProInsights(result) {
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
-    let tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    let tradBalance = tradAtRetirement;
     let rothBalance = rothAtRetirement;
     
     function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
@@ -1730,6 +1731,9 @@ function computeProInsights(result) {
         for (let i = 0; i < yearsToRetirement; i++) {
             rothAtRetirement *= (1 + growth);
         }
+        
+        rothBalance = rothAtRetirement;
+
 
         const rmdFactor = Math.min(rmd / 100000, 2);
         const tradFactor = Math.min(tradAt73 / 2000000, 2);
@@ -1875,9 +1879,7 @@ function computeProInsights(result) {
 
         const yearsInRetirement = Math.max(0, 85 - retirementAge);
 
-        retirementBalance =
-            (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
-            (rothAtRetirement ?? 0);
+        retirementBalance = tradAtRetirement + rothAtRetirement;
 
         spendingNeedAtRetirement =
             result.spendingNeedAtRetirement ?? 0;
@@ -1914,6 +1916,7 @@ function computeProInsights(result) {
 
         if (!userAllowsTradGrowth) {
             tradBalance = 0;
+            tradAtRetirement = 0;
             tradDepletionAge = result.taxContext.retirementAge; // empty at retirement
             tradFirstYearWithdrawal = 0;
             tradRmdAt73 = 0;
@@ -2065,7 +2068,7 @@ function computeProInsights(result) {
         safeSpendingDelta,
         requiredPortfolioSize,
         rothAtRetirement,
-        tradAtRetirement: result.retirementTaxDetails?.tradAtRetirement ?? 0,
+        tradAtRetirement,
         rothFirstWithdrawalAge,
         taxContext: result.taxContext,
 
