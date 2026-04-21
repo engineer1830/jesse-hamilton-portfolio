@@ -1948,7 +1948,7 @@ function computeProInsights(result) {
         }
 
         rothFirstWithdrawalAge = tradDepletionAge;
-        
+
         // If Traditional is empty at retirement, Roth covers the spending gap
         if (tradAtRetirement === 0) {
             rothFirstYearWithdrawal = spendingGap;
@@ -2081,19 +2081,44 @@ function computeProInsights(result) {
     };
 }
 
-function showSustainability(zone) {
-    document.getElementById("sustain-positive").style.display = "none";
-    document.getElementById("sustain-yellow").style.display = "none";
-    document.getElementById("sustain-negative").style.display = "none";
+// function showSustainability(zone) {
+//     document.getElementById("sustain-positive").style.display = "none";
+//     document.getElementById("sustain-yellow").style.display = "none";
+//     document.getElementById("sustain-negative").style.display = "none";
 
+//     if (zone === "green") {
+//         document.getElementById("sustain-positive").style.display = "block";
+//     } else if (zone === "yellow") {
+//         document.getElementById("sustain-yellow").style.display = "block";
+//     } else {
+//         document.getElementById("sustain-negative").style.display = "block";
+//     }
+// }
+
+function showSustainability(zone) {
+    const pos = document.getElementById("sustain-positive");
+    const yel = document.getElementById("sustain-yellow");
+    const neg = document.getElementById("sustain-negative");
+
+    // Hide all
+    pos.style.display = "none";
+    yel.style.display = "none";
+    neg.style.display = "none";
+
+    // Show the correct one
     if (zone === "green") {
-        document.getElementById("sustain-positive").style.display = "block";
+        pos.style.display = "block";
     } else if (zone === "yellow") {
-        document.getElementById("sustain-yellow").style.display = "block";
+        yel.style.display = "block";
     } else {
-        document.getElementById("sustain-negative").style.display = "block";
+        neg.style.display = "block";
     }
+
+    // ⭐ Force Chrome to repaint the entire section
+    const section = document.getElementById("sustainability-section");
+    void section.offsetHeight;
 }
+
 
 function renderWithdrawalStrategy(insights) {
     setText("withdrawal-strategy-label", insights.withdrawalStrategyLabel);
