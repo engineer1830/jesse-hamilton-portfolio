@@ -1599,9 +1599,9 @@ function computeProInsights(result) {
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
-    const tradBalance = result.currentTrad ?? 0;
-    const rothBalance = result.currentRoth ?? 0;
-
+    const tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    const rothBalance = rothAtRetirement ?? 0;
+    
     function computeRmd(balance, age) {
         const divisor = getIrsDivisor(age);
         return divisor ? balance / divisor : 0;
@@ -1876,8 +1876,7 @@ function computeProInsights(result) {
 
         retirementBalance =
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
-            (result.rothFinal ?? 0);
-
+            (rothAtRetirement ?? 0);
 
         spendingNeedAtRetirement =
             result.spendingNeedAtRetirement ?? 0;
