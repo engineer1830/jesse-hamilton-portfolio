@@ -1569,7 +1569,39 @@ function computeProInsights(result) {
     const startAge = result.taxContext?.retirementAge ?? 65;
 
     let tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
-    const rothBalance = rothAtRetirement ?? 0;
+    let rothBalance = rothAtRetirement ?? 0;
+    
+    function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
+        let age = startAge;
+        let balance = startBalance;
+
+        while (balance > 0 && age < 120) {
+            const divisor = getIrsDivisor(age);
+            const rmd = divisor ? balance / divisor : 0;
+
+            const withdrawal = Math.max(rmd, spendingNeed);
+
+            balance = balance - withdrawal;
+            balance = balance * (1 + growthRate);
+
+            age++;
+        }
+
+        return age;
+    }
+
+    function simulateRothDepletion(startBalance, startAge, spendingNeed, growthRate) {
+        let age = startAge;
+        let balance = startBalance;
+
+        while (balance > 0 && age < 120) {
+            balance = balance - spendingNeed;
+            balance = balance * (1 + growthRate);
+            age++;
+        }
+
+        return age;
+    }
     
     function computeRmd(balance, age) {
         const divisor = getIrsDivisor(age);
