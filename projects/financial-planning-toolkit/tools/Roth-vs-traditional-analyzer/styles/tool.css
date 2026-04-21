@@ -490,8 +490,8 @@
 .tooltip-bubble
 {
     position: absolute;
-    /* top: 100%;
-    left: 50%; */
+    top: 100%;
+    left: 50%;
     transform: translateX(-50%);
     background: #333;
     color: #fff;
@@ -501,9 +501,16 @@
     max-width: 240px;
     text-align: center;
     z-index: 9999;
-    pointer-events: auto;
-    opacity: 0.95;
+    pointer-events: none;
+    opacity: 0%;
+    transition: opacity 0.2s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.sustain-header:hover .tooltip-bubble
+{
+    opacity: 0.95;
+    pointer-events: auto;
 }
 
 .withdrawal-strategy-block

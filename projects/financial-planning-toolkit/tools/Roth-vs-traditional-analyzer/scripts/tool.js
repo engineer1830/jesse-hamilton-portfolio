@@ -2048,17 +2048,26 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
+        // ⭐ If Traditional is never used, treat it as lasting to age 120
+        if (tradFirstYearWithdrawal === 0) {
+            tradDepletionAge = 120;
+        }
+
+        // ⭐ If Roth is never used, treat it as lasting to age 120
+        if (rothFirstYearWithdrawal === 0) {
+            rothDepletionAge = 120;
+        }
+
+
         // ⭐ Compute depletion AFTER readiness -- Use the real simulated depletion ages
         const overallDepletionAge = Math.min(
             tradDepletionAge ?? Infinity,
             rothDepletionAge ?? Infinity
         );
 
-        // If both accounts last to 120, overallDepletionAge = 120
         depletionAge = overallDepletionAge;
         yearsUntilDepletion = Math.max(0, overallDepletionAge - currentAge);
-        
-
+                
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
             retirementReadiness < 50 ||
