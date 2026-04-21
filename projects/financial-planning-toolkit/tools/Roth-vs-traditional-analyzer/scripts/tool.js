@@ -1919,7 +1919,7 @@ function computeProInsights(result) {
             growthRate
         );
 
-        let rothFirstWithdrawalAge = tradDepletionAge;
+        rothFirstWithdrawalAge = tradDepletionAge;
         
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
