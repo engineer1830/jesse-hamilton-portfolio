@@ -487,15 +487,43 @@ $("runBtn").addEventListener("click", async () => {
             yearlyExpectedReturns = [];
             yearlyVols = [];
 
+            // for (let i = 0; i < totalYears; i++) {
+            //     const age = currentAge + i;
+            //     const { stockWeight, bondWeight } = getGlidepathAllocation(
+            //         age,
+            //         retirementAge
+            //     );
+
+            //     const mu =
+            //         stockWeight * stockReturn + bondWeight * bondReturn;
+
+            //     const sigma = Math.sqrt(
+            //         Math.pow(stockVolAnnual * stockWeight, 2) +
+            //         Math.pow(bondVolAnnual * bondWeight, 2)
+            //     );
+
+            //     yearlyExpectedReturns.push(mu);
+            //     yearlyVols.push(sigma);
+            // }
+
             for (let i = 0; i < totalYears; i++) {
                 const age = currentAge + i;
-                const { stockWeight, bondWeight } = getGlidepathAllocation(
-                    age,
-                    retirementAge
-                );
+                const yearsLeft = retirementAge - age;
 
-                const mu =
-                    stockWeight * stockReturn + bondWeight * bondReturn;
+                let stockWeight, bondWeight;
+
+                if (yearsLeft > 10) {
+                    // Early-career regime (aggressive)
+                    stockWeight = 1.0;
+                    bondWeight = 0.0;
+                } else {
+                    // Late-career regime (use the same logic as getGlidepathAllocation)
+                    const alloc = getGlidepathAllocation(age, retirementAge);
+                    stockWeight = alloc.stockWeight;
+                    bondWeight = alloc.bondWeight;
+                }
+
+                const mu = stockWeight * stockReturn + bondWeight * bondReturn;
 
                 const sigma = Math.sqrt(
                     Math.pow(stockVolAnnual * stockWeight, 2) +
@@ -506,8 +534,16 @@ $("runBtn").addEventListener("click", async () => {
                 yearlyVols.push(sigma);
             }
 
+            console.log("Glidepath debug:", {
+                currentAge,
+                retirementAge,
+                yearlyExpectedReturns: yearlyExpectedReturns.slice(0, 15),
+                yearlyVols: yearlyVols.slice(0, 15)
+            });
+              
             expectedReturn = yearlyExpectedReturns[0];
             stockVol = yearlyVols[0];
+
         } catch (err) {
             console.warn("Glidepath fetch failed, falling back:", err);
             expectedReturn = growth;
@@ -1069,21 +1105,41 @@ async function computeWeightedVolatility(data, tickers, weights) {
 const glidepathStockTicker = "FXAIX";
 const glidepathBondTicker = "FXNAX";
 
+
+// Original function -- updated for stronger enforcing of balances
+// function getGlidepathAllocation(age, retirementAge) {
+//     // Returns { stockWeight, bondWeight } as decimals (0–1)
+//     if (age < retirementAge - 10) {
+//         // Aggressive
+//         return { stockWeight: 1.0, bondWeight: 0.0 };
+//     } else if (age < retirementAge - 2) {
+//         // Moderate
+//         return { stockWeight: 0.65, bondWeight: 0.35 };
+//     } else if (age < 70) {
+//         // Preserve
+//         return { stockWeight: 0.5, bondWeight: 0.5 };
+//     } else {
+//         // Legacy
+//         return { stockWeight: 0.35, bondWeight: 0.65 };
+//     }
+// }
+
 function getGlidepathAllocation(age, retirementAge) {
-    // Returns { stockWeight, bondWeight } as decimals (0–1)
-    if (age < retirementAge - 10) {
-        // Aggressive
-        return { stockWeight: 1.0, bondWeight: 0.0 };
-    } else if (age < retirementAge - 2) {
-        // Moderate
-        return { stockWeight: 0.65, bondWeight: 0.35 };
-    } else if (age < 70) {
-        // Preserve
-        return { stockWeight: 0.5, bondWeight: 0.5 };
-    } else {
-        // Legacy
-        return { stockWeight: 0.35, bondWeight: 0.65 };
+    const yearsToRetirement = retirementAge - age;
+
+    // If within 10 years of retirement, use late-career glidepath
+    if (yearsToRetirement <= 10) {
+        if (yearsToRetirement > 2) {
+            return { stockWeight: 0.65, bondWeight: 0.35 }; // Moderate
+        } else if (age < 70) {
+            return { stockWeight: 0.5, bondWeight: 0.5 };   // Preserve
+        } else {
+            return { stockWeight: 0.35, bondWeight: 0.65 }; // Legacy
+        }
     }
+
+    // More than 10 years away → aggressive
+    return { stockWeight: 1.0, bondWeight: 0.0 };
 }
 
 /* -------------------------------------------------------
