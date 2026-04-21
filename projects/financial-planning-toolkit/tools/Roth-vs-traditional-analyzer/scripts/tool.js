@@ -1555,12 +1555,23 @@ function computeProInsights(result) {
     let tradRmdAt73 = null;
     let tradRmdAt80 = null;
     let tradRmdAt90 = null;
+    let rothAtRetirement = result.rothAtRetirement ?? 0;
+
 
     let withdrawalStrategyLabel = "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth.";
 
     let zone = null;
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
+
+    rothAtRetirement = result.currentRoth;
+    const yearsToRetirement = taxContext.retirementAge - taxContext.currentAge;
+    const growth = result.expectedReturn ?? 0.05;
+
+    for (let i = 0; i < yearsToRetirement; i++) {
+        rothAtRetirement *= (1 + growth);
+    }
+    
 
     function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
         let age = startAge;
@@ -2028,7 +2039,10 @@ function computeProInsights(result) {
         safeSpendingMin,
         safeSpendingMax,
         safeSpendingDelta,
-        requiredPortfolioSize
+        requiredPortfolioSize,
+        rothAtRetirement,
+        tradAtRetirement: result.retirementTaxDetails?.tradAtRetirement ?? 0,
+
     };
 }
 
@@ -2048,6 +2062,9 @@ function showSustainability(zone) {
 
 function renderWithdrawalStrategy(insights) {
     setText("withdrawal-strategy-label", insights.withdrawalStrategyLabel);
+
+    setText("trad-balance-at-retirement", formatCurrency(insights.tradAtRetirement));
+    setText("roth-balance-at-retirement", formatCurrency(insights.rothAtRetirement));
 
     setText("trad-depletion-age", insights.tradDepletionAge ? `Age ${insights.tradDepletionAge}` : "N/A");
     setText("roth-depletion-age", insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A");
@@ -2536,9 +2553,7 @@ function renderSummary(result) {
             <tr><td>Starting Balance</td><td>${formatCurrency(
         currentRoth
     )}</td><td>${formatCurrency(currentTrad)}</td></tr>
-            <tr><td>Final After-Tax Value</td><td>${formatCurrency(
-        rothFinal
-    )}</td><td>${formatCurrency(traditionalFinal)}</td></tr>
+            <tr><td>Balance at Retirement</td><td>${formatCurrency(result.rothAtRetirement)}</td><td>${formatCurrency(result.tradAtRetirement)}</td></tr>
             <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
             <tr><td>${diffLabel}</td><td colspan="2">${formatCurrency(
         Math.abs(difference)
