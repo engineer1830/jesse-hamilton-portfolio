@@ -1949,6 +1949,12 @@ function computeProInsights(result) {
 
         rothFirstWithdrawalAge = tradDepletionAge;
         
+        // If Traditional is empty at retirement, Roth covers the spending gap
+        if (tradAtRetirement === 0) {
+            rothFirstYearWithdrawal = spendingGap;
+        }
+
+        
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
             retirementBalance,
