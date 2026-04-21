@@ -220,6 +220,12 @@ function applyWithdrawals({
     };
 }
 
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+
 /* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
 ------------------------------------------------------- */
