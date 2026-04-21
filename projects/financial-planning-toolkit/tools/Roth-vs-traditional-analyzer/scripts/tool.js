@@ -2042,6 +2042,7 @@ function computeProInsights(result) {
         rothAtRetirement,
         tradAtRetirement: result.retirementTaxDetails?.tradAtRetirement ?? 0,
         rothFirstWithdrawalAge,
+        taxContext: result.taxContext,
 
     };
 }
