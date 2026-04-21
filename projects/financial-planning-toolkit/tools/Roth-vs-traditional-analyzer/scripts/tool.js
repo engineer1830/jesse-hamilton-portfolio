@@ -1568,7 +1568,7 @@ function computeProInsights(result) {
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
-    const tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    let tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
     const rothBalance = rothAtRetirement ?? 0;
     
     function computeRmd(balance, age) {
