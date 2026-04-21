@@ -2083,18 +2083,30 @@ function computeProInsights(result) {
             fivePercent.endBalance = 0;
         }
 
+        // ⭐ Simulation override: if the plan lasts to 120 with huge buffer, it's green
+        const simulationStrong =
+            depletionAge >= 120 &&
+            yearsUntilDepletion >= 50 &&
+            !catastrophic;
+
         zone = "green";
 
+        // Red overrides everything
         if (catastrophic) {
             zone = "red";
-        } else if (
-            requiredWithdrawalRate > 0.045 ||     // near top of safe band
-            safeSpendingDelta > 0 ||              // above safe spending range
-            depletionAge < 95 ||                  // depletion inside longevity window
-            retirementReadiness < 80              // not catastrophic, but not robust
+        }
+        // Yellow applies only if simulation is NOT overwhelmingly strong
+        else if (
+            !simulationStrong && (
+                requiredWithdrawalRate > 0.045 ||     // near top of safe band
+                safeSpendingDelta > 0 ||              // above safe spending range
+                depletionAge < 95 ||                  // depletion inside longevity window
+                retirementReadiness < 80              // not catastrophic, but not robust
+            )
         ) {
             zone = "yellow";
         }
+        
 
 
     }
@@ -2186,7 +2198,6 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-
 function renderWithdrawalStrategy(insights) {
     setText("withdrawal-strategy-label", insights.withdrawalStrategyLabel);
 
@@ -2232,50 +2243,82 @@ function renderWithdrawalStrategy(insights) {
     setText("trad-rmd-90", formatCurrency(insights.tradRmdAt90));
 }
 
-
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate, result }) {
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
-    document.getElementById("positive-depletion-message").textContent =
-        `Estimated depletion age: ${depletionAge} (in ${yearsLeft} years)`;
+    // Title
+    setText("positive-title", "Your Plan Appears Sustainable");
 
-    document.getElementById("positive-withdrawal-rate").textContent =
-        `${(withdrawalRate * 100).toFixed(1)}%`;
+    // Subtitle
+    setText(
+        "positive-subtitle",
+        `Your savings are projected to last through age ${depletionAge}, providing a strong buffer for longevity and market variability.`
+    );
 
-    document.getElementById("positive-spending-need").textContent =
-        formatCurrency(spendingNeed);
-
-    document.getElementById("positive-ss-income").textContent =
-        formatCurrency(ss);
+    // Key metrics
+    setText("positive-withdrawal-rate", formatPercent(withdrawalRate));
+    setText("positive-withdrawal-need", formatCurrency(spendingNeed));
+    setText("positive-ss-income", formatCurrency(ss));
 
     // Confidence bar (Monte Carlo success rate)
     const bar = document.getElementById("sustain-bar-fill");
     bar.style.width = `${Math.min(Math.max(successRate, 0), 100)}%`;
+
+    // Why this result occurred
+    setText("positive-why-1", "Your projected depletion age provides a strong longevity buffer.");
+    setText("positive-why-2", "Your withdrawal need is within a range your portfolio can support.");
+    setText("positive-why-3", "Your savings continue to grow or remain stable throughout retirement.");
 }
 
 function renderYellowSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
-    setText("yellow-depletion-message", `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years).`);
+
+    const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
+
+    // Title
+    setText("yellow-title", "Your Plan Is Workable, But Sensitive to Market Conditions");
+
+    // Subtitle
+    setText(
+        "yellow-subtitle",
+        `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years), and the plan has limited buffer for volatility or higher‑than‑expected spending.`
+    );
+
+    // Key metrics
     setText("yellow-withdrawal-rate", formatPercent(withdrawalRate));
     setText("yellow-spending-gap", formatCurrency(spendingGap));
-    setText("yellow-ss-income", formatCurrency(result.retirementTaxDetails?.ssAtClaimAge));
+    setText("yellow-ss-income", formatCurrency(ss));
+
+    // Why this result occurred
+    setText("yellow-why-1", "Your withdrawal need is above the typical safe spending range.");
+    setText("yellow-why-2", "Your withdrawal rate is near the upper edge of the 4%–5% guideline.");
+    setText("yellow-why-3", "Your portfolio is doing most of the work relative to Social Security.");
+    setText("yellow-why-4", "Your projected depletion age leaves less room for longevity or market shocks.");
 }
 
 function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
-    document.getElementById("catastrophic-depletion-message").textContent =
-        `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years).`;
+    // Title
+    setText("catastrophic-title", "Your Current Plan Needs Adjustment");
 
-    document.getElementById("catastrophic-withdrawal-rate").textContent =
-        `${(withdrawalRate * 100).toFixed(1)}%`;
+    // Subtitle
+    setText(
+        "catastrophic-subtitle",
+        `Your savings may be depleted near age ${depletionAge} (in ${yearsLeft} years), indicating a high risk of running out of money in retirement.`
+    );
 
-    document.getElementById("catastrophic-spending-gap").textContent =
-        formatCurrency(spendingGap);
+    // Key metrics
+    setText("catastrophic-withdrawal-rate", formatPercent(withdrawalRate));
+    setText("catastrophic-spending-gap", formatCurrency(spendingGap));
+    setText("catastrophic-ss-income", formatCurrency(ss));
 
-    document.getElementById("catastrophic-ss-income").textContent =
-        formatCurrency(ss);
+    // Why this result occurred
+    setText("catastrophic-why-1", "Your withdrawal rate exceeds sustainable levels.");
+    setText("catastrophic-why-2", "Your projected depletion age is inside the longevity risk window.");
+    setText("catastrophic-why-3", "Your retirement readiness score indicates limited resilience.");
+    setText("catastrophic-why-4", "Your plan may not withstand typical market variability.");
 }
 
 function computeSafeSpending(result) {
