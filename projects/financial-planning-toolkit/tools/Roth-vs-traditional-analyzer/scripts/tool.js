@@ -1886,21 +1886,28 @@ function computeProInsights(result) {
                 : 1;
 
         // First-year withdrawals
-        tradFirstYearWithdrawal = result.retirementTaxDetails?.rmd ?? 0;
+        const firstYearRmd = result.retirementTaxDetails?.rmd ?? 0;
+
+        // Portfolio needs to cover the spending gap
+        const firstYearPortfolioWithdrawal = Math.max(spendingGap, 0);
+
+        // Under "Traditional first", all portfolio withdrawals start from Trad
+        tradFirstYearWithdrawal = Math.max(firstYearRmd, firstYearPortfolioWithdrawal);
         rothFirstYearWithdrawal = 0;
+                
 
         // Compute depletion ages
         tradDepletionAge = simulateTradDepletion(
             tradBalance,
             startAge,
-            spendingNeedAtRetirement,
+            spendingGap,
             growthRate
         );
 
         rothDepletionAge = simulateRothDepletion(
             rothBalance,
             tradDepletionAge,   // Roth starts after Trad is gone
-            spendingNeedAtRetirement,
+            spendingGap,
             growthRate
         );
         
