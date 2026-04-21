@@ -1565,38 +1565,6 @@ function computeProInsights(result) {
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
-    function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
-        let age = startAge;
-        let balance = startBalance;
-
-        while (balance > 0 && age < 120) {
-            const divisor = getIrsDivisor(age);
-            const rmd = divisor ? balance / divisor : 0;
-
-            const withdrawal = Math.max(rmd, spendingNeed);
-
-            balance = balance - withdrawal;
-            balance = balance * (1 + growthRate);
-
-            age++;
-        }
-
-        return age;
-    }
-    
-    function simulateRothDepletion(startBalance, startAge, spendingNeed, growthRate) {
-        let age = startAge;
-        let balance = startBalance;
-
-        while (balance > 0 && age < 120) {
-            balance = balance - spendingNeed;
-            balance = balance * (1 + growthRate);
-            age++;
-        }
-
-        return age;
-    }
-
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
@@ -1903,21 +1871,46 @@ function computeProInsights(result) {
         tradFirstYearWithdrawal = Math.max(firstYearRmd, firstYearPortfolioWithdrawal);
         rothFirstYearWithdrawal = 0;
                 
+        // --- Traditional stays at 0 unless user explicitly contributes ---
+        const userAllowsTradGrowth =
+            result.userTradContribution > 0 ||
+            result.currentTrad > 0;
+        // Future options:
+        // || result.employerMatchTrad > 0
+        // || result.contributionDirection === "traditional"
+        // || result.contributionDirection === "split"
 
-        // Compute depletion ages
-        tradDepletionAge = simulateTradDepletion(
-            tradBalance,
-            startAge,
-            spendingGap,
-            growthRate
-        );
+        if (!userAllowsTradGrowth) {
+            tradBalance = 0;
+            tradDepletionAge = result.taxContext.retirementAge; // empty at retirement
+            tradFirstYearWithdrawal = 0;
+            tradRmdAt73 = 0;
+            tradRmdAt80 = 0;
+            tradRmdAt90 = 0;
 
-        rothDepletionAge = simulateRothDepletion(
-            rothBalance,
-            tradDepletionAge,   // Roth starts after Trad is gone
-            spendingGap,
-            growthRate
-        );
+            // Roth starts immediately
+            rothDepletionAge = simulateRothDepletion(
+                rothBalance,
+                result.taxContext.retirementAge,
+                spendingGap,
+                growthRate
+            );
+        } else {
+            // Normal behavior: simulate Traditional first, then Roth
+            tradDepletionAge = simulateTradDepletion(
+                tradBalance,
+                startAge,
+                spendingGap,
+                growthRate
+            );
+
+            rothDepletionAge = simulateRothDepletion(
+                rothBalance,
+                tradDepletionAge,
+                spendingGap,
+                growthRate
+            );
+        }
 
         rothFirstWithdrawalAge = tradDepletionAge;
         
