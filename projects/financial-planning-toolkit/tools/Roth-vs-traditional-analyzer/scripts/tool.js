@@ -2048,14 +2048,16 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
-        // ⭐ Compute depletion AFTER readiness
-        if (retirementBalance > 0 && spendingGap > 0) {
-            yearsUntilDepletion = Math.floor(retirementBalance / spendingGap);
+        // ⭐ Compute depletion AFTER readiness -- Use the real simulated depletion ages
+        const overallDepletionAge = Math.min(
+            tradDepletionAge ?? Infinity,
+            rothDepletionAge ?? Infinity
+        );
 
-            if (taxContext?.retirementAge != null) {
-                depletionAge = taxContext.retirementAge + yearsUntilDepletion;
-            }
-        }
+        // If both accounts last to 120, overallDepletionAge = 120
+        depletionAge = overallDepletionAge;
+        yearsUntilDepletion = Math.max(0, overallDepletionAge - currentAge);
+        
 
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
