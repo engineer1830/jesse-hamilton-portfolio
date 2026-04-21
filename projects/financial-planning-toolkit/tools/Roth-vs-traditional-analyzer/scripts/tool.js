@@ -1569,7 +1569,7 @@ function computeProInsights(result) {
     const startAge = result.taxContext?.retirementAge ?? 65;
 
     let tradBalance = result.retirementTaxDetails?.tradAtRetirement ?? 0;
-    let rothBalance = rothAtRetirement ?? 0;
+    let rothBalance = rothAtRetirement;
     
     function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
         let age = startAge;
