@@ -2067,23 +2067,45 @@ function renderWithdrawalStrategy(insights) {
     setText("trad-balance-at-retirement", formatCurrency(insights.tradAtRetirement));
     setText("roth-balance-at-retirement", formatCurrency(insights.rothAtRetirement));
 
-    setText("trad-depletion-age", insights.tradDepletionAge ? `Age ${insights.tradDepletionAge}` : "N/A");
-    setText("roth-depletion-age", insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A");
+    setText(
+        "trad-depletion-age",
+        insights.tradDepletionAge ? `Age ${insights.tradDepletionAge}` : "N/A"
+    );
+    setText(
+        "roth-depletion-age",
+        insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A"
+    );
 
+    // Traditional withdrawals always show the first-year amount
     setText("trad-first-year-withdrawal", formatCurrency(insights.tradFirstYearWithdrawal));
-    // setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
-    if (insights.tradDepletionAge <= insights.taxContext.retirementAge) {
-        // Traditional is empty at retirement — Roth starts immediately
-        setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
-    } else {
-        setText("roth-first-year-withdrawal", `Withdrawals begin at Age ${insights.rothFirstWithdrawalAge}`);
-    }
-    
 
+    // --- Roth Withdrawal Logic ---
+    let rothText;
+
+    // Case 1: Roth is never actually needed (Traditional lasts as long as Roth)
+    if (
+        insights.rothFirstWithdrawalAge >= insights.rothDepletionAge ||
+        insights.rothDepletionAge === insights.rothFirstWithdrawalAge
+    ) {
+        rothText = "Not needed";
+    }
+    // Case 2: Traditional is empty at retirement → Roth starts immediately
+    else if (insights.tradDepletionAge <= insights.taxContext.retirementAge) {
+        rothText = formatCurrency(insights.rothFirstYearWithdrawal);
+    }
+    // Case 3: Roth begins after Traditional depletes
+    else {
+        rothText = `Withdrawals begin at Age ${insights.rothFirstWithdrawalAge}`;
+    }
+
+    setText("roth-first-year-withdrawal", rothText);
+
+    // RMDs
     setText("trad-rmd-73", formatCurrency(insights.tradRmdAt73));
     setText("trad-rmd-80", formatCurrency(insights.tradRmdAt80));
     setText("trad-rmd-90", formatCurrency(insights.tradRmdAt90));
 }
+
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate, result }) {
 
