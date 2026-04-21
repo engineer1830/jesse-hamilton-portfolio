@@ -1965,7 +1965,7 @@ function computeProInsights(result) {
             fivePercent.endBalance = 0;
         }
 
-        let zone = "green";
+        zone = "green";
 
         if (catastrophic) {
             zone = "red";
