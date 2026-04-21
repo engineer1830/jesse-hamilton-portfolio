@@ -1493,6 +1493,34 @@ function generateGuidance(result) {
     return items;
 }
 
+function getIrsDivisor(age) {
+    if (age < 73) return null;
+
+    const table = {
+        73: 26.5,
+        74: 25.5,
+        75: 24.6,
+        76: 23.7,
+        77: 22.9,
+        78: 22.0,
+        79: 21.1,
+        80: 20.2,
+        81: 19.4,
+        82: 18.5,
+        83: 17.7,
+        84: 16.8,
+        85: 16.0,
+        86: 15.2,
+        87: 14.4,
+        88: 13.7,
+        89: 12.9,
+        90: 12.2
+    };
+
+    return table[age] ?? 12.2; // fallback for 90+
+}
+
+
 /* -------------------------------------------------------
    PRO INSIGHTS (COMPUTATION)
 ------------------------------------------------------- */
@@ -1528,8 +1556,53 @@ function computeProInsights(result) {
 
     const glidepath = result.glidepath?.yearlyExpectedReturns || null;
 
-    
+    function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
+        let age = startAge;
+        let balance = startBalance;
 
+        while (balance > 0 && age < 120) {
+            const divisor = getIrsDivisor(age);
+            const rmd = divisor ? balance / divisor : 0;
+
+            const withdrawal = Math.max(rmd, spendingNeed);
+
+            balance = balance - withdrawal;
+            balance = balance * (1 + growthRate);
+
+            age++;
+        }
+
+        return age;
+    }
+    
+    function simulateRothDepletion(startBalance, startAge, spendingNeed, growthRate) {
+        let age = startAge;
+        let balance = startBalance;
+
+        while (balance > 0 && age < 120) {
+            balance = balance - spendingNeed;
+            balance = balance * (1 + growthRate);
+            age++;
+        }
+
+        return age;
+    }
+
+    const growthRate = result.expectedReturn ?? 0.05;
+    const startAge = result.taxContext?.retirementAge ?? 65;
+
+    const tradBalance = result.currentTrad ?? 0;
+    const rothBalance = result.currentRoth ?? 0;
+
+    function computeRmd(balance, age) {
+        const divisor = getIrsDivisor(age);
+        return divisor ? balance / divisor : 0;
+    }
+
+    tradRmdAt73 = computeRmd(tradBalance, 73);
+    tradRmdAt80 = computeRmd(tradBalance, 80);
+    tradRmdAt90 = computeRmd(tradBalance, 90);
+    
     function simulateWithdrawal(balance, rate, growthRate, years) {
         const annual = balance * rate;
         let b = balance;
@@ -1628,9 +1701,7 @@ function computeProInsights(result) {
     let currentBracketRate = null;
     let nextBracketRate = null;
     let taxJump = null;
-    let zone = null;
-
-
+    
     if (retirementTaxDetails && taxContext) {
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
         const {
@@ -1733,7 +1804,7 @@ function computeProInsights(result) {
             const endAge = 73;
             const annualConversion = safeConversionMax;
 
-            const growthRate =
+            const conversionGrowthRate =
                 parseFloat(result.assumedGrowthRate) || 0.07;
 
             const baseTaxRate = currentTax;
@@ -1743,7 +1814,7 @@ function computeProInsights(result) {
                 startAge,
                 endAge,
                 annualConversion,
-                growthRate,
+                growthRate: conversionGrowthRate,
                 filingStatus,
                 baseTaxRate
             });
@@ -1793,7 +1864,6 @@ function computeProInsights(result) {
             (result.retirementTaxDetails?.tradAtRetirement ?? 0) +
             (result.rothFinal ?? 0);
 
-        const growthRate = result.expectedReturn;
 
         spendingNeedAtRetirement =
             result.spendingNeedAtRetirement ?? 0;
@@ -1809,6 +1879,25 @@ function computeProInsights(result) {
                 ? spendingGap / retirementBalance
                 : 1;
 
+        // First-year withdrawals
+        tradFirstYearWithdrawal = result.retirementTaxDetails?.rmd ?? 0;
+        rothFirstYearWithdrawal = 0;
+
+        // Compute depletion ages
+        tradDepletionAge = simulateTradDepletion(
+            tradBalance,
+            startAge,
+            spendingNeedAtRetirement,
+            growthRate
+        );
+
+        rothDepletionAge = simulateRothDepletion(
+            rothBalance,
+            tradDepletionAge,   // Roth starts after Trad is gone
+            spendingNeedAtRetirement,
+            growthRate
+        );
+        
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
             retirementBalance,
