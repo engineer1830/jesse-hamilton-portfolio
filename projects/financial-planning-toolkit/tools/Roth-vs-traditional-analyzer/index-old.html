@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roth vs. Traditional Analyzer</title>
+
+    <link rel="stylesheet" href="../../styles/shared.css">
+    <link rel="stylesheet" href="tool.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <header class="site-header">
+        <h1>Roth vs. Traditional Analyzer</h1>
+        <p class="subtitle">Compare long-term after-tax outcomes</p>
+    </header>
+    
+    <div class="guide-btn-fixed">
+        <button onclick="window.open('guide.html', '_blank')" class="guide-btn">
+            Help / Service Guide
+        </button>
+        </div>
+    
+    <main class="container">
+    
+
+        <section>
+            <h2>Inputs</h2>
+
+            <div class="input-grid">
+
+                <label>
+                    Current Roth Balance
+                    <input id="currentRoth" type="number" value="0" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Current Traditional Balance
+                    <input id="currentTrad" type="number" value="0" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Annual Contribution
+                    <input id="contribution" type="number" value="6000" min="0" autocomplete="off">
+                </label>
+                <label>
+                    Current Tax Rate (%)
+                    <input id="currentTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Retirement Tax Rate (%)
+                    <input id="retireTax" type="number" value="22" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Expected Growth Rate (%)
+                    <input id="growth" type="number" value="7" step="0.01" min="0" autocomplete="off">
+                </label>
+
+                <label>
+                    Optional Ticker (e.g., VTI)
+                    <input id="ticker" type="text" placeholder="VTI" autocomplete="off">
+                    <small class="note">Leave blank to use assumed growth rate</small>
+                </label>
+
+                <label>
+                    Optional Portfolio (e.g., VTI:0.60,VXUS:0.20,BND:0.20)
+                    <input id="portfolio" type="text" placeholder="VTI:60,VXUS:20,BND:20" autocomplete="off">
+                    <small class="note">Overrides single ticker if provided</small>
+                </label>
+                <label>
+                    <input type="checkbox" id="overrideVolToggle">
+                    Use custom volatility
+                </label>
+                
+                <div id="customVolInputs" style="display:none;">
+                    <label>Stock Volatility (%): <input id="customStockVol" type="number" value="15"></label>
+                    <label>Bond Volatility (%): <input id="customBondVol" type="number" value="5"></label>
+                </div>
+                  
+                <label>
+                    Monte Carlo Simulations
+                    <input id="mcRuns" type="number" value="0" min="0" autocomplete="off">
+                    <small class="note">Set &gt; 0 to run Monte Carlo</small>
+                </label>
+            </div>
+
+            <h3>Retirement &amp; Social Security (for auto tax estimate)</h3>
+
+            <div class="input-grid">
+                <label>
+                    Current Age
+                    <input id="currentAge" type="number" value="60" min="0">
+                </label>
+
+                <label>
+                    Planned Retirement Age
+                    <input id="retirementAge" type="number" value="65" min="0">
+                </label>
+
+                <label>
+                    Planned Work Stoppage Age
+                    <input id="workStopAge" type="number" value="65" min="0">
+                </label>
+
+                <label>
+                    Social Security Annual Benefit (statement estimate)
+                    <input id="ssAnnual" type="number" value="40000" min="0">
+                </label>
+
+                <label>
+                    Claiming Age
+                    <select id="claimAge">
+                        <option value="62">62</option>
+                        <option value="67" selected>FRA (67)</option>
+                        <option value="70">70</option>
+                    </select>
+                </label>
+
+                <label>
+                    Filing Status
+                    <select id="filingStatus">
+                        <option value="married" selected>Married</option>
+                        <option value="single">Single</option>
+                    </select>
+                </label>
+
+                <label>
+                    Annual Spending Need at Retirement (optional)
+                    <input id="spendingNeed" type="number" value="0" min="0">
+                </label>
+
+                <label class="checkbox-inline">
+                    <input id="autoTax" type="checkbox">
+                    Estimate retirement tax rate automatically
+                </label>
+
+                <label class="option-row">
+                    <input type="checkbox" id="useGlidepath">
+                    <span>Use lifecycle glidepath (age-based allocation)</span>
+                </label>
+                  
+            </div>
+
+            <button id="runBtn" class="btn btn-primary">Analyze</button>
+        </section>
+
+        <section>
+            <h2>Summary</h2>
+            <div id="loading" class="loading" style="display:none;">Calculating...</div>
+            <div id="summary" class="card"></div>
+        </section>
+        
+        <section id="catastrophic-section">
+            <div id="catastrophic-banner" class="catastrophic-banner" style="display:none;">
+                <div class="catastrophic-banner__icon">⚠️</div>
+                <div class="catastrophic-banner__content">
+                    <h2 class="catastrophic-banner__title">Your Plan Is Not Sustainable</h2>
+                    <p class="catastrophic-banner__subtitle">
+                        Your projected spending exceeds what your portfolio can safely support.
+                    </p>
+                    <p id="catastrophic-depletion-message" class="catastrophic-banner__body"></p>
+        
+                    <div class="catastrophic-banner__metrics">
+                        <span class="metric-pill">
+                            Required withdrawal rate: <strong id="catastrophic-withdrawal-rate"></strong>
+                        </span>
+                        <span class="metric-pill">
+                            Safe range: <strong>4%–5%</strong>
+                        </span>
+                        <span class="metric-pill">
+                            Spending gap: <strong id="catastrophic-spending-gap"></strong>
+                        </span>
+                        <span class="metric-pill">
+                            Social Security: <strong id="catastrophic-ss-income"></strong>
+                        </span>
+                    </div>
+        
+                    <p class="catastrophic-banner__action">
+                        Consider reducing spending, delaying retirement, increasing savings, or adjusting your investment
+                        strategy.
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="catastrophic-details">
+            <div id="sanity-check" class="card" style="display:none;"></div>
+            <div id="recommended-actions" class="card" style="display:none;"></div>
+        </section>
+        
+        <section>
+            <h2>Pro Insights</h2>
+            <div id="pro-insights" class="card"></div>
+        </section>
+        
+        <section>
+            <h2>Guidance</h2>
+            <div id="guidance" class="card guidance-card"></div>
+        </section>
+        
+        
+        <section>
+            <h2>Growth Curve</h2>
+            <canvas id="growthChart"></canvas>
+        </section>
+        
+        <section>
+            <h2>Tax Rate Sensitivity</h2>
+            <p class="section-desc">How after-tax Traditional value changes with retirement tax rate.</p>
+            <canvas id="taxChart"></canvas>
+        </section>
+
+        <section>
+            <h2>Raw Output</h2>
+            <pre id="output"></pre>
+        </section>
+
+    </main>
+
+    <script type="module" src="scripts/tool.js"></script>
+
+</body>
+
+</html>

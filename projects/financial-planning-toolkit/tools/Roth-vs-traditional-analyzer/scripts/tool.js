@@ -1556,6 +1556,7 @@ function computeProInsights(result) {
     let tradRmdAt80 = null;
     let tradRmdAt90 = null;
     let rothAtRetirement = result.rothAtRetirement ?? 0;
+    let rothFirstWithdrawalAge = tradDepletionAge;
 
 
     let withdrawalStrategyLabel = "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth.";
@@ -1917,6 +1918,8 @@ function computeProInsights(result) {
             spendingGap,
             growthRate
         );
+
+        let rothFirstWithdrawalAge = tradDepletionAge;
         
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
@@ -2038,6 +2041,7 @@ function computeProInsights(result) {
         requiredPortfolioSize,
         rothAtRetirement,
         tradAtRetirement: result.retirementTaxDetails?.tradAtRetirement ?? 0,
+        rothFirstWithdrawalAge,
 
     };
 }
@@ -2066,7 +2070,14 @@ function renderWithdrawalStrategy(insights) {
     setText("roth-depletion-age", insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A");
 
     setText("trad-first-year-withdrawal", formatCurrency(insights.tradFirstYearWithdrawal));
-    setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
+    // setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
+    if (insights.tradDepletionAge <= insights.taxContext.retirementAge) {
+        // Traditional is empty at retirement — Roth starts immediately
+        setText("roth-first-year-withdrawal", formatCurrency(insights.rothFirstYearWithdrawal));
+    } else {
+        setText("roth-first-year-withdrawal", `Withdrawals begin at Age ${insights.rothFirstWithdrawalAge}`);
+    }
+    
 
     setText("trad-rmd-73", formatCurrency(insights.tradRmdAt73));
     setText("trad-rmd-80", formatCurrency(insights.tradRmdAt80));
@@ -2403,7 +2414,7 @@ function renderProInsights(result) {
                          title="A simplified rule of thumb. Ignores taxes, RMDs, and spending needs.">
                         ${fourPercent.label}
                         <span class="withdrawal-sub">
-                            First-year withdrawal: ${formatCurrency(fourPercent.annual)}<br>
+                            First-year withdrawals: ${formatCurrency(fourPercent.annual)}<br>
                             Projected balance at age 85: ${formatCurrency(fourPercent.endBalance)}
                         </span>
                     </div>
@@ -2426,56 +2437,6 @@ function renderProInsights(result) {
         `;
     }
     
-    // if (fourPercent && fivePercent) {
-    //     html += `
-    //         <div class="pro-insights-metric">
-    //             <div class="pro-insights-label">4% / 5% Withdrawal Sustainability</div>
-    
-    //             <div class="withdrawal-row">
-    //                 <div class="withdrawal-label">4% Rule</div>
-    //                 <div class="withdrawal-value ${fourPercent.label
-    //             .toLowerCase()
-    //             .replace(" ", "-")}"
-    //                      title="${getWithdrawalTooltip(
-    //                 fourPercent.label,
-    //                 catastrophic
-    //             )}">
-    //                     ${fourPercent.label}
-    //                     <span class="withdrawal-sub">
-    //                         First-year withdrawal: ${formatCurrency(
-    //                 fourPercent.annual
-    //             )}<br>
-    //                         Projected balance at age 85: ${formatCurrency(
-    //                 fourPercent.endBalance
-    //             )}
-    //                     </span>
-    //                 </div>
-    //             </div>
-    
-    //             <div class="withdrawal-row">
-    //                 <div class="withdrawal-label">5% Rule</div>
-    //                 <div class="withdrawal-value ${fivePercent.label
-    //             .toLowerCase()
-    //             .replace(" ", "-")}"
-    //                      title="${getWithdrawalTooltip(
-    //                 fivePercent.label,
-    //                 catastrophic
-    //             )}">
-    //                     ${fivePercent.label}
-    //                     <span class="withdrawal-sub">
-    //                         First-year withdrawal: ${formatCurrency(
-    //                 fivePercent.annual
-    //             )}<br>
-    //                         Projected balance at age 85: ${formatCurrency(
-    //                 fivePercent.endBalance
-    //             )}
-    //                     </span>
-    //                 </div>
-    //             </div>
-    //         </div>
-    //     `;
-    // }
-
     if (retirementReadiness !== null) {
         let readinessClass = "bad";
         if (retirementReadiness >= 90) readinessClass = "good";
