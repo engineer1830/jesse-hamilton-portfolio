@@ -2134,15 +2134,15 @@ function computeProInsights(result) {
         });
 
 
-        // ⭐ Compute depletion AFTER readiness -- Use the real simulated depletion ages
-        const overallDepletionAge = Math.min(
-            tradDepletionAge ?? Infinity,
-            rothDepletionAge ?? Infinity
-        );
+        // Use the same combined depletion age used everywhere else
+        const combinedAge =
+            result.withdrawalReport?.combinedDepletionAge ??
+            result.depletionAge ??
+            overallDepletionAge; // fallback
 
-        depletionAge = overallDepletionAge;
-        yearsUntilDepletion = Math.max(0, overallDepletionAge - currentAge);
-
+        depletionAge = combinedAge;
+        yearsUntilDepletion = Math.max(0, combinedAge - currentAge);
+            
         
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
