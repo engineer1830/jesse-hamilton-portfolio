@@ -413,9 +413,7 @@
         <section class="withdrawal-strategy-block">
             <h3>Withdrawal Strategy</h3>
         
-            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label">
-                <!-- JS fills this with withdrawalStrategyLabel -->
-            </p>
+            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
         
             <div class="withdrawal-metrics">
                 <div class="withdrawal-column">
@@ -428,14 +426,18 @@
                         Withdrawals:
                         <strong id="trad-first-year-withdrawal"></strong>
                     </p>
-                    <p>
-                        RMDs (estimated):
-                    </p>
+                    <p>RMDs (estimated):</p>
                     <ul class="rmd-list">
                         <li>Age 73: <strong id="trad-rmd-73"></strong></li>
                         <li>Age 80: <strong id="trad-rmd-80"></strong></li>
                         <li>Age 90: <strong id="trad-rmd-90"></strong></li>
                     </ul>
+        
+                    <!-- ⭐ NEW FIELD -->
+                    <p>
+                        Combined depletion age:
+                        <strong id="combined-depletion-age"></strong>
+                    </p>
                 </div>
         
                 <div class="withdrawal-column">
@@ -451,9 +453,16 @@
                     <p class="withdrawal-note">
                         Roth is used later to preserve tax-free growth and flexibility.
                     </p>
+        
+                    <!-- ⭐ NEW FIELD -->
+                    <p>
+                        Required withdrawal rate:
+                        <strong id="required-withdrawal-rate"></strong>
+                    </p>
                 </div>
             </div>
         </section>
+        
 
         <section>
             <h2>Guidance</h2>

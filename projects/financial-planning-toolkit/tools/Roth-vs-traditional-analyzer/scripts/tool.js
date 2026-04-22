@@ -295,6 +295,70 @@ function buildTaxChartData(engineYears, retireTax) {
 }
 
 /* -------------------------------------------------------
+   WITHDRAWAL REPORT (DERIVED FROM engineYears)
+------------------------------------------------------- */
+
+function computeDepletionAges(engineYears, currentAge, lifeExpectancy) {
+    const tradDepletion = engineYears.find(y => y.tradBalance <= 0)?.age ?? lifeExpectancy;
+    const rothDepletion = engineYears.find(y => y.rothBalance <= 0)?.age ?? lifeExpectancy;
+    const combinedDepletion = engineYears.find(y => y.combinedBalance <= 0)?.age ?? lifeExpectancy;
+
+    return {
+        tradDepletionAge: tradDepletion,
+        rothDepletionAge: rothDepletion,
+        combinedDepletionAge: combinedDepletion,
+        yearsUntilDepletion: combinedDepletion - currentAge
+    };
+}
+
+function computeRmdSnapshots(engineYears) {
+    const get = age => engineYears.find(y => y.age === age)?.rmdComponent ?? 0;
+
+    return {
+        rmdAt73: get(73),
+        rmdAt80: get(80),
+        rmdAt90: get(90)
+    };
+}
+
+function computeFirstYearWithdrawals(engineYears, retirementAge) {
+    const yr = engineYears.find(y => y.age === retirementAge);
+
+    return {
+        tradFirstYearWithdrawal: yr?.rmdComponent ?? 0,
+        rothFirstYearWithdrawal: yr?.rothWithdrawal ?? 0   // optional if you track it
+    };
+}
+
+function computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed) {
+    const yr = engineYears.find(y => y.age === retirementAge);
+    const balance = yr?.combinedBalance ?? 0;
+
+    return balance > 0 ? spendingNeed / balance : 0;
+}
+
+function buildWithdrawalReport(engineYears, {
+    currentAge,
+    retirementAge,
+    lifeExpectancy,
+    spendingNeed
+}) {
+    const depletion = computeDepletionAges(engineYears, currentAge, lifeExpectancy);
+    const rmds = computeRmdSnapshots(engineYears);
+    const firstYear = computeFirstYearWithdrawals(engineYears, retirementAge);
+    const requiredRate = computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed);
+
+    return {
+        ...depletion,
+        ...rmds,
+        ...firstYear,
+        requiredWithdrawalRate: requiredRate,
+        withdrawalStrategyLabel: "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth."
+    };
+}
+
+
+/* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
 ------------------------------------------------------- */
 
@@ -554,25 +618,6 @@ $("runBtn").addEventListener("click", async () => {
 
             yearlyExpectedReturns = [];
             yearlyVols = [];
-
-            // for (let i = 0; i < totalYears; i++) {
-            //     const age = currentAge + i;
-            //     const { stockWeight, bondWeight } = getGlidepathAllocation(
-            //         age,
-            //         retirementAge
-            //     );
-
-            //     const mu =
-            //         stockWeight * stockReturn + bondWeight * bondReturn;
-
-            //     const sigma = Math.sqrt(
-            //         Math.pow(stockVolAnnual * stockWeight, 2) +
-            //         Math.pow(bondVolAnnual * bondWeight, 2)
-            //     );
-
-            //     yearlyExpectedReturns.push(mu);
-            //     yearlyVols.push(sigma);
-            // }
 
             for (let i = 0; i < totalYears; i++) {
                 const age = currentAge + i;
@@ -976,6 +1021,17 @@ $("runBtn").addEventListener("click", async () => {
         currentAge,
         lifeExpectancy
     );
+
+    /* ---------------------------------------------------
+   BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
+--------------------------------------------------- */
+
+    const withdrawalReport = buildWithdrawalReport(engineYears, {
+        currentAge,
+        retirementAge,
+        lifeExpectancy,
+        spendingNeed
+    });
     
     /* ---------------------------------------------------
        MONTE CARLO
@@ -2158,50 +2214,50 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-function renderWithdrawalStrategy(insights) {
-    setText("withdrawal-strategy-label", insights.withdrawalStrategyLabel);
+function renderWithdrawalStrategy(withdrawalReport, engineSummary) {
+    // Strategy label
+    setText("withdrawal-strategy-label", withdrawalReport.withdrawalStrategyLabel);
 
-    setText("trad-balance-at-retirement", formatCurrency(insights.tradAtRetirement));
-    setText("roth-balance-at-retirement", formatCurrency(insights.rothAtRetirement));
+    // Balances at retirement (still come from engine summary)
+    setText("trad-balance-at-retirement", formatCurrency(engineSummary.tradAtRetirement));
+    setText("roth-balance-at-retirement", formatCurrency(engineSummary.rothAtRetirement));
 
+    // Depletion ages
     setText(
         "trad-depletion-age",
-        insights.tradDepletionAge ? `Age ${insights.tradDepletionAge}` : "N/A"
+        withdrawalReport.tradDepletionAge ? `Age ${withdrawalReport.tradDepletionAge}` : "N/A"
     );
     setText(
         "roth-depletion-age",
-        insights.rothDepletionAge ? `Age ${insights.rothDepletionAge}` : "N/A"
+        withdrawalReport.rothDepletionAge ? `Age ${withdrawalReport.rothDepletionAge}` : "N/A"
+    );
+    setText(
+        "combined-depletion-age",
+        withdrawalReport.combinedDepletionAge ? `Age ${withdrawalReport.combinedDepletionAge}` : "N/A"
     );
 
-    // Traditional withdrawals always show the first-year amount
-    setText("trad-first-year-withdrawal", formatCurrency(insights.tradFirstYearWithdrawal));
+    // First-year withdrawals
+    setText(
+        "trad-first-year-withdrawal",
+        formatCurrency(withdrawalReport.tradFirstYearWithdrawal)
+    );
+    setText(
+        "roth-first-year-withdrawal",
+        formatCurrency(withdrawalReport.rothFirstYearWithdrawal)
+    );
 
-    // --- Roth Withdrawal Logic ---
-    let rothText;
+    // RMD snapshots
+    setText("trad-rmd-73", formatCurrency(withdrawalReport.rmdAt73));
+    setText("trad-rmd-80", formatCurrency(withdrawalReport.rmdAt80));
+    setText("trad-rmd-90", formatCurrency(withdrawalReport.rmdAt90));
 
-    // Case 1: Roth is never actually needed (Traditional lasts as long as Roth)
-    if (
-        insights.rothFirstWithdrawalAge >= insights.rothDepletionAge ||
-        insights.rothDepletionAge === insights.rothFirstWithdrawalAge
-    ) {
-        rothText = "Not needed";
-    }
-    // Case 2: Traditional is empty at retirement → Roth starts immediately
-    else if (insights.tradDepletionAge <= insights.taxContext.retirementAge) {
-        rothText = formatCurrency(insights.rothFirstYearWithdrawal);
-    }
-    // Case 3: Roth begins after Traditional depletes
-    else {
-        rothText = `Withdrawals begin at Age ${insights.rothFirstWithdrawalAge}`;
-    }
-
-    setText("roth-first-year-withdrawal", rothText);
-
-    // RMDs
-    setText("trad-rmd-73", formatCurrency(insights.tradRmdAt73));
-    setText("trad-rmd-80", formatCurrency(insights.tradRmdAt80));
-    setText("trad-rmd-90", formatCurrency(insights.tradRmdAt90));
+    // Required withdrawal rate
+    setText(
+        "required-withdrawal-rate",
+        formatPercent(withdrawalReport.requiredWithdrawalRate)
+    );
 }
+
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
 
@@ -2942,7 +2998,14 @@ function renderSummary(result) {
     // ⭐ Elevated Spending Messaging (correct placement)
     renderSpendingMessage(insights);
 
-    renderWithdrawalStrategy(insights);
+    renderWithdrawalStrategy(
+        result.withdrawalReport,
+        {
+            tradAtRetirement: result.tradAtRetirement,
+            rothAtRetirement: result.rothAtRetirement
+        }
+    );
+    
 
     renderProInsights(insights);
 
