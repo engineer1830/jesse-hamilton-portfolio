@@ -2952,7 +2952,7 @@ function renderSummary(data) {
 
     el.innerHTML = html;
 
-    const guidanceItems = generateGuidance(result);
+    const guidanceItems = generateGuidance(data);
 
     let guidanceHtml = "";
 
