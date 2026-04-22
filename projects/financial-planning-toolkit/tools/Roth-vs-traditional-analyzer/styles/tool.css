@@ -1,3 +1,26 @@
+/* Body Layout Look */
+
+body
+{
+    /* background: #f5f7fa; */
+    /* soft gray-blue */
+    background: #cad0c4;
+        /* soft sage tint */
+    /* background: #f0f5fb; */
+        /* soft blue wash */
+    /* background: #ccdff1; */
+}
+
+.input-grid
+{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
 /* GUIDE BUTTON */
 
 .guide-btn-wrapper
