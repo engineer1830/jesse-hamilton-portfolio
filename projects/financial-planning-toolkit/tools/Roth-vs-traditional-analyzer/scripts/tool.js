@@ -2883,9 +2883,10 @@ function renderSummary(data) {
 
             <tr>
                 <td>Balance at Retirement</td>
-                <td>${formatCurrency(rothAtRetirement)}</td>
-                <td>${formatCurrency(tradAtRetirement)}</td>
+                <td>${formatCurrency(rothFinal)}</td>
+                <td>${formatCurrency(traditionalFinal)}</td>
             </tr>
+
 
             <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
             <tr><td>${diffLabel}</td><td colspan="2">${formatCurrency(
