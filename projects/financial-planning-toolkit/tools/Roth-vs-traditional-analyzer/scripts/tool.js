@@ -1106,20 +1106,21 @@ $("runBtn").addEventListener("click", async () => {
 
     console.log("withdrawalReport at summary:", result.withdrawalReport);
 
-    renderSummary(result);
+    // 3) compute insights
+    const insights = computeProInsights(result);
 
-    const insights = computeProInsights(result);   // ⭐ required for sustainability, spending, etc.
+    // 4) merge everything into a single object
+    const full = {
+        ...result,
+        ...insights,
+        withdrawalReport
+    };
+
+    // 5) render summary with the merged object
+    renderSummary(full);
 
     loading.style.display = "none";
-    output.textContent = JSON.stringify(
-        {
-            ...result,
-            ...insights,
-            withdrawalReport
-        },
-        null,
-        2
-    );   
+    output.textContent = JSON.stringify(full, null, 2);
 
 });
 
@@ -2849,7 +2850,7 @@ function renderProInsights(result) {
     }
 }
 
-function renderSummary(result) {
+function renderSummary(data) {
     const el = $("summary");
 
     const {
@@ -2865,8 +2866,10 @@ function renderSummary(result) {
         monteCarlo,
         retirementTaxDetails,
         conversionImpact,
-        spendingNeedAtRetirement
-    } = result;
+        spendingNeedAtRetirement,
+        rothAtRetirement,
+        tradAtRetirement
+    } = data;
 
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -2878,7 +2881,11 @@ function renderSummary(result) {
             <tr><td>Starting Balance</td><td>${formatCurrency(
         currentRoth
     )}</td><td>${formatCurrency(currentTrad)}</td></tr>
-            <tr><td>Balance at Retirement</td><td>${formatCurrency(result.rothAtRetirement)}</td><td>${formatCurrency(result.tradAtRetirement)}</td></tr>
+    <tr>
+    <td>Balance at Retirement</td>
+    <td>${formatCurrency(rothAtRetirement)}</td>
+    <td>${formatCurrency(tradAtRetirement)}</td>
+  </tr>
             <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
             <tr><td>${diffLabel}</td><td colspan="2">${formatCurrency(
         Math.abs(difference)
