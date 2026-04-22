@@ -415,42 +415,34 @@
             <h2>Withdrawal Strategy</h2>
             <p id="withdrawal-strategy-label"></p>
         
-            <!-- ⭐ Projected Depletion Age (single source of truth) -->
-            <h3>Projected Depletion Age</h3>
-            <p id="combined-depletion-age" class="depletion-age-emphasis"></p>
+            <div class="strategy-section">
+                <h3>Projected Depletion Age</h3>
+                <p id="combined-depletion-age" class="depletion-age-emphasis"></p>
+            </div>
         
-            <!-- ⭐ Traditional IRA Section -->
-            <h3>Traditional IRA</h3>
+            <div class="strategy-section">
+                <h3>Traditional IRA</h3>
+                <p><strong>Withdrawals:</strong> <span id="trad-first-year-withdrawal"></span></p>
+                <p><strong>RMDs (estimated):</strong></p>
+                <ul>
+                    <li>Age 73: <span id="trad-rmd-73"></span></li>
+                    <li>Age 80: <span id="trad-rmd-80"></span></li>
+                    <li>Age 90: <span id="trad-rmd-90"></span></li>
+                </ul>
+            </div>
         
-            <p>
-                <strong>Withdrawals:</strong>
-                <span id="trad-first-year-withdrawal"></span>
-            </p>
+            <div class="strategy-section">
+                <h3>Roth IRA</h3>
+                <p><strong>Withdrawals:</strong> <span id="roth-first-year-withdrawal"></span></p>
+                <p>Roth is used later to preserve tax‑free growth and flexibility.</p>
+            </div>
         
-            <p><strong>RMDs (estimated):</strong></p>
-            <ul>
-                <li>Age 73: <span id="trad-rmd-73"></span></li>
-                <li>Age 80: <span id="trad-rmd-80"></span></li>
-                <li>Age 90: <span id="trad-rmd-90"></span></li>
-            </ul>
-        
-            <!-- ⭐ Roth IRA Section -->
-            <h3>Roth IRA</h3>
-        
-            <p>
-                <strong>Withdrawals:</strong>
-                <span id="roth-first-year-withdrawal"></span>
-            </p>
-        
-            <p>Roth is used later to preserve tax‑free growth and flexibility.</p>
-        
-            <!-- ⭐ Required Withdrawal Rate -->
-            <p>
-                <strong>Required withdrawal rate:</strong>
-                <span id="required-withdrawal-rate"></span>
-            </p>
+            <div class="strategy-section">
+                <p><strong>Required withdrawal rate:</strong> <span id="required-withdrawal-rate"></span></p>
+            </div>
         
         </div>
+        
         
         
         
