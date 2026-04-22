@@ -2321,20 +2321,35 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
     setText("catastrophic-why-4", "Your plan may not withstand typical market variability.");
 }
 
-function computeSafeSpending(result) {
-    const balance = result.retirementBalance ?? 0;
-    return {
-        low: balance * 0.04,
-        high: balance * 0.05
-    };
-}
+// function computeSafeSpending(result) {
+//     const balance = result.retirementBalance ?? 0;
+//     return {
+//         low: balance * 0.04,
+//         high: balance * 0.05
+//     };
+// }
+
+// function renderSafeSpending(result) {
+//     const low = result.safeSpendingMin ?? 0;
+//     const high = result.safeSpendingMax ?? 0;
+
+//     document.getElementById("safe-spending-range").textContent =
+//         `${formatCurrency(low)} – ${formatCurrency(high)}`;
+// }
 
 function renderSafeSpending(result) {
     const low = result.safeSpendingMin ?? 0;
     const high = result.safeSpendingMax ?? 0;
 
-    document.getElementById("safe-spending-range").textContent =
-        `${formatCurrency(low)} – ${formatCurrency(high)}`;
+    const text = `${formatCurrency(low)} – ${formatCurrency(high)}`;
+
+    setText("safe-spending-range", text);
+
+    // Optional: add contextual tooltip or explanation
+    setText(
+        "safe-spending-explainer",
+        "This range reflects a 4%–5% sustainable withdrawal guideline based on your projected retirement balance."
+    );
 }
 
 function attachChartExplanation() {
