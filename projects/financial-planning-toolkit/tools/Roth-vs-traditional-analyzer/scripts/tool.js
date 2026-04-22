@@ -298,18 +298,10 @@ function buildTaxChartData(engineYears, retireTax) {
    WITHDRAWAL REPORT (DERIVED FROM engineYears)
 ------------------------------------------------------- */
 
-function computeDepletionAges(engineYears, currentAge, lifeExpectancy) {
-    const tradDepletion = engineYears.find(y => y.tradBalance <= 0)?.age ?? lifeExpectancy;
-    const rothDepletion = engineYears.find(y => y.rothBalance <= 0)?.age ?? lifeExpectancy;
-    const combinedDepletion = engineYears.find(y => y.combinedBalance <= 0)?.age ?? lifeExpectancy;
-
-    return {
-        tradDepletionAge: tradDepletion,
-        rothDepletionAge: rothDepletion,
-        combinedDepletionAge: combinedDepletion,
-        yearsUntilDepletion: combinedDepletion - currentAge
-    };
+function computeDepletionAges() {
+    return {};
 }
+
 
 function computeRmdSnapshots(engineYears) {
     const get = age => engineYears.find(y => y.age === age)?.rmdComponent ?? 0;
@@ -343,19 +335,19 @@ function buildWithdrawalReport(engineYears, {
     lifeExpectancy,
     spendingNeed
 }) {
-    const depletion = computeDepletionAges(engineYears, currentAge, lifeExpectancy);
     const rmds = computeRmdSnapshots(engineYears);
     const firstYear = computeFirstYearWithdrawals(engineYears, retirementAge);
     const requiredRate = computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed);
 
     return {
-        ...depletion,
         ...rmds,
         ...firstYear,
         requiredWithdrawalRate: requiredRate,
         withdrawalStrategyLabel: "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth."
     };
 }
+
+
 
 
 /* -------------------------------------------------------
