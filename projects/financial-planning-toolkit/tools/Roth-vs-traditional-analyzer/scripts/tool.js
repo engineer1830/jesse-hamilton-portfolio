@@ -2058,7 +2058,6 @@ function computeProInsights(result) {
             rothDepletionAge = 120;
         }
 
-
         // ⭐ Compute depletion AFTER readiness -- Use the real simulated depletion ages
         const overallDepletionAge = Math.min(
             tradDepletionAge ?? Infinity,
@@ -2067,7 +2066,35 @@ function computeProInsights(result) {
 
         depletionAge = overallDepletionAge;
         yearsUntilDepletion = Math.max(0, overallDepletionAge - currentAge);
-                
+
+        // ⭐ Longevity Buffer Score (0–100)
+        function computeLongevityBufferScore(yearsUntilDepletion) {
+            const score = (yearsUntilDepletion / 40) * 100;
+            return Math.min(100, Math.max(0, Math.round(score)));
+        }
+
+        // ⭐ Spending Tier Classification
+        function classifySpendingTier(result) {
+            const w = result.requiredWithdrawalRate; // decimal
+            const y = result.yearsUntilDepletion;
+            const catastrophic = result.catastrophic;
+            const buffer = computeLongevityBufferScore(y);
+
+            if (w <= 0.05) {
+                return "classic-safe";
+            }
+
+            if (w > 0.05 && w <= 0.075 && buffer >= 60 && !catastrophic) {
+                return "elevated-supported";
+            }
+
+            if (w > 0.075 && buffer >= 80 && !catastrophic) {
+                return "aggressive-but-supported";
+            }
+
+            return "unsustainable";
+        }
+              
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
             retirementReadiness < 50 ||
@@ -2321,21 +2348,91 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
     setText("catastrophic-why-4", "Your plan may not withstand typical market variability.");
 }
 
-// function computeSafeSpending(result) {
-//     const balance = result.retirementBalance ?? 0;
-//     return {
-//         low: balance * 0.04,
-//         high: balance * 0.05
-//     };
-// }
+// ⭐ Messaging: Classic Safe (≤5%)
+function messageClassicSafe(result) {
+    return {
+        title: "Your Plan Appears Sustainable",
+        bullets: [
+            "Your withdrawal rate is within the traditional 4–5% guideline.",
+            `Your portfolio is projected to last through age ${result.depletionAge}.`,
+            "Your savings remain stable or continue to grow throughout retirement."
+        ]
+    };
+}
 
-// function renderSafeSpending(result) {
-//     const low = result.safeSpendingMin ?? 0;
-//     const high = result.safeSpendingMax ?? 0;
+// ⭐ Messaging: Elevated Supported (5%–7.5%)
+function messageElevatedSupported(result) {
+    const buffer = computeLongevityBufferScore(result.yearsUntilDepletion);
 
-//     document.getElementById("safe-spending-range").textContent =
-//         `${formatCurrency(low)} – ${formatCurrency(high)}`;
-// }
+    return {
+        title: "Elevated Spending — Supported by Your Portfolio",
+        bullets: [
+            "Your withdrawal rate is above the traditional 4–5% guideline.",
+            `However, your portfolio provides a strong longevity buffer (Score: ${buffer}).`,
+            `At this spending level, your savings are projected to last ${result.yearsUntilDepletion} years.`,
+            `Projected depletion age: ${result.depletionAge}.`
+        ]
+    };
+}
+
+// ⭐ Messaging: Aggressive but Supported (>7.5% with strong buffer)
+function messageAggressiveSupported(result) {
+    const buffer = computeLongevityBufferScore(result.yearsUntilDepletion);
+
+    return {
+        title: "High Lifestyle Spending — Supported for Now",
+        bullets: [
+            "Your withdrawal rate is well above the traditional 4–5% guideline.",
+            `Your portfolio is large enough to sustain this elevated lifestyle for ${result.yearsUntilDepletion} years.`,
+            `Projected depletion age: ${result.depletionAge}.`,
+            "This spending level is sustainable under current assumptions, but should be revisited periodically."
+        ]
+    };
+}
+
+// ⭐ Messaging: Unsustainable
+function messageUnsustainable(result) {
+    return {
+        title: "Your Plan Is Not Sustainable",
+        bullets: [
+            "Your withdrawal need exceeds what your portfolio can support.",
+            `At this spending level, your savings would last only ${result.yearsUntilDepletion} years.`,
+            "Consider reducing spending, delaying retirement, or adjusting your strategy."
+        ]
+    };
+}
+
+// ⭐ Messaging Dispatcher
+function getSpendingMessage(result) {
+    const tier = classifySpendingTier(result);
+
+    switch (tier) {
+        case "classic-safe":
+            return messageClassicSafe(result);
+        case "elevated-supported":
+            return messageElevatedSupported(result);
+        case "aggressive-but-supported":
+            return messageAggressiveSupported(result);
+        default:
+            return messageUnsustainable(result);
+    }
+}
+
+// ⭐ Render Spending Message
+function renderSpendingMessage(result) {
+    const msg = getSpendingMessage(result);
+
+    setText("spending-title", msg.title);
+
+    const list = document.getElementById("spending-bullets");
+    list.innerHTML = "";
+
+    msg.bullets.forEach(b => {
+        const li = document.createElement("li");
+        li.textContent = b;
+        list.appendChild(li);
+    });
+}
 
 function renderSafeSpending(result) {
     const low = result.safeSpendingMin ?? 0;
@@ -2847,7 +2944,10 @@ function renderSummary(result) {
             result
         });
     }
-    
+
+    // ⭐ Elevated Spending Messaging (correct placement)
+    renderSpendingMessage(insights);
+
     renderWithdrawalStrategy(insights);
 
     renderProInsights(insights);
