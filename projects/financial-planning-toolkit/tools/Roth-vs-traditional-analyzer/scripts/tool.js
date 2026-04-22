@@ -54,6 +54,14 @@ function limitToLastNYears(prices, years = 10) {
     });
 }
 
+function getBufferClass(score) {
+    if (score >= 80) return "buffer-strong";      // deep green
+    if (score >= 60) return "buffer-supported";   // advisor blue
+    if (score >= 40) return "buffer-warning";     // amber
+    return "buffer-danger";                       // red
+}
+
+
 import { Finance } from "../../../scripts/engine.js";
 import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.js";
 import { calculateCAGR } from "../../../scripts/transforms.js";
@@ -2418,21 +2426,97 @@ function getSpendingMessage(result) {
     }
 }
 
-// ⭐ Render Spending Message
-function renderSpendingMessage(result) {
-    const msg = getSpendingMessage(result);
+// ⭐ Render Spending Message with css tiering capability
 
-    setText("spending-title", msg.title);
+function renderSpendingMessage(insights) {
+    const msg = getSpendingMessage(insights);
+    const zone = insights.zone;
 
-    const list = document.getElementById("spending-bullets");
-    list.innerHTML = "";
+    const tier = classifySpendingTier(insights);
+    const buffer = computeLongevityBufferScore(insights.yearsUntilDepletion);
 
+    const titleId = `spending-title-${zone}`;
+    const listId = `spending-bullets-${zone}`;
+
+    const titleEl = document.getElementById(titleId);
+    const listEl = document.getElementById(listId);
+
+    if (!titleEl || !listEl) return;
+
+    // Reset tier classes
+    titleEl.classList.remove("tier-classic", "tier-elevated", "tier-aggressive", "tier-unsustainable");
+
+    // Apply tier class
+    switch (tier) {
+        case "classic-safe":
+            titleEl.classList.add("tier-classic");
+            break;
+        case "elevated-supported":
+            titleEl.classList.add("tier-elevated");
+            break;
+        case "aggressive-but-supported":
+            titleEl.classList.add("tier-aggressive");
+            break;
+        default:
+            titleEl.classList.add("tier-unsustainable");
+    }
+
+    // ⭐ Write title + buffer badge
+    titleEl.innerHTML = `
+        ${msg.title}
+        <span class="buffer-badge ${getBufferClass(buffer)}">${buffer}</span>
+    `;
+
+    // Write bullets
+    listEl.innerHTML = "";
     msg.bullets.forEach(b => {
         const li = document.createElement("li");
         li.textContent = b;
-        list.appendChild(li);
+        listEl.appendChild(li);
     });
 }
+
+// second renderSpending message with updated html . . . replaced by one above for css tiers
+
+// function renderSpendingMessage(insights) {
+//     const msg = getSpendingMessage(insights);
+//     const zone = insights.zone; // "green", "yellow", or "red"
+
+//     // Build the correct IDs for the visible card
+//     const titleId = `spending-title-${zone}`;
+//     const listId = `spending-bullets-${zone}`;
+
+//     // Write the title
+//     setText(titleId, msg.title);
+
+//     // Write the bullets
+//     const list = document.getElementById(listId);
+//     if (!list) return; // safety guard
+
+//     list.innerHTML = "";
+
+//     msg.bullets.forEach(text => {
+//         const li = document.createElement("li");
+//         li.textContent = text;
+//         list.appendChild(li);
+//     });
+// }
+
+// Original render function . . . replaced by the one above
+// function renderSpendingMessage(result) {
+//     const msg = getSpendingMessage(result);
+
+//     setText("spending-title", msg.title);
+
+//     const list = document.getElementById("spending-bullets");
+//     list.innerHTML = "";
+
+//     msg.bullets.forEach(b => {
+//         const li = document.createElement("li");
+//         li.textContent = b;
+//         list.appendChild(li);
+//     });
+// }
 
 function renderSafeSpending(result) {
     const low = result.safeSpendingMin ?? 0;
