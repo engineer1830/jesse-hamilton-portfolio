@@ -829,11 +829,14 @@ $("runBtn").addEventListener("click", async () => {
             let rmdComponent = 0;
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
+            // Declare these ONCE, outside the block
+            let rmdGross = 0;
+            let tradGrossActual = 0;
+
             if (age >= retirementAge) {
                 const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
 
                 // Compute RMD
-                let rmdGross = 0;
                 if (age >= 73 && trad > 0) {
                     const divisor = getRmdDivisor(age);
                     rmdGross = trad / divisor;
@@ -842,10 +845,9 @@ $("runBtn").addEventListener("click", async () => {
                 const rmdNet = rmdGross * (1 - retireTax);
 
                 const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
-                const targetNet = rmdNet + extraNeedNet;
 
                 // Always withdraw RMD gross from Traditional
-                let tradGrossActual = Math.min(trad, rmdGross);
+                tradGrossActual = Math.min(trad, rmdGross);
                 let tradNet = tradGrossActual * (1 - retireTax);
 
                 rmdComponent = Math.round(tradNet);
@@ -877,6 +879,8 @@ $("runBtn").addEventListener("click", async () => {
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 }
             }
+            
+            
 
             // Glidepath allocation
             let stockWeight = undefined;
