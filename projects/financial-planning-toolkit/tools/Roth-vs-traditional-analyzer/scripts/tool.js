@@ -1022,8 +1022,7 @@ $("runBtn").addEventListener("click", async () => {
     // ⭐ Unified depletion ages (deterministic engine = source of truth)
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
-    const combinedDepletionAge = findCombinedDepletionAge(engineYears);
-
+  
 
     // 2. Convert engine output → chart-ready curves
     const curves = buildYearlyCurves(engineYears);
@@ -1111,7 +1110,7 @@ $("runBtn").addEventListener("click", async () => {
         spendingNeedAtRetirement: spendingNeed,
         tradDepletionAge,
         rothDepletionAge,
-        depletionAge: combinedDepletionAge,
+        depletionAge: Math.max(tradDepletionAge || 0, rothDepletionAge || 0),
         glidepath: useGlidepath
             ? {
                 yearlyExpectedReturns,
@@ -1135,11 +1134,13 @@ $("runBtn").addEventListener("click", async () => {
     // ⭐ Override withdrawalReport depletion ages with deterministic truth
     withdrawalReport.tradDepletionAge = tradDepletionAge;
     withdrawalReport.rothDepletionAge = rothDepletionAge;
-    withdrawalReport.combinedDepletionAge = combinedDepletionAge;
+    withdrawalReport.combinedDepletionAge =
+        Math.max(tradDepletionAge || 0, rothDepletionAge || 0);
+
 
     // ⭐ Align yearsUntilDepletion with deterministic engine
     withdrawalReport.yearsUntilDepletion =
-        combinedDepletionAge ? combinedDepletionAge - retirementAge : null;
+        withdrawalReport.combinedDepletionAge - retirementAge;
     
     result.withdrawalReport = withdrawalReport;
 
