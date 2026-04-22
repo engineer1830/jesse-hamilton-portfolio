@@ -2881,11 +2881,13 @@ function renderSummary(data) {
             <tr><td>Starting Balance</td><td>${formatCurrency(
         currentRoth
     )}</td><td>${formatCurrency(currentTrad)}</td></tr>
-    <tr>
-    <td>Balance at Retirement</td>
-    <td>${formatCurrency(rothAtRetirement)}</td>
-    <td>${formatCurrency(tradAtRetirement)}</td>
-  </tr>
+
+            <tr>
+                <td>Balance at Retirement</td>
+                <td>${formatCurrency(rothAtRetirement)}</td>
+                <td>${formatCurrency(tradAtRetirement)}</td>
+            </tr>
+
             <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
             <tr><td>${diffLabel}</td><td colspan="2">${formatCurrency(
         Math.abs(difference)
@@ -2905,21 +2907,11 @@ function renderSummary(data) {
         html += `
             <h3>Retirement Tax Estimate</h3>
             <table class="summary-table">
-                <tr><td>Estimated RMD at 73</td><td>${formatCurrency(
-            t.rmd
-        )}</td></tr>
-                <tr><td>Estimated Social Security (at claim age)</td><td>${formatCurrency(
-            t.ssAtClaimAge
-        )}</td></tr>
-                <tr><td>Estimated Taxable Social Security</td><td>${formatCurrency(
-            t.taxableSS
-        )}</td></tr>
-                <tr><td>Estimated Taxable Income</td><td>${formatCurrency(
-            t.taxableIncome
-        )}</td></tr>
-                <tr><td>Estimated Retirement Tax Rate</td><td>${formatPercent(
-            t.estimatedRate
-        )}</td></tr>
+                <tr><td>Estimated RMD at 73</td><td>${formatCurrency(t.rmd)}</td></tr>
+                <tr><td>Estimated Social Security (at claim age)</td><td>${formatCurrency(t.ssAtClaimAge)}</td></tr>
+                <tr><td>Estimated Taxable Social Security</td><td>${formatCurrency(t.taxableSS)}</td></tr>
+                <tr><td>Estimated Taxable Income</td><td>${formatCurrency(t.taxableIncome)}</td></tr>
+                <tr><td>Estimated Retirement Tax Rate</td><td>${formatPercent(t.estimatedRate)}</td></tr>
             </table>
         `;
     }
@@ -2929,29 +2921,16 @@ function renderSummary(data) {
             <h3>Monte Carlo Summary (${monteCarlo.runs} runs)</h3>
             <table class="summary-table">
                 <tr><th></th><th>10th %ile</th><th>Median</th><th>90th %ile</th></tr>
-                <tr><td>Roth</td><td>${formatCurrency(
-            monteCarlo.roth.p10
-        )}</td><td>${formatCurrency(
-            monteCarlo.roth.p50
-        )}</td><td>${formatCurrency(
-            monteCarlo.roth.p90
-        )}</td></tr>
-                <tr><td>Traditional</td><td>${formatCurrency(
-            monteCarlo.traditional.p10
-        )}</td><td>${formatCurrency(
-            monteCarlo.traditional.p50
-        )}</td><td>${formatCurrency(
-            monteCarlo.traditional.p90
-        )}</td></tr>
-                <tr><td>Roth Win Probability</td><td colspan="3">${formatPercent(
-            monteCarlo.rothWinProbability / 100
-        )}</td></tr>
+                <tr><td>Roth</td><td>${formatCurrency(monteCarlo.roth.p10)}</td><td>${formatCurrency(monteCarlo.roth.p50)}</td><td>${formatCurrency(monteCarlo.roth.p90)}</td></tr>
+                <tr><td>Traditional</td><td>${formatCurrency(monteCarlo.traditional.p10)}</td><td>${formatCurrency(monteCarlo.traditional.p50)}</td><td>${formatCurrency(monteCarlo.traditional.p90)}</td></tr>
+                <tr><td>Roth Win Probability</td><td colspan="3">${formatPercent(monteCarlo.rothWinProbability / 100)}</td></tr>
             </table>
         `;
     }
 
     el.innerHTML = html;
 
+    // ⭐ FIXED: use data, not result
     const guidanceItems = generateGuidance(data);
 
     let guidanceHtml = "";
@@ -2985,7 +2964,8 @@ function renderSummary(data) {
 
     document.getElementById("guidance").innerHTML = guidanceHtml;
 
-    const insights = computeProInsights(result);
+    // ⭐ FIXED: insights must be based on data
+    const insights = computeProInsights(data);
 
     showSustainability(insights.zone);
 
@@ -2995,7 +2975,7 @@ function renderSummary(data) {
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
-            result
+            result: data
         });
     } else if (insights.zone === "yellow") {
         renderYellowSustainability({
@@ -3003,7 +2983,7 @@ function renderSummary(data) {
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
-            result
+            result: data
         });
     } else {
         renderPositiveSustainability({
@@ -3012,21 +2992,21 @@ function renderSummary(data) {
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
             successRate: insights.retirementReadiness,
-            result
+            result: data
         });
     }
 
-    // ⭐ Elevated Spending Messaging (correct placement)
+    // ⭐ Elevated Spending Messaging
     renderSpendingMessage(insights);
 
+    // ⭐ FIXED: use data
     renderWithdrawalStrategy(
-        result.withdrawalReport,
+        data.withdrawalReport,
         {
-            tradAtRetirement: result.tradAtRetirement,
-            rothAtRetirement: result.rothAtRetirement
+            tradAtRetirement: data.tradAtRetirement,
+            rothAtRetirement: data.rothAtRetirement
         }
     );
-    
 
     renderProInsights(insights);
 
@@ -3040,11 +3020,11 @@ function renderSummary(data) {
 
             sliderValue.textContent = `$${annualConversion.toLocaleString()} per year`;
 
-            const { currentTrad } = result;
+            const { currentTrad } = data;
             const { filingStatus, currentTax, retirementAge, rmd } =
-                result.taxContext;
+                data.taxContext;
 
-            const growthRate = result.expectedReturn || 0.07;
+            const growthRate = data.expectedReturn || 0.07;
 
             const sim = simulateRothConversions({
                 currentTrad,
@@ -3065,7 +3045,7 @@ function renderSummary(data) {
             });
 
             if (
-                currentTax < result.taxContext.retireTax &&
+                currentTax < data.taxContext.retireTax &&
                 annualConversion > 0
             ) {
                 warningBox.style.display = "block";
@@ -3074,10 +3054,12 @@ function renderSummary(data) {
             }
         });
     }
-    renderSafeSpending(result);
+
+    // ⭐ FIXED: use data
+    renderSafeSpending(data);
+
     attachChartExplanation();
     attachTooltipHandlers();
-
 }
 
 function renderCatastrophicUX(result) {
