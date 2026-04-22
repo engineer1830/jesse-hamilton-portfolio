@@ -2268,35 +2268,22 @@ function renderWithdrawalStrategy(data) {
     setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
     setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
 
-    // Depletion ages
-    setText(
-        "trad-depletion-age",
-        data.tradDepletionAge ? `Age ${data.tradDepletionAge}` : "N/A"
-    );
-    // setText(
-    //     "roth-depletion-age",
-    //     data.rothDepletionAge ? `Age ${data.rothDepletionAge}` : "N/A"
-    // );
-
-    // Roth depletion age — adjusted for clarity
-    let rothDepletionText;
-
-    if (data.depletionAge < data.rothDepletionAge) {
-        // Combined plan fails first → Roth never fully tapped
-        rothDepletionText = "Not fully depleted";
-    } else {
-        // Roth actually depletes first or at same time
-        rothDepletionText = data.rothDepletionAge
-            ? `Age ${data.rothDepletionAge}`
-            : "N/A";
-    }
-
-    setText("roth-depletion-age", rothDepletionText);
+    // ⭐ Combined depletion age (the ONLY depletion age we show)
+    const combinedAge = data.withdrawalReport?.combinedDepletionAge
+        ?? data.depletionAge
+        ?? null;
 
     setText(
         "combined-depletion-age",
-        data.depletionAge ? `Age ${data.depletionAge}` : "N/A"
+        combinedAge
+            ? `Age ${combinedAge}`
+            : "N/A"
     );
+
+    // ⭐ Remove account-specific depletion ages from UI
+    // (We intentionally do NOT set trad-depletion-age or roth-depletion-age anymore)
+    setText("trad-depletion-age", "—");
+    setText("roth-depletion-age", "—");
 
     // First-year withdrawals
     setText(
@@ -2308,7 +2295,7 @@ function renderWithdrawalStrategy(data) {
         formatCurrency(data.rothFirstYearWithdrawal)
     );
 
-    // RMD snapshots (correct fields)
+    // RMD snapshots
     setText("trad-rmd-73", formatCurrency(data.tradRmdAt73));
     setText("trad-rmd-80", formatCurrency(data.tradRmdAt80));
     setText("trad-rmd-90", formatCurrency(data.tradRmdAt90));
@@ -2319,6 +2306,7 @@ function renderWithdrawalStrategy(data) {
         formatPercent(data.requiredWithdrawalRate)
     );
 }
+
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
 
@@ -2920,33 +2908,55 @@ function renderSummary(data) {
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
 
+    const combinedAge =
+        data.withdrawalReport?.combinedDepletionAge ??
+        data.depletionAge ??
+        null;
+
     let html = `
+        <h3>Projected Depletion Age</h3>
+        <div class="depletion-component">
+            <p>Your total retirement assets are projected to run out around
+            <strong>age ${combinedAge}</strong>.</p>
+            <p>This is the earliest point at which your plan can no longer support
+            your spending level.</p>
+        </div>
+    
         <h3>Comparison</h3>
         <table class="summary-table">
             <tr><th>Metric</th><th>Roth</th><th>Traditional</th></tr>
-            <tr><td>Starting Balance</td><td>${formatCurrency(
-        currentRoth
-    )}</td><td>${formatCurrency(currentTrad)}</td></tr>
-
+            <tr>
+                <td>Starting Balance</td>
+                <td>${formatCurrency(currentRoth)}</td>
+                <td>${formatCurrency(currentTrad)}</td>
+            </tr>
             <tr>
                 <td>Balance at Retirement</td>
                 <td>${formatCurrency(rothFinal)}</td>
                 <td>${formatCurrency(traditionalFinal)}</td>
             </tr>
+            <tr>
+                <td>Better Option</td>
+                <td colspan="2">${betterOption}</td>
+            </tr>
+            <tr>
+                <td>${diffLabel}</td>
+                <td colspan="2">${formatCurrency(Math.abs(difference))}</td>
+            </tr>
+            <tr>
+                <td>Assumed Growth Rate</td>
+                <td colspan="2">${formatPercent(assumedGrowthRate)}</td>
+            </tr>
+            <tr>
+                <td>Break-Even Tax Rate</td>
+                <td colspan="2">${formatPercent(breakEvenTaxRate)}</td>
+            </tr>
+            <tr>
+                <td>Mode</td>
+                <td colspan="2">${mode}</td>
+            </tr>
 
-
-            <tr><td>Better Option</td><td colspan="2">${betterOption}</td></tr>
-            <tr><td>${diffLabel}</td><td colspan="2">${formatCurrency(
-        Math.abs(difference)
-    )}</td></tr>
-            <tr><td>Assumed Growth Rate</td><td colspan="2">${formatPercent(
-        assumedGrowthRate
-    )}</td></tr>
-            <tr><td>Break-Even Tax Rate</td><td colspan="2">${formatPercent(
-        breakEvenTaxRate
-    )}</td></tr>
-            <tr><td>Mode</td><td colspan="2">${mode}</td></tr>
-        </table>
+           
     `;
 
     if (retirementTaxDetails) {

@@ -693,3 +693,12 @@ body
     /* red */
     color: white;
 }
+
+.depletion-age-emphasis
+{
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #c0392b;
+    /* advisor-grade red */
+    margin-bottom: 1rem;
+}
