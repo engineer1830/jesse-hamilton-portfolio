@@ -2067,34 +2067,7 @@ function computeProInsights(result) {
         depletionAge = overallDepletionAge;
         yearsUntilDepletion = Math.max(0, overallDepletionAge - currentAge);
 
-        // ⭐ Longevity Buffer Score (0–100)
-        function computeLongevityBufferScore(yearsUntilDepletion) {
-            const score = (yearsUntilDepletion / 40) * 100;
-            return Math.min(100, Math.max(0, Math.round(score)));
-        }
-
-        // ⭐ Spending Tier Classification
-        function classifySpendingTier(result) {
-            const w = result.requiredWithdrawalRate; // decimal
-            const y = result.yearsUntilDepletion;
-            const catastrophic = result.catastrophic;
-            const buffer = computeLongevityBufferScore(y);
-
-            if (w <= 0.05) {
-                return "classic-safe";
-            }
-
-            if (w > 0.05 && w <= 0.075 && buffer >= 60 && !catastrophic) {
-                return "elevated-supported";
-            }
-
-            if (w > 0.075 && buffer >= 80 && !catastrophic) {
-                return "aggressive-but-supported";
-            }
-
-            return "unsustainable";
-        }
-              
+        
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
             retirementReadiness < 50 ||
@@ -2348,6 +2321,33 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
     setText("catastrophic-why-4", "Your plan may not withstand typical market variability.");
 }
 
+// ⭐ Longevity Buffer Score (0–100)
+function computeLongevityBufferScore(yearsUntilDepletion) {
+    const score = (yearsUntilDepletion / 40) * 100;
+    return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+// ⭐ Spending Tier Classification
+function classifySpendingTier(result) {
+    const w = result.requiredWithdrawalRate; // decimal
+    const y = result.yearsUntilDepletion;
+    const catastrophic = result.catastrophic;
+    const buffer = computeLongevityBufferScore(y);
+
+    if (w <= 0.05) {
+        return "classic-safe";
+    }
+
+    if (w > 0.05 && w <= 0.075 && buffer >= 60 && !catastrophic) {
+        return "elevated-supported";
+    }
+
+    if (w > 0.075 && buffer >= 80 && !catastrophic) {
+        return "aggressive-but-supported";
+    }
+
+    return "unsustainable";
+}
 // ⭐ Messaging: Classic Safe (≤5%)
 function messageClassicSafe(result) {
     return {
