@@ -410,41 +410,58 @@
         <!-- ========================= -->
         <!--   Withdrawal Strategy     -->
         <!-- ========================= -->
-        <div id="withdrawal-strategy" class="strategy-panel">
+        <section class="withdrawal-strategy-block">
+            <h3>Withdrawal Strategy</h3>
         
-            <h2>Withdrawal Strategy</h2>
-            <p id="withdrawal-strategy-label"></p>
+            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
         
-            <div class="strategy-section">
-                <h3>Projected Depletion Age</h3>
-                <p id="combined-depletion-age" class="depletion-age-emphasis"></p>
+            <div class="withdrawal-metrics">
+        
+                <!-- Traditional Column -->
+                <div class="withdrawal-column">
+                    <h4>Traditional IRA</h4>
+        
+                    <p>
+                        Withdrawals:
+                        <strong id="trad-first-year-withdrawal"></strong>
+                    </p>
+        
+                    <p>RMDs (estimated):</p>
+                    <ul class="rmd-list">
+                        <li>Age 73: <strong id="trad-rmd-73"></strong></li>
+                        <li>Age 80: <strong id="trad-rmd-80"></strong></li>
+                        <li>Age 90: <strong id="trad-rmd-90"></strong></li>
+                    </ul>
+                </div>
+        
+                <!-- Roth Column -->
+                <div class="withdrawal-column">
+                    <h4>Roth IRA</h4>
+        
+                    <p>
+                        Withdrawals:
+                        <strong id="roth-first-year-withdrawal"></strong>
+                    </p>
+        
+                    <p class="withdrawal-note">
+                        Roth is used later to preserve tax‑free growth and flexibility.
+                    </p>
+        
+                    <p>
+                        Required withdrawal rate:
+                        <strong id="required-withdrawal-rate"></strong>
+                    </p>
+                </div>
             </div>
         
-            <div class="strategy-section">
-                <h3>Traditional IRA</h3>
-                <p><strong>Withdrawals:</strong> <span id="trad-first-year-withdrawal"></span></p>
-                <p><strong>RMDs (estimated):</strong></p>
-                <ul>
-                    <li>Age 73: <span id="trad-rmd-73"></span></li>
-                    <li>Age 80: <span id="trad-rmd-80"></span></li>
-                    <li>Age 90: <span id="trad-rmd-90"></span></li>
-                </ul>
+            <!-- Combined Depletion Age (NEW, styled outside columns) -->
+            <div class="withdrawal-combined">
+                <p>
+                    <strong>Projected depletion age:</strong>
+                    <span id="combined-depletion-age"></span>
+                </p>
             </div>
-        
-            <div class="strategy-section">
-                <h3>Roth IRA</h3>
-                <p><strong>Withdrawals:</strong> <span id="roth-first-year-withdrawal"></span></p>
-                <p>Roth is used later to preserve tax‑free growth and flexibility.</p>
-            </div>
-        
-            <div class="strategy-section">
-                <p><strong>Required withdrawal rate:</strong> <span id="required-withdrawal-rate"></span></p>
-            </div>
-        
-        </div>
-        
-        
-        
+        </section>
         
         <!-- <section class="withdrawal-strategy-block">
             <h3>Withdrawal Strategy</h3>

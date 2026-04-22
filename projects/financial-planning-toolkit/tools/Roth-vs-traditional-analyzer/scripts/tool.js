@@ -236,7 +236,7 @@ function setText(id, value) {
    YEARLY CURVES FOR CHART (legacy helper) and Tax helper
 ------------------------------------------------------- */
 
-function buildYearlyCurves(engineYears) {
+function buildYearlyCurves(engineYears, explicitDepletionAge) {
     return {
         labels: engineYears.map(y => y.age),
 
@@ -255,9 +255,11 @@ function buildYearlyCurves(engineYears) {
             balance: y.combinedBalance
         })),
 
-        depletionAge: findDepletionAge(engineYears)
+        // Use explicit depletion age if provided; otherwise fall back to engine scan
+        depletionAge: explicitDepletionAge ?? findDepletionAge(engineYears)
     };
 }
+
 
 function findDepletionAge(engineYears) {
     const lastPositive = engineYears
@@ -1003,7 +1005,14 @@ $("runBtn").addEventListener("click", async () => {
   
 
     // 2. Convert engine output → chart-ready curves
-    const curves = buildYearlyCurves(engineYears);
+    // const curves = buildYearlyCurves(engineYears);
+
+    const curves = buildYearlyCurves(
+        engineYears,
+        result.withdrawalReport?.combinedDepletionAge ??
+        result.depletionAge
+    );
+
 
     // 3. Build glidepath phase shading
     const phases = buildPhases(currentAge, lifeExpectancy);
