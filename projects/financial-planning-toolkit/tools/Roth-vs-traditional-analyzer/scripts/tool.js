@@ -2999,13 +2999,16 @@ function renderSummary(data) {
     renderSpendingMessage(insights);
 
     // ⭐ FIXED: use data
-    renderWithdrawalStrategy(
-        data.withdrawalReport,
-        {
-            tradAtRetirement: data.tradAtRetirement,
-            rothAtRetirement: data.rothAtRetirement
-        }
-    );
+    // renderWithdrawalStrategy(
+    //     data.withdrawalReport,
+    //     {
+    //         tradAtRetirement: data.tradAtRetirement,
+    //         rothAtRetirement: data.rothAtRetirement
+    //     }
+    // );
+
+    renderWithdrawalStrategy(data);
+
 
     renderProInsights(insights);
 
