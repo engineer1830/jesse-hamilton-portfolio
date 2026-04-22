@@ -868,26 +868,22 @@ $("runBtn").addEventListener("click", async () => {
             // Determine return for this year
             let mu = expectedReturn;
             if (useGlidepath && yearlyExpectedReturns) {
-                mu = yearlyExpectedReturns[i] ?? yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+                mu = yearlyExpectedReturns[i] ??
+                    yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
             }
 
-            // Apply growth
-            roth *= 1 + mu;
-            trad *= 1 + mu;
-
-            // Contributions before retirement
+            // Contributions BEFORE retirement
             if (age < retirementAge) {
                 roth += rothContribution;
                 trad += contribution;
             }
 
-            // Withdrawals after retirement
+            // Withdrawals AFTER retirement (Traditional-first)
             let withdrawal = undefined;
             let taxDrag = undefined;
             let rmdComponent = 0;
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
-            // Declare these ONCE, outside the block
             let rmdGross = 0;
             let tradGrossActual = 0;
 
@@ -901,7 +897,6 @@ $("runBtn").addEventListener("click", async () => {
                 }
 
                 const rmdNet = rmdGross * (1 - retireTax);
-
                 const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
 
                 // Always withdraw RMD gross from Traditional
@@ -937,33 +932,21 @@ $("runBtn").addEventListener("click", async () => {
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 }
             }
-            
-            
 
-            // Glidepath allocation
-            let stockWeight = undefined;
-            let bondWeight = undefined;
-
-            if (useGlidepath && typeof getGlidepathAllocation === "function") {
-                const alloc = getGlidepathAllocation(age, retirementAge);
-                stockWeight = alloc.stockWeight;
-                bondWeight = alloc.bondWeight;
-            }
-
-            // Volatility
-            const vol = yearlyVols ? yearlyVols[i] : undefined;
+            // ⭐ Apply growth AFTER withdrawals
+            roth *= 1 + mu;
+            trad *= 1 + mu;
 
             // Combined after-tax balance
             const combinedBalance = roth + trad;
 
-            // Compute taxable Social Security (if any)
+            // Compute taxable SS
             const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
 
-            // Compute taxable income for this year
-            // RMD gross + extra Traditional gross withdrawals + taxable SS
+            // Compute taxable income
             const taxableIncome =
                 (rmdGross || 0) +
-                ((tradGrossActual || 0) - (rmdGross || 0)) + // extra Traditional gross
+                ((tradGrossActual || 0) - (rmdGross || 0)) +
                 taxableSS;
 
             engineYears.push({
@@ -972,9 +955,9 @@ $("runBtn").addEventListener("click", async () => {
                 tradBalance: trad,
                 combinedBalance,
                 mu,
-                vol,
-                stockWeight,
-                bondWeight,
+                vol: yearlyVols ? yearlyVols[i] : undefined,
+                stockWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).stockWeight : undefined,
+                bondWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).bondWeight : undefined,
                 contribution: age < retirementAge ? contribution : undefined,
                 withdrawal,
                 taxableSS,
@@ -983,8 +966,11 @@ $("runBtn").addEventListener("click", async () => {
                 taxDrag,
                 rmdComponent
             });
-        }
 
+            // ⭐ Stop early if depleted
+            if (combinedBalance <= 0) break;
+        }
+        
         return engineYears;
     }
     
