@@ -268,7 +268,7 @@ function findDepletionAge(engineYears) {
     return lastPositive ? lastPositive.age : null;
 }
 
-function buildTaxChartData(engineYears) {
+function buildTaxChartData(engineYears, retireTax) {
     return {
         labels: engineYears.map(y => y.age),
 
@@ -966,7 +966,16 @@ $("runBtn").addEventListener("click", async () => {
     /* ---------------------------------------------------
        BUILD & RENDER TAX CHART (USING REAL tradAt73)
     --------------------------------------------------- */
-    
+    // 1. Build tax‑chart‑ready data
+    const taxData = buildTaxChartData(engineYears, retireTax);
+
+    // 2. Render the advisor‑grade tax chart
+    renderTaxChart(
+        taxData,
+        phases,
+        currentAge,
+        lifeExpectancy
+    );
     
     /* ---------------------------------------------------
        MONTE CARLO
