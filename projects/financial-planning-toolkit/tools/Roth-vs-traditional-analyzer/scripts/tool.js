@@ -1002,39 +1002,6 @@ $("runBtn").addEventListener("click", async () => {
     // ⭐ Unified depletion ages (deterministic engine = source of truth)
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
-  
-
-    // 2. Convert engine output → chart-ready curves
-    // const curves = buildYearlyCurves(engineYears);
-
-    const curves = buildYearlyCurves(
-        engineYears,
-        result.withdrawalReport?.combinedDepletionAge ??
-        result.depletionAge
-    );
-
-
-    // 3. Build glidepath phase shading
-    const phases = buildPhases(currentAge, lifeExpectancy);
-
-    // 4. Render the new advisor-grade growth chart
-    renderGrowthChart(curves, phases, currentAge, lifeExpectancy);
-
-
-    /* ---------------------------------------------------
-       BUILD & RENDER TAX CHART (USING REAL tradAt73)
-    --------------------------------------------------- */
-    // 1. Build tax‑chart‑ready data
-    const taxData = buildTaxChartData(engineYears, retireTax);
-
-    // 2. Render the advisor‑grade tax chart
-    renderTaxChart(
-        taxData,
-        phases,
-        currentAge,
-        lifeExpectancy
-    );
-  
     
     /* ---------------------------------------------------
        MONTE CARLO
@@ -1063,8 +1030,8 @@ $("runBtn").addEventListener("click", async () => {
     }
 
     /* ---------------------------------------------------
-       RESULT OBJECT
-    --------------------------------------------------- */
+    RESULT OBJECT
+ --------------------------------------------------- */
     const taxContext = retirementTaxDetails
         ? {
             currentTax,
@@ -1107,6 +1074,31 @@ $("runBtn").addEventListener("click", async () => {
             }
             : null
     };
+
+    /* ---------------------------------------------------
+       BUILD & RENDER GROWTH CHART (NOW SAFE)
+    --------------------------------------------------- */
+    const curves = buildYearlyCurves(
+        engineYears,
+        result.withdrawalReport?.combinedDepletionAge ??
+        result.depletionAge
+    );
+
+    const phases = buildPhases(currentAge, lifeExpectancy);
+
+    renderGrowthChart(curves, phases, currentAge, lifeExpectancy);
+
+    /* ---------------------------------------------------
+   BUILD & RENDER TAX CHART
+--------------------------------------------------- */
+    const taxData = buildTaxChartData(engineYears, retireTax);
+
+    renderTaxChart(
+        taxData,
+        phases,
+        currentAge,
+        lifeExpectancy
+    );
 
     /* ---------------------------------------------------
        BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
