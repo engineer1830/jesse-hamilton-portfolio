@@ -2270,7 +2270,7 @@ function renderWithdrawalStrategy(insights) {
     setText("trad-rmd-90", formatCurrency(insights.tradRmdAt90));
 }
 
-function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingNeed, successRate, result }) {
+function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
