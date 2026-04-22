@@ -440,6 +440,26 @@ function buildPhases(currentAge, lifeExpectancy) {
     ];
 }
 
+/* --------------------------------------------------------
+  HELPER FUNCTIONS for DEPLETION Calcs
+  -------------------------------------------------------*/
+
+function findTradDepletionAge(engineYears) {
+    const year = engineYears.find(y => y.tradBalance <= 0);
+    return year ? year.age : null;
+}
+
+function findRothDepletionAge(engineYears) {
+    const year = engineYears.find(y => y.rothBalance <= 0);
+    return year ? year.age : null;
+}
+
+function findCombinedDepletionAge(engineYears) {
+    const year = engineYears.find(y => y.combinedBalance <= 0);
+    return year ? year.age : null;
+}
+
+
 /* -------------------------------------------------------
    MAIN RUN HANDLER
 ------------------------------------------------------- */
@@ -844,6 +864,7 @@ $("runBtn").addEventListener("click", async () => {
         filingStatus
     }) {
         const engineYears = [];
+        
         const totalYears = lifeExpectancy - currentAge;
 
         let roth = currentRoth;
@@ -998,6 +1019,12 @@ $("runBtn").addEventListener("click", async () => {
         lifeExpectancy
     });
 
+    // ⭐ Unified depletion ages (deterministic engine = source of truth)
+    const tradDepletionAge = findTradDepletionAge(engineYears);
+    const rothDepletionAge = findRothDepletionAge(engineYears);
+    const combinedDepletionAge = findCombinedDepletionAge(engineYears);
+
+
     // 2. Convert engine output → chart-ready curves
     const curves = buildYearlyCurves(engineYears);
 
@@ -1082,6 +1109,9 @@ $("runBtn").addEventListener("click", async () => {
         expectedReturn,
         stockVol,
         spendingNeedAtRetirement: spendingNeed,
+        tradDepletionAge,
+        rothDepletionAge,
+        depletionAge: combinedDepletionAge,
         glidepath: useGlidepath
             ? {
                 yearlyExpectedReturns,
