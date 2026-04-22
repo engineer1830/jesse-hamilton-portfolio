@@ -1021,31 +1021,7 @@ $("runBtn").addEventListener("click", async () => {
         currentAge,
         lifeExpectancy
     );
-
-    /* ---------------------------------------------------
-   BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
---------------------------------------------------- */
-
-    // const withdrawalReport = buildWithdrawalReport(engineYears, {
-    //     currentAge,
-    //     retirementAge,
-    //     lifeExpectancy,
-    //     spendingNeed
-    // });
-
-    const withdrawalReport = buildWithdrawalReport(engineYears, {
-        currentAge,
-        retirementAge,
-        lifeExpectancy,
-        spendingNeed
-    });
-
-    result.withdrawalReport = withdrawalReport;   // ⭐ REQUIRED ⭐
-
-    console.log("withdrawalReport at summary:", result.withdrawalReport);
-
-    renderSummary(result);
-    
+  
     
     /* ---------------------------------------------------
        MONTE CARLO
@@ -1091,12 +1067,12 @@ $("runBtn").addEventListener("click", async () => {
 
     const result = {
         mode,
-        assumedGrowthRate: expectedReturn, // raw decimal
-        rothFinal, // raw number
-        traditionalFinal: tradFinal, // raw number
-        difference: rothFinal - tradFinal, // raw number
+        assumedGrowthRate: expectedReturn,
+        rothFinal,
+        traditionalFinal: tradFinal,
+        difference: rothFinal - tradFinal,
         betterOption: rothFinal > tradFinal ? "Roth" : "Traditional",
-        breakEvenTaxRate: currentTax, // raw decimal
+        breakEvenTaxRate: currentTax,
         currentRoth,
         currentTrad,
         years,
@@ -1116,11 +1092,35 @@ $("runBtn").addEventListener("click", async () => {
             : null
     };
 
-    const insights = computeProInsights(result);
-    renderSummary({ ...result, ...insights });
+    /* ---------------------------------------------------
+       BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
+    --------------------------------------------------- */
+    const withdrawalReport = buildWithdrawalReport(engineYears, {
+        currentAge,
+        retirementAge,
+        lifeExpectancy,
+        spendingNeed
+    });
+
+    result.withdrawalReport = withdrawalReport;
+
+    console.log("withdrawalReport at summary:", result.withdrawalReport);
+
+    renderSummary(result);
+
+    const insights = computeProInsights(result);   // ⭐ required for sustainability, spending, etc.
 
     loading.style.display = "none";
-    output.textContent = JSON.stringify({ ...result, ...insights }, null, 2);
+    output.textContent = JSON.stringify(
+        {
+            ...result,
+            ...insights,
+            withdrawalReport
+        },
+        null,
+        2
+    );   
+
 });
 
 /* -------------------------------------------------------
