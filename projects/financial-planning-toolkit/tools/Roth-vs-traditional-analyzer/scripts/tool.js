@@ -1026,12 +1026,26 @@ $("runBtn").addEventListener("click", async () => {
    BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
 --------------------------------------------------- */
 
+    // const withdrawalReport = buildWithdrawalReport(engineYears, {
+    //     currentAge,
+    //     retirementAge,
+    //     lifeExpectancy,
+    //     spendingNeed
+    // });
+
     const withdrawalReport = buildWithdrawalReport(engineYears, {
         currentAge,
         retirementAge,
         lifeExpectancy,
         spendingNeed
     });
+
+    result.withdrawalReport = withdrawalReport;   // ⭐ REQUIRED ⭐
+
+    console.log("withdrawalReport at summary:", result.withdrawalReport);
+
+    renderSummary(result);
+    
     
     /* ---------------------------------------------------
        MONTE CARLO
