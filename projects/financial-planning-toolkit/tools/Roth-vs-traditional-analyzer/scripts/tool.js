@@ -2229,50 +2229,49 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-function renderWithdrawalStrategy(withdrawalReport, engineSummary) {
+function renderWithdrawalStrategy(data) {
     // Strategy label
-    setText("withdrawal-strategy-label", withdrawalReport.withdrawalStrategyLabel);
+    setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
-    // Balances at retirement (still come from engine summary)
-    setText("trad-balance-at-retirement", formatCurrency(engineSummary.tradAtRetirement));
-    setText("roth-balance-at-retirement", formatCurrency(engineSummary.rothAtRetirement));
+    // Balances at retirement
+    setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
+    setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
 
     // Depletion ages
     setText(
         "trad-depletion-age",
-        withdrawalReport.tradDepletionAge ? `Age ${withdrawalReport.tradDepletionAge}` : "N/A"
+        data.tradDepletionAge ? `Age ${data.tradDepletionAge}` : "N/A"
     );
     setText(
         "roth-depletion-age",
-        withdrawalReport.rothDepletionAge ? `Age ${withdrawalReport.rothDepletionAge}` : "N/A"
+        data.rothDepletionAge ? `Age ${data.rothDepletionAge}` : "N/A"
     );
     setText(
         "combined-depletion-age",
-        withdrawalReport.combinedDepletionAge ? `Age ${withdrawalReport.combinedDepletionAge}` : "N/A"
+        data.depletionAge ? `Age ${data.depletionAge}` : "N/A"
     );
 
     // First-year withdrawals
     setText(
         "trad-first-year-withdrawal",
-        formatCurrency(withdrawalReport.tradFirstYearWithdrawal)
+        formatCurrency(data.tradFirstYearWithdrawal)
     );
     setText(
         "roth-first-year-withdrawal",
-        formatCurrency(withdrawalReport.rothFirstYearWithdrawal)
+        formatCurrency(data.rothFirstYearWithdrawal)
     );
 
-    // RMD snapshots
-    setText("trad-rmd-73", formatCurrency(withdrawalReport.rmdAt73));
-    setText("trad-rmd-80", formatCurrency(withdrawalReport.rmdAt80));
-    setText("trad-rmd-90", formatCurrency(withdrawalReport.rmdAt90));
+    // RMD snapshots (correct fields)
+    setText("trad-rmd-73", formatCurrency(data.tradRmdAt73));
+    setText("trad-rmd-80", formatCurrency(data.tradRmdAt80));
+    setText("trad-rmd-90", formatCurrency(data.tradRmdAt90));
 
     // Required withdrawal rate
     setText(
         "required-withdrawal-rate",
-        formatPercent(withdrawalReport.requiredWithdrawalRate)
+        formatPercent(data.requiredWithdrawalRate)
     );
 }
-
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
 
