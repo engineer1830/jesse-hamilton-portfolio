@@ -2939,7 +2939,7 @@ function renderSummary(result) {
             depletionAge: insights.depletionAge,
             yearsLeft: insights.yearsUntilDepletion,
             withdrawalRate: insights.requiredWithdrawalRate,
-            spendingNeed: insights.spendingNeedAtRetirement,
+            spendingGap: insights.spendingGap,
             successRate: insights.retirementReadiness,
             result
         });
