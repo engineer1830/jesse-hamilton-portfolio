@@ -232,67 +232,7 @@ function setText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
 }
-/* -------------------------------------------------------
-   YEARLY CURVES FOR CHART (legacy helper) and Tax helper
-------------------------------------------------------- */
 
-function buildYearlyCurves(engineYears) {
-    return {
-        labels: engineYears.map(y => y.age),
-
-        roth: engineYears.map(y => ({
-            age: y.age,
-            balance: y.rothBalance
-        })),
-
-        trad: engineYears.map(y => ({
-            age: y.age,
-            balance: y.tradBalance
-        })),
-
-        combined: engineYears.map(y => ({
-            age: y.age,
-            balance: y.combinedBalance
-        })),
-
-        depletionAge: findDepletionAge(engineYears)
-    };
-}
-
-function findDepletionAge(engineYears) {
-    const lastPositive = engineYears
-        .slice()
-        .reverse()
-        .find(y => y.combinedBalance > 0);
-
-    return lastPositive ? lastPositive.age : null;
-}
-
-function buildTaxChartData(engineYears) {
-    return {
-        labels: engineYears.map(y => y.age),
-
-        // Total taxable income (RMD + extra Trad + taxable SS)
-        taxableIncome: engineYears.map(y => ({
-            x: y.age,
-            y: y.taxableIncome || 0
-        })),
-
-        // RMD taxable income (gross RMD)
-        rmdIncome: engineYears.map(y => ({
-            x: y.age,
-            y: y.rmdComponent
-                ? Math.round(y.rmdComponent / (1 - retireTax)) // convert net RMD back to gross
-                : 0
-        })),
-
-        // Taxable Social Security
-        taxableSS: engineYears.map(y => ({
-            x: y.age,
-            y: y.taxableSS || 0
-        }))
-    };
-}
 
 /* -------------------------------------------------------
    ROTH CONVERSION SIMULATION ENGINE (STEP 5)
@@ -795,14 +735,15 @@ $("runBtn").addEventListener("click", async () => {
         ssAnnualStatement,
         spendingNeed,
         retireTax,
-        lifeExpectancy,
-        filingStatus
+        lifeExpectancy
     }) {
-        const engineYears = [];
+        const chartData = [];
         const totalYears = lifeExpectancy - currentAge;
 
         let roth = currentRoth;
         let trad = currentTrad;
+
+        let tradAt73 = null;
 
         for (let i = 0; i < totalYears; i++) {
             const age = currentAge + i;
@@ -810,55 +751,64 @@ $("runBtn").addEventListener("click", async () => {
             // Determine return for this year
             let mu = expectedReturn;
             if (useGlidepath && yearlyExpectedReturns) {
-                mu = yearlyExpectedReturns[i] ?? yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+                mu =
+                    yearlyExpectedReturns[i] ||
+                    yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
             }
 
             // Apply growth
             roth *= 1 + mu;
             trad *= 1 + mu;
 
-            // Contributions before retirement
+            // Apply contributions only before retirement
             if (age < retirementAge) {
                 roth += rothContribution;
                 trad += contribution;
             }
 
-            // Withdrawals after retirement
+            // Apply withdrawals after retirement (need-based OR RMD, whichever is larger)
             let withdrawal = undefined;
             let taxDrag = undefined;
             let rmdComponent = 0;
             let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
             if (age >= retirementAge) {
+                // 1) Need-based withdrawal (after-tax)
                 const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
 
-                // Compute RMD
+                // 2) Compute RMD (gross)
                 let rmdGross = 0;
                 if (age >= 73 && trad > 0) {
                     const divisor = getRmdDivisor(age);
                     rmdGross = trad / divisor;
                 }
 
+                // After-tax RMD
                 const rmdNet = rmdGross * (1 - retireTax);
 
+                // 3) Total after-tax cash required this year
                 const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
                 const targetNet = rmdNet + extraNeedNet;
 
-                // Always withdraw RMD gross from Traditional
+                // 4) Withdraw RMD gross from Traditional (always)
                 let tradGrossActual = Math.min(trad, rmdGross);
                 let tradNet = tradGrossActual * (1 - retireTax);
 
+                // Track RMD component for tooltip
                 rmdComponent = Math.round(tradNet);
 
+                // 5) If extra need exists, fund it:
+                //    First from Traditional (grossed up), then Roth
                 if (extraNeedNet > 0) {
-                    const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
+                    const extraTradGrossNeeded =
+                        extraNeedNet / (1 - retireTax);
 
                     const extraTradGrossActual = Math.min(
                         trad - tradGrossActual,
                         extraTradGrossNeeded
                     );
-
-                    const extraTradNet = extraTradGrossActual * (1 - retireTax);
+                    const extraTradNet =
+                        extraTradGrossActual * (1 - retireTax);
 
                     tradGrossActual += extraTradGrossActual;
                     tradNet += extraTradNet;
@@ -872,13 +822,18 @@ $("runBtn").addEventListener("click", async () => {
                     withdrawal = Math.round(tradNet + rothActual);
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 } else {
+                    // No extra need — only RMD
                     trad -= tradGrossActual;
                     withdrawal = Math.round(tradNet);
                     taxDrag = Math.round(tradGrossActual * retireTax);
                 }
             }
 
-            // Glidepath allocation
+            if (age === 73) {
+                tradAt73 = trad; // pre-tax Traditional balance at 73
+            }
+
+            // Determine glidepath allocation (if enabled)
             let stockWeight = undefined;
             let bondWeight = undefined;
 
@@ -888,50 +843,40 @@ $("runBtn").addEventListener("click", async () => {
                 bondWeight = alloc.bondWeight;
             }
 
-            // Volatility
+            // Determine volatility for this year (if glidepath)
             const vol = yearlyVols ? yearlyVols[i] : undefined;
 
-            // Combined after-tax balance
-            const combinedBalance = roth + trad;
+            // Determine contribution (pre‑retirement)
+            const contributionThisYear =
+                age < retirementAge ? contribution : undefined;
 
-            // Compute taxable Social Security (if any)
-            const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
-
-            // Compute taxable income for this year
-            // RMD gross + extra Traditional gross withdrawals + taxable SS
-            const taxableIncome =
-                (rmdGross || 0) +
-                ((tradGrossActual || 0) - (rmdGross || 0)) + // extra Traditional gross
-                taxableSS;
-
-            engineYears.push({
+            chartData.push({
                 age,
-                rothBalance: roth,
-                tradBalance: trad,
-                combinedBalance,
+                roth,
+                trad,
                 mu,
                 vol,
                 stockWeight,
                 bondWeight,
-                contribution: age < retirementAge ? contribution : undefined,
+                contribution: contributionThisYear,
                 withdrawal,
-                taxableSS,
                 ssIncome,
-                taxableIncome,
                 taxDrag,
                 rmdComponent
             });
         }
 
-        return engineYears;
+        return {
+            chartData,
+            tradAt73
+        };
     }
-    
-    /* ---------------------------------------------------
-   BUILD & RENDER GROWTH CHART
---------------------------------------------------- */
 
-    // 1. Run deterministic engine (full year-by-year output)
-    const engineYears = buildDeterministicChart({
+    /* ---------------------------------------------------
+       BUILD & RENDER GROWTH CHART
+    --------------------------------------------------- */
+
+    const { chartData, tradAt73 } = buildDeterministicChart({
         currentAge,
         currentRoth,
         currentTrad,
@@ -949,21 +894,42 @@ $("runBtn").addEventListener("click", async () => {
         lifeExpectancy
     });
 
-    // 2. Convert engine output → chart-ready curves
-    const curves = buildYearlyCurves(engineYears);
-
-    // 3. Build glidepath phase shading
     const phases = buildPhases(currentAge, lifeExpectancy);
 
-    // 4. Render the new advisor-grade growth chart
-    renderGrowthChart(curves, phases, currentAge, lifeExpectancy);
+    const tradAtRetirement =
+        chartData.find(row => row.age === retirementAge)?.trad || 0;
 
+    renderGrowthChart(chartData, phases, currentAge, lifeExpectancy);
 
     /* ---------------------------------------------------
        BUILD & RENDER TAX CHART (USING REAL tradAt73)
     --------------------------------------------------- */
-    
-    
+
+    const rmdDivisor = getRmdDivisor(73);
+    const rmd = tradAt73 ? tradAt73 / rmdDivisor : 0;
+
+    const taxableSS = computeTaxableSS(ssAnnualStatement, filingStatus);
+
+    retirementTaxDetails = {
+        tradAtRetirement,
+        tradAt73,
+        rmd,
+        ssAtClaimAge: ssAnnualStatement,
+        taxableSS,
+        taxableIncome: rmd + taxableSS,
+        estimatedRate: retireTax,
+        filingStatus
+    };
+
+    renderTaxChart({
+        contribution,
+        expectedReturn,
+        years,
+        currentTax,
+        rothFinal,
+        retirementTaxDetails
+    });
+
     /* ---------------------------------------------------
        MONTE CARLO
     --------------------------------------------------- */
@@ -1147,6 +1113,25 @@ async function computeWeightedVolatility(data, tickers, weights) {
 const glidepathStockTicker = "FXAIX";
 const glidepathBondTicker = "FXNAX";
 
+
+// Original function -- updated for stronger enforcing of balances
+// function getGlidepathAllocation(age, retirementAge) {
+//     // Returns { stockWeight, bondWeight } as decimals (0–1)
+//     if (age < retirementAge - 10) {
+//         // Aggressive
+//         return { stockWeight: 1.0, bondWeight: 0.0 };
+//     } else if (age < retirementAge - 2) {
+//         // Moderate
+//         return { stockWeight: 0.65, bondWeight: 0.35 };
+//     } else if (age < 70) {
+//         // Preserve
+//         return { stockWeight: 0.5, bondWeight: 0.5 };
+//     } else {
+//         // Legacy
+//         return { stockWeight: 0.35, bondWeight: 0.65 };
+//     }
+// }
+
 function getGlidepathAllocation(age, retirementAge) {
     const yearsToRetirement = retirementAge - age;
 
@@ -1165,91 +1150,158 @@ function getGlidepathAllocation(age, retirementAge) {
     return { stockWeight: 1.0, bondWeight: 0.0 };
 }
 
+/* -------------------------------------------------------
+   YEARLY CURVES FOR CHART (legacy helper)
+------------------------------------------------------- */
+
+function buildYearlyCurves({
+    contribution,
+    rothContribution,
+    expectedReturn,
+    years,
+    retireTax,
+    currentRoth,
+    currentTrad
+}) {
+    const roth = [];
+    const trad = [];
+
+    let rothBal = currentRoth;
+    let tradBal = currentTrad;
+
+    for (let year = 1; year <= years; year++) {
+        rothBal = rothBal * (1 + expectedReturn) + rothContribution;
+        tradBal = tradBal * (1 + expectedReturn) + contribution;
+
+        roth.push({ year, balance: rothBal });
+        trad.push({ year, balance: tradBal * (1 - retireTax) });
+    }
+
+    return { roth, trad };
+}
 
 /* -------------------------------------------------------
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
+function renderGrowthChart(chartData, phases, currentAge, lifeExpectancy) {
     const ctx = $("growthChart").getContext("2d");
 
     if (growthChart) growthChart.destroy();
 
-    const { labels, roth, trad, combined, depletionAge } = curves;
-
     growthChart = new Chart(ctx, {
         type: "line",
         data: {
-            labels,
             datasets: [
                 {
-                    label: "Combined (after-tax)",
-                    data: combined.map(p => ({ x: p.age, y: p.balance })),
-                    borderColor: "#1f6feb",
-                    backgroundColor: "rgba(31, 111, 235, 0.08)",
-                    borderWidth: 2,
-                    tension: 0.25
+                    label: "Roth (after-tax)",
+                    data: chartData.map(d => ({ x: d.age, y: d.roth })),
+                    borderColor: "blue",
+                    fill: false
                 },
                 {
-                    label: "Traditional (after-tax, after RMDs)",
-                    data: trad.map(p => ({ x: p.age, y: p.balance })),
-                    borderColor: "#b36b00",
-                    backgroundColor: "rgba(179, 107, 0, 0.05)",
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    tension: 0.25
-                },
-                {
-                    label: "Roth (tax-free)",
-                    data: roth.map(p => ({ x: p.age, y: p.balance })),
-                    borderColor: "#1a7f37",
-                    backgroundColor: "rgba(26, 127, 55, 0.05)",
-                    borderWidth: 1.5,
-                    tension: 0.25
+                    label: "Traditional (after-tax)",
+                    data: chartData.map(d => ({ x: d.age, y: d.trad })),
+                    borderColor: "red",
+                    fill: false
                 }
             ]
         },
-
         options: {
-            responsive: true,
-
             plugins: {
-                phaseShading: { phases },
-
+                phaseShading: {
+                    phases: phases
+                },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            const datasetLabel = context.dataset.label;
-                            const value = context.parsed.y;
-                            return `${datasetLabel}: ${formatCurrency(value)}`;
-                        }
-                    }
-                },
+                            const index = context.dataIndex;
+                            const point = chartData[index];
 
-                // Depletion marker (if applicable)
-                annotation: depletionAge
-                    ? {
-                        annotations: {
-                            depletionLine: {
-                                type: "line",
-                                xMin: depletionAge,
-                                xMax: depletionAge,
-                                borderColor: "#d32f2f",
-                                borderWidth: 1.5,
-                                borderDash: [6, 4],
-                                label: {
-                                    enabled: true,
-                                    content: `Depletion age ${depletionAge}`,
-                                    position: "start",
-                                    backgroundColor: "#d32f2f",
-                                    color: "#fff"
-                                }
+                            let lines = [];
+
+                            lines.push(
+                                `${context.dataset.label}: ${formatCurrency(
+                                    context.parsed.y
+                                )}`
+                            );
+
+                            if (point.mu !== undefined) {
+                                lines.push(
+                                    `Return: ${formatPercent(point.mu)}`
+                                );
                             }
+
+                            if (point.vol !== undefined) {
+                                lines.push(
+                                    `Volatility: ${formatPercent(point.vol)}`
+                                );
+                            }
+
+                            if (
+                                point.stockWeight !== undefined &&
+                                point.bondWeight !== undefined
+                            ) {
+                                lines.push(
+                                    `Allocation: ${(point.stockWeight * 100).toFixed(
+                                        0
+                                    )}% stocks / ${(point.bondWeight * 100).toFixed(
+                                        0
+                                    )}% bonds`
+                                );
+                            }
+
+                            if (point.contribution !== undefined) {
+                                lines.push(
+                                    `Contribution: ${formatCurrency(
+                                        point.contribution
+                                    )}`
+                                );
+                            }
+
+                            if (point.withdrawal !== undefined) {
+                                lines.push(
+                                    `Withdrawal: ${formatCurrency(
+                                        point.withdrawal
+                                    )}`
+                                );
+                            }
+
+                            if (point.ssIncome !== undefined) {
+                                lines.push(
+                                    `Social Security: ${formatCurrency(
+                                        point.ssIncome
+                                    )}`
+                                );
+                            }
+
+                            if (point.taxDrag !== undefined) {
+                                lines.push(
+                                    `Tax drag: ${formatCurrency(
+                                        point.taxDrag
+                                    )}`
+                                );
+                            }
+
+                            if (context.raw.rmdComponent > 0) {
+                                lines.push(
+                                    `RMD component: ${formatCurrency(
+                                        context.raw.rmdComponent
+                                    )}`
+                                );
+                            }
+
+                            if (point.age === 73) {
+                                lines.push(
+                                    "Note: Hover withdrawal is net; tax table RMD is gross."
+                                );
+                            }
+
+                            return lines;
                         }
                     }
-                    : {}
+                }
             },
-
             scales: {
                 x: {
                     type: "linear",
@@ -1258,18 +1310,13 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
                     title: { text: "Age", display: true }
                 },
                 y: {
-                    title: { text: "After-tax balance ($)", display: true },
-                    ticks: {
-                        callback: (value) => formatCurrency(value)
-                    }
+                    title: { text: "Value ($)", display: true }
                 }
             }
         },
-
         plugins: [phaseShadingPlugin]
     });
 }
-
 
 function renderTaxChart({
     contribution,
@@ -2120,6 +2167,20 @@ function computeProInsights(result) {
 
     };
 }
+
+// function showSustainability(zone) {
+//     document.getElementById("sustain-positive").style.display = "none";
+//     document.getElementById("sustain-yellow").style.display = "none";
+//     document.getElementById("sustain-negative").style.display = "none";
+
+//     if (zone === "green") {
+//         document.getElementById("sustain-positive").style.display = "block";
+//     } else if (zone === "yellow") {
+//         document.getElementById("sustain-yellow").style.display = "block";
+//     } else {
+//         document.getElementById("sustain-negative").style.display = "block";
+//     }
+// }
 
 function showSustainability(zone) {
     const pos = document.getElementById("sustain-positive");
