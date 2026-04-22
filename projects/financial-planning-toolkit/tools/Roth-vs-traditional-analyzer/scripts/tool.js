@@ -1142,6 +1142,14 @@ $("runBtn").addEventListener("click", async () => {
     withdrawalReport.yearsUntilDepletion =
         withdrawalReport.combinedDepletionAge - retirementAge;
     
+    console.log("AFTER OVERRIDE (immediately):", {
+        tradDepletionAge,
+        rothDepletionAge,
+        combinedFromOverride: withdrawalReport.combinedDepletionAge,
+        withdrawalReportSnapshot: { ...withdrawalReport }
+    });
+        
+    
     result.withdrawalReport = withdrawalReport;
 
     console.log("withdrawalReport at summary:", result.withdrawalReport);
@@ -2133,15 +2141,6 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
-        // ⭐ If Traditional is never used, treat it as lasting to age 120
-        if (tradFirstYearWithdrawal === 0) {
-            tradDepletionAge = 120;
-        }
-
-        // ⭐ If Roth is never used, treat it as lasting to age 120
-        if (rothFirstYearWithdrawal === 0) {
-            rothDepletionAge = 120;
-        }
 
         // ⭐ Compute depletion AFTER readiness -- Use the real simulated depletion ages
         const overallDepletionAge = Math.min(
