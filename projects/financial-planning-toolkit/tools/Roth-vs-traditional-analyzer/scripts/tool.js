@@ -2258,7 +2258,7 @@ function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate,
 
     // Key metrics
     setText("positive-withdrawal-rate", formatPercent(withdrawalRate));
-    setText("positive-withdrawal-need", formatCurrency(spendingNeed));
+    setText("positive-withdrawal-need", formatCurrency(spendingGap));
     setText("positive-ss-income", formatCurrency(ss));
 
     // Confidence bar (Monte Carlo success rate)
