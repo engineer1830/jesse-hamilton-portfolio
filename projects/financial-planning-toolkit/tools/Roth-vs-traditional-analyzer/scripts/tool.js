@@ -2242,10 +2242,26 @@ function renderWithdrawalStrategy(data) {
         "trad-depletion-age",
         data.tradDepletionAge ? `Age ${data.tradDepletionAge}` : "N/A"
     );
-    setText(
-        "roth-depletion-age",
-        data.rothDepletionAge ? `Age ${data.rothDepletionAge}` : "N/A"
-    );
+    // setText(
+    //     "roth-depletion-age",
+    //     data.rothDepletionAge ? `Age ${data.rothDepletionAge}` : "N/A"
+    // );
+
+    // Roth depletion age — adjusted for clarity
+    let rothDepletionText;
+
+    if (data.depletionAge < data.rothDepletionAge) {
+        // Combined plan fails first → Roth never fully tapped
+        rothDepletionText = "Not fully depleted";
+    } else {
+        // Roth actually depletes first or at same time
+        rothDepletionText = data.rothDepletionAge
+            ? `Age ${data.rothDepletionAge}`
+            : "N/A";
+    }
+
+    setText("roth-depletion-age", rothDepletionText);
+
     setText(
         "combined-depletion-age",
         data.depletionAge ? `Age ${data.depletionAge}` : "N/A"
