@@ -485,7 +485,7 @@ $("runBtn").addEventListener("click", async () => {
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
 
     const growth = (parseFloat($("growth").value) || 0) / 100;
-    const lifeExpectancy = 85;
+    const lifeExpectancy = 120;
 
     // Sanitize portfolio string
     let portfolioStr = $("portfolio").value;
@@ -1132,6 +1132,15 @@ $("runBtn").addEventListener("click", async () => {
         spendingNeed
     });
 
+    // ⭐ Override withdrawalReport depletion ages with deterministic truth
+    withdrawalReport.tradDepletionAge = tradDepletionAge;
+    withdrawalReport.rothDepletionAge = rothDepletionAge;
+    withdrawalReport.combinedDepletionAge = combinedDepletionAge;
+
+    // ⭐ Align yearsUntilDepletion with deterministic engine
+    withdrawalReport.yearsUntilDepletion =
+        combinedDepletionAge ? combinedDepletionAge - retirementAge : null;
+    
     result.withdrawalReport = withdrawalReport;
 
     console.log("withdrawalReport at summary:", result.withdrawalReport);
