@@ -2476,48 +2476,6 @@ function renderSpendingMessage(insights) {
     });
 }
 
-// second renderSpending message with updated html . . . replaced by one above for css tiers
-
-// function renderSpendingMessage(insights) {
-//     const msg = getSpendingMessage(insights);
-//     const zone = insights.zone; // "green", "yellow", or "red"
-
-//     // Build the correct IDs for the visible card
-//     const titleId = `spending-title-${zone}`;
-//     const listId = `spending-bullets-${zone}`;
-
-//     // Write the title
-//     setText(titleId, msg.title);
-
-//     // Write the bullets
-//     const list = document.getElementById(listId);
-//     if (!list) return; // safety guard
-
-//     list.innerHTML = "";
-
-//     msg.bullets.forEach(text => {
-//         const li = document.createElement("li");
-//         li.textContent = text;
-//         list.appendChild(li);
-//     });
-// }
-
-// Original render function . . . replaced by the one above
-// function renderSpendingMessage(result) {
-//     const msg = getSpendingMessage(result);
-
-//     setText("spending-title", msg.title);
-
-//     const list = document.getElementById("spending-bullets");
-//     list.innerHTML = "";
-
-//     msg.bullets.forEach(b => {
-//         const li = document.createElement("li");
-//         li.textContent = b;
-//         list.appendChild(li);
-//     });
-// }
-
 function renderSafeSpending(result) {
     const low = result.safeSpendingMin ?? 0;
     const high = result.safeSpendingMax ?? 0;
