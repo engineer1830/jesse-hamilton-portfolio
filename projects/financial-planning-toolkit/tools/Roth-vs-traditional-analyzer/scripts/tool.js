@@ -2955,6 +2955,8 @@ function renderSummary(data) {
                 <td>Mode</td>
                 <td colspan="2">${mode}</td>
             </tr>
+        </table>
+
 
            
     `;
