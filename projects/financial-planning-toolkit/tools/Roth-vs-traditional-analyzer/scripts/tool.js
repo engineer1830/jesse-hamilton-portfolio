@@ -1148,6 +1148,15 @@ $("runBtn").addEventListener("click", async () => {
     // 3) compute insights
     const insights = computeProInsights(result);
 
+    result.chartDiagnostic = buildChartDepletionDiagnostic({
+        tradDepletionAge: insights.tradDepletionAge,
+        rothDepletionAge: insights.rothDepletionAge,
+        combinedDepletionAge: insights.depletionAge,
+        lifeExpectancy: result.lifeExpectancy ?? 95,
+        currentAge: result.taxContext.currentAge,
+        engineYears: result.engineYears
+    });
+    
     // 4) merge everything into a single object
     const full = {
         ...result,
@@ -2235,14 +2244,6 @@ function computeProInsights(result) {
     };
 }
 
-data.chartDiagnostic = buildChartDepletionDiagnostic({
-    tradDepletionAge: data.tradDepletionAge,
-    rothDepletionAge: data.rothDepletionAge,
-    combinedDepletionAge: data.depletionAge,
-    lifeExpectancy: data.lifeExpectancy ?? 95,
-    currentAge: data.taxContext.currentAge,
-    engineYears: data.engineYears
-});
 
 function showSustainability(zone) {
     const pos = document.getElementById("sustain-positive");
@@ -3215,9 +3216,9 @@ function renderSummary(data) {
     console.log("chartDiagnostic:", data.chartDiagnostic);
     console.log("chartMsg:", getChartMismatchMessage(data));
 
-    // ⭐  Chart Mismatch Explanation
     const chartMsg = getChartMismatchMessage(data);
     renderChartMismatchMessage(chartMsg);
+
 
     renderWithdrawalStrategy(data);
 
