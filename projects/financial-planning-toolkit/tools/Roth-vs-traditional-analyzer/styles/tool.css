@@ -702,3 +702,55 @@ body
     /* advisor-grade red */
     margin-bottom: 1rem;
 }
+
+/* ⭐ Chart Mismatch Card */
+.chart-mismatch-card
+{
+    background: #f8f9fb;
+    border-left: 4px solid #4a90e2;
+    /* soft blue info tone */
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    animation: fadeIn 0.25s ease-out;
+}
+
+.chart-mismatch-card h3
+{
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-mismatch-card ul
+{
+    margin: 0;
+    padding-left: 20px;
+}
+
+.chart-mismatch-card li
+{
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+/* ⭐ Fade-in animation */
+@keyframes fadeIn
+{
+    from
+    {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to
+    {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

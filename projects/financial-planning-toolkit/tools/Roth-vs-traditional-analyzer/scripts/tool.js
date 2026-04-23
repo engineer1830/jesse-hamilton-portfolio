@@ -2306,6 +2306,24 @@ function renderWithdrawalStrategy(data) {
     );
 }
 
+function renderChartMismatchMessage(msg) {
+    const container = document.getElementById("chart-mismatch-note");
+    if (!container) return;
+
+    if (!msg) {
+        container.innerHTML = "";   // ⭐ Clear old message
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="chart-mismatch-card">
+            <h3>ℹ️  ${msg.title}</h3>
+            <ul>
+                ${msg.bullets.map(b => `<li>${b}</li>`).join("")}
+            </ul>
+        </div>
+    `;
+}
 
 function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
 
@@ -2412,6 +2430,62 @@ function classifySpendingTier(result) {
 
     return "unsustainable";
 }
+
+// ⭐ Diagnostic: Detect Chart vs Depletion Mismatch
+function buildChartDepletionDiagnostic({
+    tradDepletionAge,
+    rothDepletionAge,
+    combinedDepletionAge,
+    lifeExpectancy,
+    currentAge,
+    engineYears
+}) {
+    // Peak and ending combined balances for chart-shape analysis
+    const peakCombined = Math.max(...engineYears.map(y => y.combinedAfterTax));
+    const endCombined = engineYears[engineYears.length - 1].combinedAfterTax;
+
+    // If the chart ends with >50% of its peak, it "looks healthy"
+    const looksHealthy = endCombined > 0.5 * peakCombined;
+
+    const result = {
+        mismatchType: "none",
+        explanationKey: null
+    };
+
+    // Case 1: Traditional depletes much earlier than combined
+    if (tradDepletionAge && tradDepletionAge + 5 < combinedDepletionAge) {
+        result.mismatchType = "trad_early_roth_late";
+        result.explanationKey = "chart_mismatch_trad_early";
+        return result;
+    }
+
+    // Case 2: Roth depletes much earlier than combined
+    if (rothDepletionAge && rothDepletionAge + 5 < combinedDepletionAge) {
+        result.mismatchType = "roth_early_trad_late";
+        result.explanationKey = "chart_mismatch_roth_early";
+        return result;
+    }
+
+    // Case 3: Chart looks healthy but depletion is finite
+    if (combinedDepletionAge < lifeExpectancy && looksHealthy) {
+        result.mismatchType = "healthy_chart_finite_depletion";
+        result.explanationKey = "chart_mismatch_healthy_but_finite";
+        return result;
+    }
+
+    // Case 4: Chart stays positive but depletion age is earlier
+    const ageSpan = lifeExpectancy - currentAge;
+    const earlyDepletion = combinedDepletionAge < currentAge + 0.8 * ageSpan;
+
+    if (combinedDepletionAge < lifeExpectancy && endCombined > 0 && earlyDepletion) {
+        result.mismatchType = "chart_positive_but_depletes_earlier";
+        result.explanationKey = "chart_mismatch_positive_but_depletes";
+        return result;
+    }
+
+    return result;
+}
+
 // ⭐ Messaging: Classic Safe (≤5%)
 function messageClassicSafe(result) {
     return {
@@ -2530,6 +2604,77 @@ function renderSpendingMessage(insights) {
         li.textContent = b;
         listEl.appendChild(li);
     });
+}
+
+// ⭐ Messaging: Chart Mismatch — Traditional depletes early
+function messageChartTradEarly(result) {
+    return {
+        title: "Why the chart looks different",
+        bullets: [
+            "Your Traditional IRA is projected to deplete earlier than your Roth IRA.",
+            "The chart shows each account separately, so when the Traditional balance drops to zero, the combined line can appear to fall sharply.",
+            "However, your Roth IRA continues to support your spending for many additional years.",
+            "The projected depletion age reflects your total portfolio, not just the Traditional account."
+        ]
+    };
+}
+
+// ⭐ Messaging: Chart Mismatch — Roth depletes early
+function messageChartRothEarly(result) {
+    return {
+        title: "Why the chart looks different",
+        bullets: [
+            "Your Roth IRA is projected to deplete earlier than your Traditional IRA.",
+            "The chart shows each account separately, so when the Roth balance reaches zero, the combined line may still remain positive for many years.",
+            "Your Traditional IRA continues to fund your retirement after the Roth is exhausted.",
+            "The projected depletion age reflects your total portfolio, not just the Roth account."
+        ]
+    };
+}
+
+// ⭐ Messaging: Chart Mismatch — Chart looks healthy but depletion is finite
+function messageChartHealthyButFinite(result) {
+    return {
+        title: "Why the chart looks different",
+        bullets: [
+            "The chart shows a smooth projection of your after‑tax balances using average returns.",
+            "Over time, required withdrawals, taxes, and spending gradually erode your portfolio, even if the line appears relatively stable for many years.",
+            "The projected depletion age reflects the point at which your assets can no longer fully support your planned spending.",
+            "In other words, the chart shows the path, while the depletion age shows the limit."
+        ]
+    };
+}
+
+// ⭐ Messaging: Chart Mismatch — Chart stays positive but depletion age is earlier
+function messageChartPositiveButDepletes(result) {
+    return {
+        title: "Why the chart looks different",
+        bullets: [
+            "The chart shows your projected balances using average returns, but it does not display every detail of your withdrawal pattern, taxes, and spending.",
+            "The depletion age reflects when your plan can no longer fully support your spending after accounting for taxes, required withdrawals, and longevity.",
+            "Even if the chart line remains above zero at very old ages, the underlying cash‑flow math may show that your portfolio cannot reliably sustain your planned withdrawals.",
+            "When this happens, you should trust the depletion age as the more conservative measure of sustainability."
+        ]
+    };
+}
+
+// ⭐ Messaging Dispatcher: Chart Mismatch
+function getChartMismatchMessage(result) {
+    const diag = result.chartDiagnostic;
+    if (!diag || diag.mismatchType === "none") return null;
+
+    switch (diag.explanationKey) {
+        case "chart_mismatch_trad_early":
+            return messageChartTradEarly(result);
+        case "chart_mismatch_roth_early":
+            return messageChartRothEarly(result);
+        case "chart_mismatch_healthy_but_finite":
+            return messageChartHealthyButFinite(result);
+        case "chart_mismatch_positive_but_depletes":
+            return messageChartPositiveButDepletes(result);
+        default:
+            return null;
+    }
 }
 
 function renderSafeSpending(result) {
@@ -3057,17 +3202,11 @@ function renderSummary(data) {
     // ⭐ Elevated Spending Messaging
     renderSpendingMessage(insights);
 
-    // ⭐ FIXED: use data
-    // renderWithdrawalStrategy(
-    //     data.withdrawalReport,
-    //     {
-    //         tradAtRetirement: data.tradAtRetirement,
-    //         rothAtRetirement: data.rothAtRetirement
-    //     }
-    // );
+    // ⭐  Chart Mismatch Explanation
+    const chartMsg = getChartMismatchMessage(data);
+    renderChartMismatchMessage(chartMsg);
 
     renderWithdrawalStrategy(data);
-
 
     renderProInsights(insights);
 
