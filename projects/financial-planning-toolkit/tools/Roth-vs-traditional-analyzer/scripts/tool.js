@@ -1722,6 +1722,8 @@ function computeProInsights(result) {
     let rothAtRetirement = result.rothAtRetirement ?? 0;
     let rothFirstWithdrawalAge = tradDepletionAge;
 
+    let sustainabilityFailureAge = null;
+
 
     let withdrawalStrategyLabel = "Traditional first (RMDs + spending), Roth last for flexibility and tax‑free growth.";
 
@@ -2172,7 +2174,7 @@ function computeProInsights(result) {
         depletionAge = portfolioDepletionAge;
 
         // ⭐ Define sustainabilityFailureAge safely
-        let sustainabilityFailureAge = null;
+        // let sustainabilityFailureAge = null;
 
         if (tradDepletionAge != null && rothDepletionAge != null) {
             sustainabilityFailureAge = Math.min(tradDepletionAge, rothDepletionAge);
@@ -2218,7 +2220,7 @@ function computeProInsights(result) {
             !simulationStrong && (
                 requiredWithdrawalRate > 0.045 ||     // near top of safe band
                 safeSpendingDelta > 0 ||              // above safe spending range
-                sustainabilityFailureAge < 95 ||                  // depletion inside longevity window
+                (sustainabilityFailureAge != null && sustainabilityFailureAge < 95) ||   // depletion inside longevity window
                 retirementReadiness < 80              // not catastrophic, but not robust
             )
         ) {
