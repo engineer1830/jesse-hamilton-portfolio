@@ -449,9 +449,14 @@ function findRothDepletionAge(engineYears) {
 }
 
 function findCombinedDepletionAge(engineYears) {
-    const year = engineYears.find(y => y.combinedBalance <= 0);
-    return year ? year.age : null;
+    const lastPositive = engineYears
+        .slice()
+        .reverse()
+        .find(y => y.combinedBalance > 0);
+
+    return lastPositive ? lastPositive.age : null;
 }
+
 
 
 /* -------------------------------------------------------
@@ -1121,17 +1126,26 @@ $("runBtn").addEventListener("click", async () => {
         lifeExpectancy,
         spendingNeed
     });
-
-    // ⭐ Override withdrawalReport depletion ages with deterministic truth
+    
     withdrawalReport.tradDepletionAge = tradDepletionAge;
     withdrawalReport.rothDepletionAge = rothDepletionAge;
-    withdrawalReport.combinedDepletionAge =
-        Math.max(tradDepletionAge || 0, rothDepletionAge || 0);
 
+    // ⭐ Portfolio depletion age = last year with a positive combined balance
+    const lastPositive = engineYears
+        .slice()
+        .reverse()
+        .find(y => y.combinedBalance > 0);
+
+    withdrawalReport.combinedDepletionAge = lastPositive
+        ? lastPositive.age
+        : null;
 
     // ⭐ Align yearsUntilDepletion with deterministic engine
     withdrawalReport.yearsUntilDepletion =
-        withdrawalReport.combinedDepletionAge - retirementAge;
+        withdrawalReport.combinedDepletionAge != null
+            ? withdrawalReport.combinedDepletionAge - retirementAge
+            : null;
+    
     
     console.log("AFTER OVERRIDE (immediately):", {
         tradDepletionAge,
@@ -2147,7 +2161,8 @@ function computeProInsights(result) {
         // ⭐ Portfolio depletion age = last account to hit zero
         const portfolioDepletionAge =
             result.withdrawalReport?.combinedDepletionAge ??
-            Math.max(tradDepletionAge || 0, rothDepletionAge || 0);
+            null; // no Math.max fallback here anymore
+    
 
         // ⭐ Years of retirement supported (not years from current age)
         const yearsOfRetirementSupported =
