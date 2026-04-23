@@ -3211,6 +3211,10 @@ function renderSummary(data) {
     // ⭐ Elevated Spending Messaging
     renderSpendingMessage(insights);
 
+
+    console.log("chartDiagnostic:", data.chartDiagnostic);
+    console.log("chartMsg:", getChartMismatchMessage(data));
+
     // ⭐  Chart Mismatch Explanation
     const chartMsg = getChartMismatchMessage(data);
     renderChartMismatchMessage(chartMsg);
