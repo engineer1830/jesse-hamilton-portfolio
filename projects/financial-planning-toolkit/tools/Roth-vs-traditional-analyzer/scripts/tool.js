@@ -1144,7 +1144,7 @@ $("runBtn").addEventListener("click", async () => {
     result.withdrawalReport = withdrawalReport;
 
     result.engineYears = engineYears;
-    
+
     console.log("withdrawalReport at summary:", result.withdrawalReport);
 
     // 3) compute insights
@@ -1153,7 +1153,7 @@ $("runBtn").addEventListener("click", async () => {
     result.chartDiagnostic = buildChartDepletionDiagnostic({
         tradDepletionAge: insights.tradDepletionAge,
         rothDepletionAge: insights.rothDepletionAge,
-        combinedDepletionAge: insights.depletionAge,
+        combinedDepletionAge: insights.portfolioDepletionAge,
         lifeExpectancy: result.lifeExpectancy ?? 95,
         currentAge: result.taxContext.currentAge,
         engineYears: result.engineYears
@@ -1163,7 +1163,6 @@ $("runBtn").addEventListener("click", async () => {
     const full = {
         ...result,
         ...insights,
-        withdrawalReport
     };
 
     // 5) render summary with the merged object
@@ -2145,20 +2144,29 @@ function computeProInsights(result) {
 
 
         // Use the same combined depletion age used everywhere else
-        const combinedAge =
+        // ⭐ Portfolio depletion age = last account to hit zero
+        const portfolioDepletionAge =
             result.withdrawalReport?.combinedDepletionAge ??
-            result.depletionAge ??
-            overallDepletionAge; // fallback
+            Math.max(tradDepletionAge || 0, rothDepletionAge || 0);
 
-        depletionAge = combinedAge;
-        yearsUntilDepletion = Math.max(0, combinedAge - currentAge);
+        // ⭐ Years of retirement supported (not years from current age)
+        const yearsOfRetirementSupported =
+            portfolioDepletionAge - taxContext.retirementAge;
+
+        // Assign to insights
+        // depletionAge = portfolioDepletionAge;
+
+        const sustainabilityFailureAge = Math.min(tradDepletionAge, rothDepletionAge);
+
+        yearsUntilDepletion = yearsOfRetirementSupported;
+
             
         
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
             retirementReadiness < 50 ||
             yearsUntilDepletion < 20 ||
-            depletionAge < 90;
+            sustainabilityFailureAge < 90;
 
         // Apply catastrophic overrides
         if (catastrophic) {
@@ -2186,7 +2194,7 @@ function computeProInsights(result) {
             !simulationStrong && (
                 requiredWithdrawalRate > 0.045 ||     // near top of safe band
                 safeSpendingDelta > 0 ||              // above safe spending range
-                depletionAge < 95 ||                  // depletion inside longevity window
+                sustainabilityFailureAge < 95 ||                  // depletion inside longevity window
                 retirementReadiness < 80              // not catastrophic, but not robust
             )
         ) {
@@ -2222,8 +2230,9 @@ function computeProInsights(result) {
         spendingNeedAtRetirement,
         requiredWithdrawalRate,
         spendingGap,
-        yearsUntilDepletion,
-        depletionAge,
+        portfolioDepletionAge: depletionAge,
+        sustainabilityFailureAge,
+        yearsOfRetirementSupported: yearsUntilDepletion,
         tradDepletionAge,
         rothDepletionAge,
         tradFirstYearWithdrawal,
@@ -3064,58 +3073,81 @@ function renderSummary(data) {
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
 
-    const combinedAge =
-        data.withdrawalReport?.combinedDepletionAge ??
-        data.depletionAge ??
-        null;
+    // ⭐ Combined depletion age (the ONLY depletion age we show)
+    const combinedAge = data.withdrawalReport?.combinedDepletionAge
+        ?? data.portfolioDepletionAge
+        ?? null;
+
+    setText(
+        "combined-depletion-age",
+        combinedAge ? `Age ${combinedAge}` : "N/A"
+    );
+        
 
     let html = `
-        <h3>Projected Depletion Age</h3>
-        <div class="depletion-component">
-            <p>Your total retirement assets are projected to run out around
-            <strong>age ${combinedAge}</strong>.</p>
-            <p>This is the earliest point at which your plan can no longer support
-            your spending level.</p>
+    <h3>Portfolio Depletion Age</h3>
+    <div class="depletion-component">
+        <p>Your total retirement portfolio is projected to be fully depleted around 
+        <strong>age ${combinedAge}</strong>.</p>
+
+        <p>This reflects the point at which <em>all</em> retirement accounts are exhausted, 
+        assuming your current spending pattern.</p>
+    </div>
+`;
+
+    if (data.sustainabilityFailureAge) {
+        html += `
+        <h3>Plan Stress Age</h3>
+        <div class="depletion-component warning">
+            <p>Your plan begins to show stress around
+                <strong>age ${data.sustainabilityFailureAge}</strong>, when the first account
+                is projected to deplete under your current withdrawal pattern.</p>
+
+            <p>This does <em>not</em> mean your portfolio is empty at that age —
+                only that your withdrawal strategy becomes less sustainable and may require
+                adjustments.</p>
         </div>
-    
-        <h3>Comparison</h3>
-        <table class="summary-table">
-            <tr><th>Metric</th><th>Roth</th><th>Traditional</th></tr>
-            <tr>
-                <td>Starting Balance</td>
-                <td>${formatCurrency(currentRoth)}</td>
-                <td>${formatCurrency(currentTrad)}</td>
-            </tr>
-            <tr>
-                <td>Balance at Retirement</td>
-                <td>${formatCurrency(rothFinal)}</td>
-                <td>${formatCurrency(traditionalFinal)}</td>
-            </tr>
-            <tr>
-                <td>Better Option</td>
-                <td colspan="2">${betterOption}</td>
-            </tr>
-            <tr>
-                <td>${diffLabel}</td>
-                <td colspan="2">${formatCurrency(Math.abs(difference))}</td>
-            </tr>
-            <tr>
-                <td>Assumed Growth Rate</td>
-                <td colspan="2">${formatPercent(assumedGrowthRate)}</td>
-            </tr>
-            <tr>
-                <td>Break-Even Tax Rate</td>
-                <td colspan="2">${formatPercent(breakEvenTaxRate)}</td>
-            </tr>
-            <tr>
-                <td>Mode</td>
-                <td colspan="2">${mode}</td>
-            </tr>
-        </table>
-
-
-           
     `;
+    }
+
+    html += `
+    <h3>Comparison</h3>
+    <table class="summary-table">
+        <tr><th>Metric</th><th>Roth</th><th>Traditional</th></tr>
+        <tr>
+            <td>Starting Balance</td>
+            <td>${formatCurrency(currentRoth)}</td>
+            <td>${formatCurrency(currentTrad)}</td>
+        </tr>
+        <tr>
+            <td>Balance at Retirement</td>
+            <td>${formatCurrency(rothFinal)}</td>
+            <td>${formatCurrency(traditionalFinal)}</td>
+        </tr>
+        <tr>
+            <td>Better Option</td>
+            <td colspan="2">${betterOption}</td>
+        </tr>
+        <tr>
+            <td>${diffLabel}</td>
+            <td colspan="2">${formatCurrency(Math.abs(difference))}</td>
+        </tr>
+        <tr>
+            <td>Assumed Growth Rate</td>
+            <td colspan="2">${formatPercent(assumedGrowthRate)}</td>
+        </tr>
+        <tr>
+            <td>Break-Even Tax Rate</td>
+            <td colspan="2">${formatPercent(breakEvenTaxRate)}</td>
+        </tr>
+        <tr>
+            <td>Mode</td>
+            <td colspan="2">${mode}</td>
+        </tr>
+    </table>
+`;
+
+
 
     if (retirementTaxDetails) {
         const t = retirementTaxDetails;
