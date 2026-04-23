@@ -1143,6 +1143,8 @@ $("runBtn").addEventListener("click", async () => {
     
     result.withdrawalReport = withdrawalReport;
 
+    result.engineYears = engineYears;
+    
     console.log("withdrawalReport at summary:", result.withdrawalReport);
 
     // 3) compute insights
