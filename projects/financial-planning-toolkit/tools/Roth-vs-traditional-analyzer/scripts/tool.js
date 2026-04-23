@@ -2169,19 +2169,27 @@ function computeProInsights(result) {
             portfolioDepletionAge - taxContext.retirementAge;
 
         // Assign to insights
-        // depletionAge = portfolioDepletionAge;
+        depletionAge = portfolioDepletionAge;
 
-        const sustainabilityFailureAge = Math.min(tradDepletionAge, rothDepletionAge);
+        // ⭐ Define sustainabilityFailureAge safely
+        let sustainabilityFailureAge = null;
+
+        if (tradDepletionAge != null && rothDepletionAge != null) {
+            sustainabilityFailureAge = Math.min(tradDepletionAge, rothDepletionAge);
+        } else if (tradDepletionAge != null) {
+            sustainabilityFailureAge = tradDepletionAge;
+        } else if (rothDepletionAge != null) {
+            sustainabilityFailureAge = rothDepletionAge;
+        }
 
         yearsUntilDepletion = yearsOfRetirementSupported;
 
-            
-        
+        // ⭐ Catastrophic logic
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
             retirementReadiness < 50 ||
             yearsUntilDepletion < 20 ||
-            sustainabilityFailureAge < 90;
+            (sustainabilityFailureAge != null && sustainabilityFailureAge < 90);
 
         // Apply catastrophic overrides
         if (catastrophic) {
@@ -2191,6 +2199,7 @@ function computeProInsights(result) {
             fivePercent.label = "Not Sustainable";
             fivePercent.endBalance = 0;
         }
+
 
         // ⭐ Simulation override: if the plan lasts to 120 with huge buffer, it's green
         const simulationStrong =
