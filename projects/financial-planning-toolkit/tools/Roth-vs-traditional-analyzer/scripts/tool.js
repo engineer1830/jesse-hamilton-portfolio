@@ -2235,6 +2235,15 @@ function computeProInsights(result) {
     };
 }
 
+data.chartDiagnostic = buildChartDepletionDiagnostic({
+    tradDepletionAge: data.tradDepletionAge,
+    rothDepletionAge: data.rothDepletionAge,
+    combinedDepletionAge: data.depletionAge,
+    lifeExpectancy: data.lifeExpectancy ?? 95,
+    currentAge: data.taxContext.currentAge,
+    engineYears: data.engineYears
+});
+
 function showSustainability(zone) {
     const pos = document.getElementById("sustain-positive");
     const yel = document.getElementById("sustain-yellow");
