@@ -855,7 +855,9 @@ $("runBtn").addEventListener("click", async () => {
         spendingNeed,
         retireTax,
         lifeExpectancy,
-        filingStatus
+        filingStatus,
+        inflationRate = 0.03
+
     }) {
         const engineYears = [];
         
@@ -867,12 +869,22 @@ $("runBtn").addEventListener("click", async () => {
         for (let i = 0; i < totalYears; i++) {
             const age = currentAge + i;
 
-            // Determine return for this year
-            let mu = expectedReturn;
+            // Determine REAL return for this year
+            const inflation = inflationRate; // user‑set or default inflation
+            let mu;
+
+            // If using glidepath, convert nominal → real
             if (useGlidepath && yearlyExpectedReturns) {
-                mu = yearlyExpectedReturns[i] ??
+                const nominal = yearlyExpectedReturns[i] ??
                     yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+
+                mu = (1 + nominal) / (1 + inflation) - 1;
             }
+            // Otherwise convert expectedReturn → real
+            else {
+                mu = (1 + expectedReturn) / (1 + inflation) - 1;
+            }
+
 
             // Contributions BEFORE retirement
             if (age < retirementAge) {
