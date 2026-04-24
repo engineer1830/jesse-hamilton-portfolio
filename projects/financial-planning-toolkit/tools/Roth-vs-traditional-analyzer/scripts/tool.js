@@ -463,6 +463,29 @@ function computeLongevityBufferScore(yearsUntilDepletion) {
     return Math.min(100, Math.max(0, Math.round(score)));
 }
 
+// ⭐ Spending Tier Classification
+function classifySpendingTier({ requiredWithdrawalRate, yearsUntilDepletion, catastrophic, bufferScore }) {
+    if (catastrophic) return "unsustainable";
+
+    // Classic safe: low withdrawal rate + long runway
+    if (requiredWithdrawalRate <= 0.04 && yearsUntilDepletion >= 35) {
+        return "classic-safe";
+    }
+
+    // Elevated but supported
+    if (requiredWithdrawalRate <= 0.05 && yearsUntilDepletion >= 25) {
+        return "elevated-supported";
+    }
+
+    // Aggressive but still viable
+    if (requiredWithdrawalRate <= 0.06 && yearsUntilDepletion >= 15) {
+        return "aggressive-but-supported";
+    }
+
+    // Otherwise unsustainable
+    return "unsustainable";
+}
+
 
 
 /* -------------------------------------------------------
