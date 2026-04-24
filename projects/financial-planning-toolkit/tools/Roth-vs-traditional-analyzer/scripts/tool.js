@@ -3306,8 +3306,17 @@ function renderSummary(data) {
     document.getElementById("guidance").innerHTML = guidanceHtml;
     
     // ⭐ Elevated Spending Messaging
-    renderSpendingMessage(insights);
+    // renderSpendingMessage(insights);
+    const spendingTierInput = {
+        requiredWithdrawalRate: insights.requiredWithdrawalRate,
+        yearsUntilDepletion: insights.yearsOfRetirementSupported,
+        depletionAge: insights.portfolioDepletionAge,
+        catastrophic: insights.catastrophic,
+        bufferScore: insights.bufferScore
+    };
 
+    renderSpendingMessage(spendingTierInput);
+    
 
     console.log("chartDiagnostic:", data.chartDiagnostic);
     console.log("chartMsg:", getChartMismatchMessage(data));
