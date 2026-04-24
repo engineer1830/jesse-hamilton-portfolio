@@ -3244,6 +3244,10 @@ function renderSummary(data) {
 
     console.log("ZONE AT SUMMARY:", insights.zone);
 
+    document.getElementById("sustain-positive").style.display = "none";
+    document.getElementById("sustain-yellow").style.display = "none";
+    document.getElementById("sustain-negative").style.display = "none";
+
     showSustainability(insights.zone);
 
     const section = document.getElementById("sustainability-section");
@@ -3252,6 +3256,7 @@ function renderSummary(data) {
     void section.offsetHeight;
 
     if (insights.zone === "red") {
+        // RED — only negative renderer runs
         renderNegativeSustainability({
             depletionAge: insights.portfolioDepletionAge,
             yearsLeft: insights.yearsOfRetirementSupported,
@@ -3261,9 +3266,12 @@ function renderSummary(data) {
             result: data
         });
 
-        renderSpendingMessage(insights); 
+        renderSpendingMessage(insights);
     }
     else if (insights.zone === "yellow") {
+        // YELLOW — explicitly hide negative card
+        document.getElementById("sustain-negative").style.display = "none";
+
         renderYellowSustainability({
             depletionAge: insights.portfolioDepletionAge,
             yearsLeft: insights.yearsOfRetirementSupported,
@@ -3273,10 +3281,12 @@ function renderSummary(data) {
             result: data
         });
 
-        renderSpendingMessage(insights);  
+        renderSpendingMessage(insights);
     }
-    
     else {
+        // GREEN — explicitly hide negative card
+        document.getElementById("sustain-negative").style.display = "none";
+
         renderPositiveSustainability({
             depletionAge: insights.portfolioDepletionAge,
             yearsLeft: insights.yearsOfRetirementSupported,
@@ -3287,8 +3297,9 @@ function renderSummary(data) {
             result: data
         });
 
-        renderSpendingMessage(insights);   // ⭐ Add this
+        renderSpendingMessage(insights);
     }
+    
     
 
     const diffLabel =
