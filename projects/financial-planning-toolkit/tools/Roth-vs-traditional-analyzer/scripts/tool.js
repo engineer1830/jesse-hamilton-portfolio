@@ -457,6 +457,12 @@ function findCombinedDepletionAge(engineYears) {
     return lastPositive ? lastPositive.age : null;
 }
 
+// ⭐ Longevity Buffer Score (0–100)
+function computeLongevityBufferScore(yearsUntilDepletion) {
+    const score = (yearsUntilDepletion / 40) * 100;
+    return Math.min(100, Math.max(0, Math.round(score)));
+}
+
 
 
 /* -------------------------------------------------------
