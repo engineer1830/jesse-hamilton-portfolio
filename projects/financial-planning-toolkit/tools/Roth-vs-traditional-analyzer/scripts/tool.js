@@ -3242,6 +3242,8 @@ function renderSummary(data) {
     // ⭐ FIXED: insights must be based on data
     const insights = computeProInsights(data);
 
+    console.log("ZONE AT SUMMARY:", insights.zone);
+
     showSustainability(insights.zone);
 
     const section = document.getElementById("sustainability-section");
