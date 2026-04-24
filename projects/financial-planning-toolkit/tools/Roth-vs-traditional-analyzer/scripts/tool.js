@@ -3120,6 +3120,38 @@ function renderSummary(data) {
         tradAtRetirement
     } = data;
 
+    // ⭐ FIXED: insights must be based on data
+    const insights = computeProInsights(data);
+
+    showSustainability(insights.zone);
+
+    if (insights.zone === "red") {
+        renderNegativeSustainability({
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingGap: insights.spendingGap,
+            result: data
+        });
+    } else if (insights.zone === "yellow") {
+        renderYellowSustainability({
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingGap: insights.spendingGap,
+            result: data
+        });
+    } else {
+        renderPositiveSustainability({
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
+            withdrawalRate: insights.requiredWithdrawalRate,
+            spendingGap: insights.spendingGap,
+            successRate: insights.retirementReadiness,
+            result: data
+        });
+    }
+    
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
 
@@ -3260,40 +3292,7 @@ function renderSummary(data) {
     `;
 
     document.getElementById("guidance").innerHTML = guidanceHtml;
-
-    // ⭐ FIXED: insights must be based on data
-    const insights = computeProInsights(data);
-
-    showSustainability(insights.zone);
-
-    if (insights.zone === "red") {
-        renderNegativeSustainability({
-            depletionAge: insights.portfolioDepletionAge,
-            yearsLeft: insights.yearsOfRetirementSupported,
-            withdrawalRate: insights.requiredWithdrawalRate,
-            spendingGap: insights.spendingGap,
-            result: data
-        });
-    } else if (insights.zone === "yellow") {
-        renderYellowSustainability({
-            depletionAge: insights.portfolioDepletionAge,
-            yearsLeft: insights.yearsOfRetirementSupported,
-            withdrawalRate: insights.requiredWithdrawalRate,
-            spendingGap: insights.spendingGap,
-            result: data
-        });
-    } else {
-        renderPositiveSustainability({
-            depletionAge: insights.portfolioDepletionAge,
-            yearsLeft: insights.yearsOfRetirementSupported,
-            withdrawalRate: insights.requiredWithdrawalRate,
-            spendingGap: insights.spendingGap,
-            successRate: insights.retirementReadiness,
-            result: data
-        });
-    }
     
-
     // ⭐ Elevated Spending Messaging
     renderSpendingMessage(insights);
 
