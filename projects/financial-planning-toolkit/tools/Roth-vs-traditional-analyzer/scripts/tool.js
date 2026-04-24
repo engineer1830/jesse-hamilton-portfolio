@@ -2750,6 +2750,15 @@ function renderSpendingMessage(insights) {
     const titleEl = document.getElementById(titleId);
     const listEl = document.getElementById(listId);
 
+    // Hide all spending message blocks first
+    ["green", "yellow", "red"].forEach(z => {
+        const t = document.getElementById(`spending-title-${z}`);
+        const l = document.getElementById(`spending-bullets-${z}`);
+        if (t) t.style.display = "none";
+        if (l) l.style.display = "none";
+    });
+
+
     if (!titleEl || !listEl) return;
 
     // Reset tier classes
@@ -2783,6 +2792,10 @@ function renderSpendingMessage(insights) {
         li.textContent = b;
         listEl.appendChild(li);
     });
+
+    titleEl.style.display = "block";
+    listEl.style.display = "block";
+
 }
 
 // ⭐ Messaging: Chart Mismatch — Traditional depletes early
