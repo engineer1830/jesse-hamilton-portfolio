@@ -3240,30 +3240,31 @@ function renderSummary(data) {
 
     if (insights.zone === "red") {
         renderNegativeSustainability({
-            depletionAge: insights.depletionAge,
-            yearsLeft: insights.yearsUntilDepletion,
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
             result: data
         });
     } else if (insights.zone === "yellow") {
         renderYellowSustainability({
-            depletionAge: insights.depletionAge,
-            yearsLeft: insights.yearsUntilDepletion,
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
             result: data
         });
     } else {
         renderPositiveSustainability({
-            depletionAge: insights.depletionAge,
-            yearsLeft: insights.yearsUntilDepletion,
+            depletionAge: insights.portfolioDepletionAge,
+            yearsLeft: insights.yearsOfRetirementSupported,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
             successRate: insights.retirementReadiness,
             result: data
         });
     }
+    
 
     // ⭐ Elevated Spending Messaging
     renderSpendingMessage(insights);
