@@ -2330,10 +2330,11 @@ function showSustainability(zone) {
         neg.style.display = "block";
     }
 
-    // ⭐ Force Chrome to repaint the entire section
+    // Force repaint (optional)
     const section = document.getElementById("sustainability-section");
     void section.offsetHeight;
 }
+
 
 function renderWithdrawalStrategy(data) {
     // Strategy label
@@ -3195,6 +3196,14 @@ function renderSummary(data) {
 
     showSustainability(insights.zone);
 
+    const section = document.getElementById("sustainability-section");
+
+    // ⭐ Clear old content
+    section.innerHTML = "";
+
+    // Force repaint (optional)
+    void section.offsetHeight;
+
     if (insights.zone === "red") {
         renderNegativeSustainability({
             depletionAge: insights.portfolioDepletionAge,
@@ -3260,10 +3269,9 @@ function renderSummary(data) {
     </div>
 `;
 
-    // ⭐ First account depletion = true stress age
     const stressAge = Math.min(
-        data.tradDepletionAge ?? Infinity,
-        data.rothDepletionAge ?? Infinity
+        data.withdrawalReport?.tradDepletionAge ?? Infinity,
+        data.withdrawalReport?.rothDepletionAge ?? Infinity
     );
 
     if (Number.isFinite(stressAge)) {
@@ -3278,6 +3286,7 @@ function renderSummary(data) {
         </div>
     `;
     }
+
 
 
     html += `
