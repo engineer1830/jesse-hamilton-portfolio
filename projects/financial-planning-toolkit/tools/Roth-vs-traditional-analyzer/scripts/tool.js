@@ -2229,6 +2229,8 @@ function computeProInsights(result) {
 
     }
 
+    const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
+
 
     return {
         diversificationScore,
@@ -2275,6 +2277,7 @@ function computeProInsights(result) {
         tradAtRetirement,
         rothFirstWithdrawalAge,
         taxContext: result.taxContext,
+        bufferScore,
 
     };
 }
@@ -2571,7 +2574,9 @@ function messageClassicSafe(result) {
 
 // ⭐ Messaging: Elevated Supported (5%–7.5%)
 function messageElevatedSupported(result) {
-    const buffer = computeLongevityBufferScore(result.yearsUntilDepletion);
+    const buffer = Number.isFinite(result.bufferScore)
+        ? result.bufferScore
+        : 0;
 
     return {
         title: "Elevated Spending — Supported by Your Portfolio",
@@ -2584,9 +2589,12 @@ function messageElevatedSupported(result) {
     };
 }
 
+
 // ⭐ Messaging: Aggressive but Supported (>7.5% with strong buffer)
 function messageAggressiveSupported(result) {
-    const buffer = computeLongevityBufferScore(result.yearsUntilDepletion);
+    const buffer = Number.isFinite(result.bufferScore)
+        ? result.bufferScore
+        : 0;
 
     return {
         title: "High Lifestyle Spending — Supported for Now",
@@ -2598,6 +2606,7 @@ function messageAggressiveSupported(result) {
         ]
     };
 }
+
 
 // ⭐ Messaging: Unsustainable
 function messageUnsustainable(result) {
@@ -2634,7 +2643,10 @@ function renderSpendingMessage(insights) {
     const zone = insights.zone;
 
     const tier = classifySpendingTier(insights);
-    const buffer = computeLongevityBufferScore(insights.yearsUntilDepletion);
+
+    const buffer = Number.isFinite(insights.bufferScore)
+        ? insights.bufferScore
+        : 0;
 
     const titleId = `spending-title-${zone}`;
     const listId = `spending-bullets-${zone}`;
@@ -3151,7 +3163,7 @@ function renderSummary(data) {
             result: data
         });
     }
-    
+
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
 
