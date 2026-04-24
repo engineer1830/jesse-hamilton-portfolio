@@ -3198,9 +3198,6 @@ function renderSummary(data) {
 
     const section = document.getElementById("sustainability-section");
 
-    // ⭐ Clear old content
-    section.innerHTML = "";
-
     // Force repaint (optional)
     void section.offsetHeight;
 
