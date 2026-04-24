@@ -1,0 +1,167 @@
+<div class="inputs-card">
+    <h2 class="inputs-title">Plan Inputs</h2>
+    <p class="inputs-subtitle">
+        Enter your current balances, assumptions, and retirement timing to analyze your plan.
+    </p>
+
+    <!-- 1. Account Balances & Contributions -->
+    <section class="inputs-section">
+        <h3 class="inputs-section-title">Account Balances & Contributions</h3>
+
+        <div class="inputs-grid">
+            <label>
+                <span>Current Roth Balance</span>
+                <input type="number" id="currentRoth" />
+                <small>After‑tax Roth IRA / 401(k) balance today.</small>
+            </label>
+
+            <label>
+                <span>Current Traditional Balance</span>
+                <input type="number" id="currentTrad" />
+                <small>Pre‑tax IRA / 401(k) balance today.</small>
+            </label>
+
+            <label>
+                <span>Annual Contribution</span>
+                <input type="number" id="annualContribution" />
+                <small>Total annual contributions across retirement accounts.</small>
+            </label>
+        </div>
+    </section>
+
+    <!-- 2. Tax Assumptions -->
+    <section class="inputs-section">
+        <h3 class="inputs-section-title">Tax Assumptions</h3>
+
+        <div class="inputs-grid">
+            <label>
+                <span>Current Tax Rate (%)</span>
+                <input type="number" id="currentTaxRate" />
+                <small>Approximate marginal tax rate on new contributions.</small>
+            </label>
+
+            <label>
+                <span>Retirement Tax Rate (%)</span>
+                <input type="number" id="retirementTaxRate" />
+                <small>Used if auto estimate is turned off.</small>
+            </label>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="autoRetireTax" />
+                <span>Estimate retirement tax rate automatically</span>
+            </label>
+
+            <label>
+                <span>Filing Status</span>
+                <select id="filingStatus">
+                    <option value="single">Single</option>
+                    <option value="married">Married</option>
+                </select>
+            </label>
+        </div>
+    </section>
+
+    <!-- 3. Investment Assumptions -->
+    <section class="inputs-section">
+        <h3 class="inputs-section-title">Investment Assumptions</h3>
+
+        <div class="inputs-grid">
+            <label>
+                <span>Expected Growth Rate (%)</span>
+                <input type="number" id="expectedGrowthRate" />
+                <small>Used only if no ticker or portfolio is provided.</small>
+            </label>
+
+            <label>
+                <span>Optional Single Ticker</span>
+                <input type="text" id="ticker" placeholder="e.g., VTI" />
+                <small>Leave blank to use the assumed growth rate.</small>
+            </label>
+
+            <label>
+                <span>Optional Portfolio</span>
+                <input type="text" id="portfolio" placeholder="e.g., VTI:60,VXUS:20,BND:20" />
+                <small>Overrides single ticker if provided.</small>
+            </label>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="useGlidepath" />
+                <span>Use lifecycle glidepath (age‑based allocation)</span>
+            </label>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="useCustomVol" />
+                <span>Use custom volatility</span>
+            </label>
+
+            <label>
+                <span>Monte Carlo Simulations</span>
+                <input type="number" id="monteCarloRuns" />
+                <small>Set &gt; 0 to run Monte Carlo analysis.</small>
+            </label>
+        </div>
+    </section>
+
+    <!-- 4. Retirement Timing -->
+    <section class="inputs-section">
+        <h3 class="inputs-section-title">Retirement Timing</h3>
+
+        <div class="inputs-grid">
+            <label>
+                <span>Current Age</span>
+                <input type="number" id="currentAge" />
+            </label>
+
+            <label>
+                <span>Planned Retirement Age</span>
+                <input type="number" id="retirementAge" />
+            </label>
+
+            <label>
+                <span>Planned Work Stoppage Age</span>
+                <input type="number" id="workStopAge" />
+                <small>If different from retirement age.</small>
+            </label>
+        </div>
+    </section>
+
+    <!-- 5. Social Security & Spending -->
+    <section class="inputs-section">
+        <h3 class="inputs-section-title">Social Security & Spending</h3>
+
+        <div class="inputs-grid">
+            <label>
+                <span>Social Security Annual Benefit</span>
+                <input type="number" id="ssAnnual" />
+                <small>Use your statement estimate in today’s dollars.</small>
+            </label>
+
+            <label>
+                <span>Claiming Age</span>
+                <select id="claimAge">
+                    <option value="62">62</option>
+                    <option value="65">65</option>
+                    <option value="67">FRA (67)</option>
+                    <option value="70">70</option>
+                </select>
+            </label>
+
+            <label>
+                <span>Annual Spending Need at Retirement</span>
+                <input type="number" id="spendingNeed" />
+                <small>Optional, but required for sustainability analysis.</small>
+            </label>
+        </div>
+    </section>
+
+    <!-- 6. Analyze -->
+    <section class="inputs-section inputs-footer">
+        <div class="assumption-summary">
+            Using: <span id="assumptionSummaryText">
+                lifecycle glidepath • auto tax estimate • real‑market returns
+            </span>
+        </div>
+        <button id="analyzeButton" class="analyze-button">Analyze Plan</button>
+    </section>
+</div>
+  
