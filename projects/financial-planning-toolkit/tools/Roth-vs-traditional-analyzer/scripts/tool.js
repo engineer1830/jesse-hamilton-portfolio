@@ -2370,10 +2370,12 @@ function renderWithdrawalStrategy(data) {
         formatCurrency(data.rothFirstYearWithdrawal)
     );
 
-    // RMD snapshots
-    setText("trad-rmd-73", formatCurrency(data.tradRmdAt73));
-    setText("trad-rmd-80", formatCurrency(data.tradRmdAt80));
-    setText("trad-rmd-90", formatCurrency(data.tradRmdAt90));
+    // ⭐ Use deterministic engine RMDs
+    const rmds = computeRmdSnapshots(data.engineYears);
+
+    setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
+    setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
+    setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
 
     // Required withdrawal rate
     setText(
@@ -3202,7 +3204,10 @@ function renderSummary(data) {
             bufferScore: insights.bufferScore,
             result: data
         });
-    } else if (insights.zone === "yellow") {
+
+        renderSpendingMessage(insights); 
+    }
+    else if (insights.zone === "yellow") {
         renderYellowSustainability({
             depletionAge: insights.portfolioDepletionAge,
             yearsLeft: insights.yearsOfRetirementSupported,
@@ -3211,7 +3216,11 @@ function renderSummary(data) {
             bufferScore: insights.bufferScore,
             result: data
         });
-    } else {
+
+        renderSpendingMessage(insights);  
+    }
+    
+    else {
         renderPositiveSustainability({
             depletionAge: insights.portfolioDepletionAge,
             yearsLeft: insights.yearsOfRetirementSupported,
@@ -3221,7 +3230,10 @@ function renderSummary(data) {
             bufferScore: insights.bufferScore,
             result: data
         });
+
+        renderSpendingMessage(insights);   // ⭐ Add this
     }
+    
 
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -3248,20 +3260,25 @@ function renderSummary(data) {
     </div>
 `;
 
-    if (data.sustainabilityFailureAge) {
+    // ⭐ First account depletion = true stress age
+    const stressAge = Math.min(
+        data.tradDepletionAge ?? Infinity,
+        data.rothDepletionAge ?? Infinity
+    );
+
+    if (Number.isFinite(stressAge)) {
         html += `
         <h3>Plan Stress Age</h3>
         <div class="depletion-component warning">
             <p>Your plan begins to show stress around
-                <strong>age ${data.sustainabilityFailureAge}</strong>, when the first account
-                is projected to deplete under your current withdrawal pattern.</p>
+                <strong>age ${stressAge}</strong>, when the first account is projected to deplete under your current withdrawal pattern.</p>
 
             <p>This does <em>not</em> mean your portfolio is empty at that age —
-                only that your withdrawal strategy becomes less sustainable and may require
-                adjustments.</p>
+                only that your withdrawal strategy becomes less sustainable and may require adjustments.</p>
         </div>
     `;
     }
+
 
     html += `
     <h3>Comparison</h3>
