@@ -2158,6 +2158,10 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
+        // ⭐ Portfolio depletion age = last account to hit zero
+        const portfolioDepletionAge =
+            result.withdrawalReport?.combinedDepletionAge ?? null;
+
         // ⭐ Assign to insights
         depletionAge = portfolioDepletionAge;
 
