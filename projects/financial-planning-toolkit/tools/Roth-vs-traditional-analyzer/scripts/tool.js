@@ -2158,24 +2158,16 @@ function computeProInsights(result) {
             readinessThreshold: 500000
         });
 
-
-        // Use the same combined depletion age used everywhere else
-        // ⭐ Portfolio depletion age = last account to hit zero
-        const portfolioDepletionAge =
-            result.withdrawalReport?.combinedDepletionAge ??
-            null; // no Math.max fallback here anymore
-    
-
-        // ⭐ Years of retirement supported (not years from current age)
-        const yearsOfRetirementSupported =
-            portfolioDepletionAge - taxContext.retirementAge;
-
-        // Assign to insights
+        // ⭐ Assign to insights
         depletionAge = portfolioDepletionAge;
 
-        // ⭐ Define sustainabilityFailureAge safely
-        // let sustainabilityFailureAge = null;
+        // ⭐ Years of retirement supported (null‑safe)
+        const yearsOfRetirementSupported =
+            portfolioDepletionAge != null
+                ? portfolioDepletionAge - taxContext.retirementAge
+                : null;
 
+        // ⭐ Define sustainabilityFailureAge safely
         if (tradDepletionAge != null && rothDepletionAge != null) {
             sustainabilityFailureAge = Math.min(tradDepletionAge, rothDepletionAge);
         } else if (tradDepletionAge != null) {
@@ -2185,7 +2177,7 @@ function computeProInsights(result) {
         }
 
         yearsUntilDepletion = yearsOfRetirementSupported;
-
+        
         // ⭐ Catastrophic logic
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
