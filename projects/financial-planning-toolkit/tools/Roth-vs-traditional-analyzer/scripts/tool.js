@@ -2281,9 +2281,6 @@ function computeProInsights(result) {
             zone = "yellow";
         }
         
-        insights.zone = zone;
-
-
     }
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
