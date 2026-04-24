@@ -3169,6 +3169,7 @@ function renderSummary(data) {
             yearsLeft: insights.yearsOfRetirementSupported,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
+            bufferScore: insights.bufferScore,
             result: data
         });
     } else if (insights.zone === "yellow") {
@@ -3177,6 +3178,7 @@ function renderSummary(data) {
             yearsLeft: insights.yearsOfRetirementSupported,
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
+            bufferScore: insights.bufferScore,
             result: data
         });
     } else {
@@ -3186,6 +3188,7 @@ function renderSummary(data) {
             withdrawalRate: insights.requiredWithdrawalRate,
             spendingGap: insights.spendingGap,
             successRate: insights.retirementReadiness,
+            bufferScore: insights.bufferScore,
             result: data
         });
     }
