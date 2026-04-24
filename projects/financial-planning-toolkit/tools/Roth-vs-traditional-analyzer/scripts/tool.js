@@ -2281,6 +2281,7 @@ function computeProInsights(result) {
             zone = "yellow";
         }
         
+        insights.zone = zone;
 
 
     }
