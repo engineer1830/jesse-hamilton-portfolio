@@ -2611,15 +2611,22 @@ function buildChartDepletionDiagnostic({
 
 // ⭐ Messaging: Classic Safe (≤5%)
 function messageClassicSafe(result) {
+    const buffer = Number.isFinite(result.bufferScore)
+        ? result.bufferScore
+        : 0;
+
     return {
-        title: "Your Plan Appears Sustainable",
+        title: "Sustainable Spending Level",
         bullets: [
-            "Your withdrawal rate is within the traditional 4–5% guideline.",
-            `Your portfolio is projected to last through age ${result.depletionAge}.`,
-            "Your savings remain stable or continue to grow throughout retirement."
+            "Your withdrawal rate is within the classic 4% guideline, a historically sustainable range.",
+            `Your portfolio is projected to remain funded for approximately ${result.yearsUntilDepletion} years (to about age ${result.depletionAge}).`,
+            `Your longevity buffer score (${buffer}) indicates strong resilience against market volatility and unexpected expenses.`,
+            `Your withdrawal strategy (“${result.withdrawalStrategyLabel}”) helps extend portfolio longevity by sequencing withdrawals tax‑efficiently.`
         ]
     };
 }
+
+
 
 // ⭐ Messaging: Elevated Supported (5%–7.5%)
 function messageElevatedSupported(result) {
