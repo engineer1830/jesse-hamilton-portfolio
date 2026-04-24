@@ -662,6 +662,12 @@ body
     color: #333;
 }
 
+.buffer-safe
+{
+    background-color: #2ecc71;
+    color: white;
+}
+
 /* Strong (80–100) */
 .buffer-strong
 {
@@ -681,16 +687,14 @@ body
 /* Warning (40–59) */
 .buffer-warning
 {
-    background: #c97a00;
-    /* amber */
-    color: white;
+    background-color: #f1c40f;
+    color: black;
 }
 
 /* Danger (0–39) */
 .buffer-danger
 {
-    background: #b00020;
-    /* red */
+    background-color: #e74c3c;
     color: white;
 }
 

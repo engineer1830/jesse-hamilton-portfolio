@@ -2376,55 +2376,71 @@ function safeNumber(n) {
     return Number.isFinite(n) ? n : null;
 }
 
-function renderPositiveSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, successRate, result }) {
-
+function renderPositiveSustainability({
+    depletionAge,
+    yearsLeft,
+    withdrawalRate,
+    spendingGap,
+    successRate,
+    bufferScore,
+    result
+}) {
     const dAge = safeNumber(depletionAge);
     const yLeft = safeNumber(yearsLeft);
     const wRate = safeNumber(withdrawalRate);
     const sGap = safeNumber(spendingGap);
     const sRate = safeNumber(successRate);
+    const bScore = safeNumber(bufferScore);
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
     // Title
     setText("positive-title", "Your Plan Appears Sustainable");
 
-    // Subtitle (now using safe values)
+    // Subtitle
     setText(
         "positive-subtitle",
-        dAge != null
-            ? `Your savings are projected to last through age ${dAge}, providing a strong buffer for longevity and market variability.`
-            : "Your savings are projected to last throughout retirement under the current assumptions."
+        dAge != null && yLeft != null
+            ? `Your portfolio is projected to last until age ${dAge} (about ${yLeft} years).`
+            : "Your portfolio is projected to remain sustainable under current assumptions."
     );
 
-    // Key metrics (now using safe values)
+    // Confidence bar (retirement readiness)
+    const bar = document.getElementById("sustain-bar-fill");
+    bar.style.width = `${Math.min(Math.max(sRate, 0), 100)}%`;
+
+    // Key metrics
     setText("positive-withdrawal-rate", wRate != null ? formatPercent(wRate) : "—");
     setText("positive-withdrawal-need", sGap != null ? formatCurrency(sGap) : "—");
     setText("positive-ss-income", formatCurrency(ss));
 
-    // Confidence bar (safe)
-    const bar = document.getElementById("sustain-bar-fill");
-    bar.style.width = `${Math.min(Math.max(sRate ?? 0, 0), 100)}%`;
-
-    // Why this result occurred
-    setText("positive-why-1", "Your projected depletion age provides a strong longevity buffer.");
-    setText("positive-why-2", "Your withdrawal need is within a range your portfolio can support.");
-    setText("positive-why-3", "Your savings continue to grow or remain stable throughout retirement.");
+    // Longevity buffer badge (if you want it here)
+    if (document.getElementById("positive-buffer-score")) {
+        setText("positive-buffer-score", bScore != null ? bScore : "—");
+    }
 }
 
-function renderYellowSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
 
+function renderYellowSustainability({
+    depletionAge,
+    yearsLeft,
+    withdrawalRate,
+    spendingGap,
+    bufferScore,
+    result
+}) {
     const dAge = safeNumber(depletionAge);
     const yLeft = safeNumber(yearsLeft);
     const wRate = safeNumber(withdrawalRate);
     const sGap = safeNumber(spendingGap);
+    const bScore = safeNumber(bufferScore);
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
     // Title
     setText("yellow-title", "Your Plan Is Workable, But Sensitive to Market Conditions");
 
-    // Subtitle (safe)
+    // Subtitle
     setText(
         "yellow-subtitle",
         dAge != null && yLeft != null
@@ -2432,10 +2448,22 @@ function renderYellowSustainability({ depletionAge, yearsLeft, withdrawalRate, s
             : "Your savings may be depleted during retirement, and the plan has limited buffer for volatility or higher‑than‑expected spending."
     );
 
-    // Key metrics (safe)
+    // Key metrics
     setText("yellow-withdrawal-rate", wRate != null ? formatPercent(wRate) : "—");
     setText("yellow-spending-gap", sGap != null ? formatCurrency(sGap) : "—");
     setText("yellow-ss-income", formatCurrency(ss));
+
+    // Longevity buffer badge (if present in HTML)
+    if (document.getElementById("yellow-buffer-score")) {
+        setText("yellow-buffer-score", bScore != null ? bScore : "—");
+
+        const badge = document.getElementById("yellow-buffer-score");
+        badge.classList.remove("buffer-danger", "buffer-warning", "buffer-safe");
+
+        if (bScore >= 80) badge.classList.add("buffer-safe");
+        else if (bScore >= 60) badge.classList.add("buffer-warning");
+        else badge.classList.add("buffer-danger");
+    }
 
     // Why this result occurred
     setText("yellow-why-1", "Your withdrawal need is above the typical safe spending range.");
@@ -2444,19 +2472,27 @@ function renderYellowSustainability({ depletionAge, yearsLeft, withdrawalRate, s
     setText("yellow-why-4", "Your projected depletion age leaves less room for longevity or market shocks.");
 }
 
-function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate, spendingGap, result }) {
 
+function renderNegativeSustainability({
+    depletionAge,
+    yearsLeft,
+    withdrawalRate,
+    spendingGap,
+    bufferScore,
+    result
+}) {
     const dAge = safeNumber(depletionAge);
     const yLeft = safeNumber(yearsLeft);
     const wRate = safeNumber(withdrawalRate);
     const sGap = safeNumber(spendingGap);
+    const bScore = safeNumber(bufferScore);
 
     const ss = result.retirementTaxDetails?.ssAtClaimAge ?? 0;
 
     // Title
     setText("catastrophic-title", "Your Current Plan Needs Adjustment");
 
-    // Subtitle (safe)
+    // Subtitle
     setText(
         "catastrophic-subtitle",
         dAge != null && yLeft != null
@@ -2464,10 +2500,22 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
             : "Your savings may be depleted during retirement, indicating a high risk of running out of money."
     );
 
-    // Key metrics (safe)
+    // Key metrics
     setText("catastrophic-withdrawal-rate", wRate != null ? formatPercent(wRate) : "—");
     setText("catastrophic-spending-gap", sGap != null ? formatCurrency(sGap) : "—");
     setText("catastrophic-ss-income", formatCurrency(ss));
+
+    // Longevity buffer badge (if present in HTML)
+    if (document.getElementById("catastrophic-buffer-score")) {
+        setText("catastrophic-buffer-score", bScore != null ? bScore : "—");
+
+        const badge = document.getElementById("catastrophic-buffer-score");
+        badge.classList.remove("buffer-danger", "buffer-warning", "buffer-safe");
+
+        if (bScore >= 80) badge.classList.add("buffer-safe");
+        else if (bScore >= 60) badge.classList.add("buffer-warning");
+        else badge.classList.add("buffer-danger");
+    }
 
     // Why this result occurred
     setText("catastrophic-why-1", "Your withdrawal rate exceeds sustainable levels.");
@@ -2476,34 +2524,6 @@ function renderNegativeSustainability({ depletionAge, yearsLeft, withdrawalRate,
     setText("catastrophic-why-4", "Your plan may not withstand typical market variability.");
 }
 
-
-// ⭐ Longevity Buffer Score (0–100)
-function computeLongevityBufferScore(yearsUntilDepletion) {
-    const score = (yearsUntilDepletion / 40) * 100;
-    return Math.min(100, Math.max(0, Math.round(score)));
-}
-
-// ⭐ Spending Tier Classification
-function classifySpendingTier(result) {
-    const w = result.requiredWithdrawalRate; // decimal
-    const y = result.yearsUntilDepletion;
-    const catastrophic = result.catastrophic;
-    const buffer = computeLongevityBufferScore(y);
-
-    if (w <= 0.05) {
-        return "classic-safe";
-    }
-
-    if (w > 0.05 && w <= 0.075 && buffer >= 60 && !catastrophic) {
-        return "elevated-supported";
-    }
-
-    if (w > 0.075 && buffer >= 80 && !catastrophic) {
-        return "aggressive-but-supported";
-    }
-
-    return "unsustainable";
-}
 
 // ⭐ Diagnostic: Detect Chart vs Depletion Mismatch
 function buildChartDepletionDiagnostic({
