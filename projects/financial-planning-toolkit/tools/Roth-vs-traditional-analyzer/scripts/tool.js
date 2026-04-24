@@ -2733,10 +2733,17 @@ function getSpendingMessage(result) {
 // ⭐ Render Spending Message with css tiering capability
 
 function renderSpendingMessage(insights) {
-    const msg = getSpendingMessage(insights);
     const zone = insights.zone;
 
-    const tier = classifySpendingTier(insights);
+    // Force spending tier to follow sustainability zone
+    let msg;
+    if (zone === "green") {
+        msg = messageClassicSafe(insights);
+    } else if (zone === "yellow") {
+        msg = messageAggressiveSupported(insights);
+    } else {
+        msg = messageUnsustainable(insights);
+    }
 
     const buffer = Number.isFinite(insights.bufferScore)
         ? insights.bufferScore
@@ -2756,28 +2763,26 @@ function renderSpendingMessage(insights) {
         if (l) l.style.display = "none";
     });
 
-
     if (!titleEl || !listEl) return;
 
     // Reset tier classes
-    titleEl.classList.remove("tier-classic", "tier-elevated", "tier-aggressive", "tier-unsustainable");
+    titleEl.classList.remove(
+        "tier-classic",
+        "tier-elevated",
+        "tier-aggressive",
+        "tier-unsustainable"
+    );
 
-    // Apply tier class
-    switch (tier) {
-        case "classic-safe":
-            titleEl.classList.add("tier-classic");
-            break;
-        case "elevated-supported":
-            titleEl.classList.add("tier-elevated");
-            break;
-        case "aggressive-but-supported":
-            titleEl.classList.add("tier-aggressive");
-            break;
-        default:
-            titleEl.classList.add("tier-unsustainable");
+    // ⭐ Apply tier class based on zone
+    if (zone === "green") {
+        titleEl.classList.add("tier-classic");
+    } else if (zone === "yellow") {
+        titleEl.classList.add("tier-aggressive");
+    } else {
+        titleEl.classList.add("tier-unsustainable");
     }
 
-    // ⭐ Write title + buffer badge
+    // Write title + buffer badge
     titleEl.innerHTML = `
         ${msg.title}
         <span class="buffer-badge ${getBufferClass(buffer)}">${buffer}</span>
@@ -2793,8 +2798,8 @@ function renderSpendingMessage(insights) {
 
     titleEl.style.display = "block";
     listEl.style.display = "block";
-
 }
+
 
 // ⭐ Messaging: Chart Mismatch — Traditional depletes early
 function messageChartTradEarly(result) {
