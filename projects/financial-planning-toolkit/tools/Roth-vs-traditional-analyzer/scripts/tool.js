@@ -486,6 +486,33 @@ function classifySpendingTier({ requiredWithdrawalRate, yearsUntilDepletion, cat
     return "unsustainable";
 }
 
+function getWhyMessages(zone) {
+    if (zone === "green") {
+        return [
+            "Your withdrawal rate is within sustainable long‑term ranges.",
+            "Your portfolio growth and Social Security work well together.",
+            "Your projected depletion age leaves ample room for longevity."
+        ];
+    }
+
+    if (zone === "yellow") {
+        return [
+            "Your withdrawal need is above the typical safe spending range.",
+            "Your withdrawal rate is near the upper edge of the 4%–5% guideline.",
+            "Your portfolio is doing most of the work relative to Social Security.",
+            "Your projected depletion age leaves less room for longevity or market shocks."
+        ];
+    }
+
+    return [
+        "Your withdrawal rate exceeds sustainable levels.",
+        "Your projected depletion age is inside the longevity risk window.",
+        "Your retirement readiness score indicates limited resilience.",
+        "Your plan may not withstand typical market variability."
+    ];
+}
+
+
 
 
 /* -------------------------------------------------------
@@ -2449,6 +2476,14 @@ function renderPositiveSustainability({
     // Longevity buffer badge (if you want it here)
     if (document.getElementById("positive-buffer-score")) {
         setText("positive-buffer-score", bScore != null ? bScore : "—");
+
+        const msg = getWhyMessages("green");
+
+        setText("positive-why-1", msg[0]);
+        setText("positive-why-2", msg[1]);
+        setText("positive-why-3", msg[2]);
+        
+
     }
 }
 
@@ -2485,6 +2520,13 @@ function renderYellowSustainability({
     setText("yellow-spending-gap", sGap != null ? formatCurrency(sGap) : "—");
     setText("yellow-ss-income", formatCurrency(ss));
 
+    const msg = getWhyMessages("yellow");
+
+    setText("yellow-why-1", msg[0]);
+    setText("yellow-why-2", msg[1]);
+    setText("yellow-why-3", msg[2]);
+    setText("yellow-why-4", msg[3]);
+
     // Longevity buffer badge (if present in HTML)
     if (document.getElementById("yellow-buffer-score")) {
         setText("yellow-buffer-score", bScore != null ? bScore : "—");
@@ -2497,11 +2539,6 @@ function renderYellowSustainability({
         else badge.classList.add("buffer-danger");
     }
 
-    // Why this result occurred
-    setText("yellow-why-1", "Your withdrawal need is above the typical safe spending range.");
-    setText("yellow-why-2", "Your withdrawal rate is near the upper edge of the 4%–5% guideline.");
-    setText("yellow-why-3", "Your portfolio is doing most of the work relative to Social Security.");
-    setText("yellow-why-4", "Your projected depletion age leaves less room for longevity or market shocks.");
 }
 
 
@@ -3387,19 +3424,6 @@ function renderSummary(data) {
 
     document.getElementById("guidance").innerHTML = guidanceHtml;
     
-    // ⭐ Elevated Spending Messaging
-    // renderSpendingMessage(insights);
-    const spendingTierInput = {
-        requiredWithdrawalRate: insights.requiredWithdrawalRate,
-        yearsUntilDepletion: insights.yearsOfRetirementSupported,
-        depletionAge: insights.portfolioDepletionAge,
-        catastrophic: insights.catastrophic,
-        bufferScore: insights.bufferScore
-    };
-
-    renderSpendingMessage(spendingTierInput);
-    
-
     console.log("chartDiagnostic:", data.chartDiagnostic);
     console.log("chartMsg:", getChartMismatchMessage(data));
 
