@@ -3500,195 +3500,195 @@ function renderSummary(data) {
     attachTooltipHandlers();
 }
 
-function renderCatastrophicUX(result) {
-    console.log("renderCatastrophicUX CALLED", { catastrophic: result?.catastrophic });
-    const bannerEl = document.getElementById("catastrophic-banner");
-    const sanityEl = document.getElementById("sanity-check");
-    const actionsEl = document.getElementById("recommended-actions");
-    const depletionMsgEl = document.getElementById(
-        "catastrophic-depletion-message"
-    );
+// function renderCatastrophicUX(result) {
+//     console.log("renderCatastrophicUX CALLED", { catastrophic: result?.catastrophic });
+//     const bannerEl = document.getElementById("catastrophic-banner");
+//     const sanityEl = document.getElementById("sanity-check");
+//     const actionsEl = document.getElementById("recommended-actions");
+//     const depletionMsgEl = document.getElementById(
+//         "catastrophic-depletion-message"
+//     );
 
-    if (!bannerEl || !sanityEl || !actionsEl) return;
+//     if (!bannerEl || !sanityEl || !actionsEl) return;
 
-    const catastrophic = !!result.catastrophic;
-    const requiredRate = result.requiredWithdrawalRate ?? null;
-    const spendingGap = result.spendingGap ?? null;
-    const ssIncome =
-        result.retirementTaxDetails?.ssAtClaimAge ?? null;
-    const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
-    const depletionAge = result.depletionAge ?? null;
+//     const catastrophic = !!result.catastrophic;
+//     const requiredRate = result.requiredWithdrawalRate ?? null;
+//     const spendingGap = result.spendingGap ?? null;
+//     const ssIncome =
+//         result.retirementTaxDetails?.ssAtClaimAge ?? null;
+//     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+//     const depletionAge = result.depletionAge ?? null;
 
-    const needsAdjustment =
-        catastrophic ||
-        (requiredRate != null && requiredRate > 0.05) ||
-        (result.safeSpendingDelta != null &&
-            result.safeSpendingDelta > 0);
+//     const needsAdjustment =
+//         catastrophic ||
+//         (requiredRate != null && requiredRate > 0.05) ||
+//         (result.safeSpendingDelta != null &&
+//             result.safeSpendingDelta > 0);
 
-    if (depletionMsgEl) {
-        if (needsAdjustment && yearsUntilDepletion != null) {
-            const depletionLine = depletionAge
-                ? `At your current spending level, your savings may be depleted near age <strong>${depletionAge}</strong>.`
-                : `At your current spending level, your savings may be depleted well before age 85.`;
+//     if (depletionMsgEl) {
+//         if (needsAdjustment && yearsUntilDepletion != null) {
+//             const depletionLine = depletionAge
+//                 ? `At your current spending level, your savings may be depleted near age <strong>${depletionAge}</strong>.`
+//                 : `At your current spending level, your savings may be depleted well before age 85.`;
 
-            depletionMsgEl.innerHTML = `
-                ${depletionLine}
-                Your plan requires adjustment to improve long‑term sustainability.
-            `;
-        } else {
-            depletionMsgEl.innerHTML = "";
-        }
-    }
+//             depletionMsgEl.innerHTML = `
+//                 ${depletionLine}
+//                 Your plan requires adjustment to improve long‑term sustainability.
+//             `;
+//         } else {
+//             depletionMsgEl.innerHTML = "";
+//         }
+//     }
 
-    if (catastrophic) {
-        bannerEl.style.display = "flex";
+//     if (catastrophic) {
+//         bannerEl.style.display = "flex";
 
-        const rateEl = document.getElementById(
-            "catastrophic-withdrawal-rate"
-        );
-        const gapEl = document.getElementById(
-            "catastrophic-spending-gap"
-        );
-        const ssEl = document.getElementById("catastrophic-ss-income");
+//         const rateEl = document.getElementById(
+//             "catastrophic-withdrawal-rate"
+//         );
+//         const gapEl = document.getElementById(
+//             "catastrophic-spending-gap"
+//         );
+//         const ssEl = document.getElementById("catastrophic-ss-income");
 
-        if (rateEl && requiredRate != null) {
-            rateEl.textContent = formatPercent(requiredRate);
-        }
-        if (gapEl && spendingGap != null) {
-            gapEl.textContent = formatCurrency(spendingGap);
-        }
-        if (ssEl && ssIncome != null) {
-            ssEl.textContent = formatCurrency(ssIncome);
-        }
-    } else {
-        bannerEl.style.display = "none";
-    }
+//         if (rateEl && requiredRate != null) {
+//             rateEl.textContent = formatPercent(requiredRate);
+//         }
+//         if (gapEl && spendingGap != null) {
+//             gapEl.textContent = formatCurrency(spendingGap);
+//         }
+//         if (ssEl && ssIncome != null) {
+//             ssEl.textContent = formatCurrency(ssIncome);
+//         }
+//     } else {
+//         bannerEl.style.display = "none";
+//     }
 
-    let statusLine = "";
-    if (catastrophic) {
-        statusLine =
-            "Yes — at your current spending level, your savings would run out early.";
-    } else if (
-        requiredRate != null &&
-        requiredRate > 0.05 &&
-        requiredRate <= 0.08
-    ) {
-        statusLine =
-            "Possibly — your plan is fragile and may not withstand market volatility.";
-    } else {
-        statusLine =
-            "Unlikely — your plan appears sustainable under typical market conditions.";
-    }
+//     let statusLine = "";
+//     if (catastrophic) {
+//         statusLine =
+//             "Yes — at your current spending level, your savings would run out early.";
+//     } else if (
+//         requiredRate != null &&
+//         requiredRate > 0.05 &&
+//         requiredRate <= 0.08
+//     ) {
+//         statusLine =
+//             "Possibly — your plan is fragile and may not withstand market volatility.";
+//     } else {
+//         statusLine =
+//             "Unlikely — your plan appears sustainable under typical market conditions.";
+//     }
 
-    const yearsText = yearsUntilDepletion
-        ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
-        : "";
+//     const yearsText = yearsUntilDepletion
+//         ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
+//         : "";
 
-    const safeSpendingText =
-        needsAdjustment &&
-            result.safeSpendingMin != null &&
-            result.safeSpendingMax != null
-            ? `To stay within the 4%–5% safe range, your sustainable spending level is 
-               <strong>${formatCurrency(
-                result.safeSpendingMin
-            )}–${formatCurrency(
-                result.safeSpendingMax
-            )}</strong> per year.`
-            : "";
+//     const safeSpendingText =
+//         needsAdjustment &&
+//             result.safeSpendingMin != null &&
+//             result.safeSpendingMax != null
+//             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
+//                <strong>${formatCurrency(
+//                 result.safeSpendingMin
+//             )}–${formatCurrency(
+//                 result.safeSpendingMax
+//             )}</strong> per year.`
+//             : "";
 
-    const safeSpendingDelta =
-        needsAdjustment && result.safeSpendingDelta != null
-            ? result.safeSpendingDelta
-            : null;
+//     const safeSpendingDelta =
+//         needsAdjustment && result.safeSpendingDelta != null
+//             ? result.safeSpendingDelta
+//             : null;
 
-    const safeDeltaText =
-        safeSpendingDelta !== null && safeSpendingDelta > 0
-            ? `You would need to reduce spending by 
-               <strong>${formatCurrency(
-                safeSpendingDelta
-            )}</strong> 
-               to reach the safe range.`
-            : "";
+//     const safeDeltaText =
+//         safeSpendingDelta !== null && safeSpendingDelta > 0
+//             ? `You would need to reduce spending by 
+//                <strong>${formatCurrency(
+//                 safeSpendingDelta
+//             )}</strong> 
+//                to reach the safe range.`
+//             : "";
 
-    const requiredPortfolioText =
-        needsAdjustment && result.requiredPortfolioSize
-            ? `<p class="sanity-required">
-                 To safely sustain your current lifestyle, you would need a portfolio of 
-                 <strong>${formatCurrency(
-                result.requiredPortfolioSize
-            )}</strong>.
-               </p>`
-            : "";
+//     const requiredPortfolioText =
+//         needsAdjustment && result.requiredPortfolioSize
+//             ? `<p class="sanity-required">
+//                  To safely sustain your current lifestyle, you would need a portfolio of 
+//                  <strong>${formatCurrency(
+//                 result.requiredPortfolioSize
+//             )}</strong>.
+//                </p>`
+//             : "";
 
-    let statusClass = "";
-    let statusIcon = "";
+//     let statusClass = "";
+//     let statusIcon = "";
 
-    if (catastrophic) {
-        statusClass = "bad";
-        statusIcon = "⛔";
-    } else if (requiredRate != null && requiredRate > 0.05) {
-        statusClass = "warn";
-        statusIcon = "⚠️";
-    } else {
-        statusClass = "good";
-        statusIcon = "✓";
-    }
+//     if (catastrophic) {
+//         statusClass = "bad";
+//         statusIcon = "⛔";
+//     } else if (requiredRate != null && requiredRate > 0.05) {
+//         statusClass = "warn";
+//         statusIcon = "⚠️";
+//     } else {
+//         statusClass = "good";
+//         statusIcon = "✓";
+//     }
 
-    sanityEl.innerHTML = `
-        <div class="sanity-block fade-in">
-          <h3>Will I Run Out of Money?</h3>
+//     sanityEl.innerHTML = `
+//         <div class="sanity-block fade-in">
+//           <h3>Will I Run Out of Money?</h3>
 
-          <p class="sanity-status ${statusClass}">
-            <span class="status-icon">${statusIcon}</span>
-            ${statusLine}
-          </p>
+//           <p class="sanity-status ${statusClass}">
+//             <span class="status-icon">${statusIcon}</span>
+//             ${statusLine}
+//           </p>
 
-          ${needsAdjustment
-            ? `<p class="sanity-detail">
-                       Your annual spending need is <strong>${formatCurrency(
-                result.spendingNeedAtRetirement ?? 0
-            )}</strong>, but your portfolio can safely support only
-                       <strong>${formatCurrency(
-                result.fourPercentInsight?.annual ?? 0
-            )}–${formatCurrency(
-                result.fivePercentInsight?.annual ?? 0
-            )}</strong> per year under the 4%–5% rule.
-                       This mismatch creates a withdrawal rate that leads to early depletion.
-                     </p>`
-            : ""
-        }
+//           ${needsAdjustment
+//             ? `<p class="sanity-detail">
+//                        Your annual spending need is <strong>${formatCurrency(
+//                 result.spendingNeedAtRetirement ?? 0
+//             )}</strong>, but your portfolio can safely support only
+//                        <strong>${formatCurrency(
+//                 result.fourPercentInsight?.annual ?? 0
+//             )}–${formatCurrency(
+//                 result.fivePercentInsight?.annual ?? 0
+//             )}</strong> per year under the 4%–5% rule.
+//                        This mismatch creates a withdrawal rate that leads to early depletion.
+//                      </p>`
+//             : ""
+//         }
 
-          ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-          ${safeSpendingText
-            ? `<p class="sanity-safe">${safeSpendingText}</p>`
-            : ""
-        }
-          ${safeDeltaText
-            ? `<p class="sanity-delta">${safeDeltaText}</p>`
-            : ""
-        }
-          ${requiredPortfolioText}
-        </div>
-    `;
+//           ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
+//           ${safeSpendingText
+//             ? `<p class="sanity-safe">${safeSpendingText}</p>`
+//             : ""
+//         }
+//           ${safeDeltaText
+//             ? `<p class="sanity-delta">${safeDeltaText}</p>`
+//             : ""
+//         }
+//           ${requiredPortfolioText}
+//         </div>
+//     `;
 
-    sanityEl.style.display = "block";
+//     sanityEl.style.display = "block";
 
-    if (catastrophic) {
-        actionsEl.innerHTML = `
-            <div class="actions-block fade-in">
-              <h3>Recommended Next Steps</h3>
-              <ol>
-                <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
-                <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
-                <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
-                <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
-                <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
-              </ol>
-            </div>
-        `;
-        actionsEl.style.display = "block";
-    } else {
-        actionsEl.innerHTML = "";
-        actionsEl.style.display = "none";
-    }
-}
+//     if (catastrophic) {
+//         actionsEl.innerHTML = `
+//             <div class="actions-block fade-in">
+//               <h3>Recommended Next Steps</h3>
+//               <ol>
+//                 <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
+//                 <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
+//                 <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
+//                 <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
+//                 <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
+//               </ol>
+//             </div>
+//         `;
+//         actionsEl.style.display = "block";
+//     } else {
+//         actionsEl.innerHTML = "";
+//         actionsEl.style.display = "none";
+//     }
+// }
