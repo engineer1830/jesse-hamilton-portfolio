@@ -3499,6 +3499,7 @@ function renderSummary(data) {
 }
 
 function renderCatastrophicUX(result) {
+    console.log("renderCatastrophicUX CALLED", { catastrophic: result?.catastrophic });
     const bannerEl = document.getElementById("catastrophic-banner");
     const sanityEl = document.getElementById("sanity-check");
     const actionsEl = document.getElementById("recommended-actions");
