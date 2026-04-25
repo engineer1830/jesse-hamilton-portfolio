@@ -2477,11 +2477,17 @@ function renderWithdrawalStrategy(result) {
         data.withdrawalStrategyLabel
     );
 
+    function findConservativeDepletionAge(engineYears) {
+        for (let i = 0; i < engineYears.length; i++) {
+            if (engineYears[i].combinedBalance <= 0) {
+                return engineYears[i].age;
+            }
+        }
+        return engineYears[engineYears.length - 1].age; // fallback
+    }
+    
     // Conservative depletion age (from engineYears)
-    const conservativeAge =
-        data.withdrawalReport?.combinedDepletionAge ??
-        data.depletionAge ??
-        null;
+    const conservativeAge = findConservativeDepletionAge(data.engineYears);
 
     setText(
         "conservative-depletion-age",
