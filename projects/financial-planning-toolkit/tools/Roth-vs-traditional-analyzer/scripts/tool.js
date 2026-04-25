@@ -1003,7 +1003,7 @@ function renderGrowthChartV2({
 async function runProjection() {
     const currentAge = Number($("currentAge").value);
     const retirementAge = Number($("retirementAge").value);
-    const lifeExpectancy = Number($("lifeExpectancy").value);
+    const lifeExpectancy = 87;  // Hard-coded actuarial planning horizon (not user-entered)
     const spendingNeed = Number($("spendingNeed").value);
     const claimAge = Number($("claimAge").value);
     const ssAnnual = Number($("ssAnnual").value);
