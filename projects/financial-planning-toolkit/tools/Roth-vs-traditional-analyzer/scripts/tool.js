@@ -2974,12 +2974,18 @@ function attachChartExplanation() {
 
     el.addEventListener("click", () => {
         alert(
-            "The growth chart shows projected balances year-by-year, " +
-            "but the depletion age is based on the sustainability engine, " +
-            "which includes taxes, Social Security timing, and spending patterns. " +
-            "These models use different assumptions, so the depletion age may not " +
-            "match the exact point where the chart crosses zero."
+            "The growth chart shows year‑by‑year projected balances, while the depletion age " +
+            "comes from the sustainability engine, which includes taxes, Social Security timing, " +
+            "withdrawal sequencing, and spending patterns.Because the chart uses a large Y‑axis " +
+            "scale, late‑retirement balances appear to decline earlier than they actually do. " +
+            "This makes the chart visually more conservative than the underlying calculations." +
+            "" +
+            "These two models use different assumptions, so the chart’s visual “zero point” may " +
+            "not match the precise depletion age. Together, they provide a fuller picture of how " +
+            "saving decisions before retirement and spending decisions during retirement influence " +
+            "long‑term sustainability."
         );
+
     });
 }
 
