@@ -60,7 +60,8 @@ function getRmdDivisor(age) {
     if (age === 84) return 16.8;
     if (age === 85) return 16.0;
     // beyond: just keep decreasing slowly
-    return 16 - (age - 85) * 0.7;
+    return Math.max(1, 16 - (age - 85) * 0.7);
+
 }
 
 function computeTaxableSS(ssAnnual, filingStatus) {
@@ -596,15 +597,6 @@ let taxChart = null;
   INSIGHTS HELPERS
 -------------------------------------------------------*/
 
-function classifySpendingTier({ requiredWithdrawalRate, yearsUntilDepletion, catastrophic, bufferScore }) {
-    if (catastrophic) return "unsustainable";
-
-    if (requiredWithdrawalRate <= 0.04 && yearsUntilDepletion >= 35) return "classic-safe";
-    if (requiredWithdrawalRate <= 0.05 && yearsUntilDepletion >= 25) return "elevated-supported";
-    if (requiredWithdrawalRate <= 0.06 && yearsUntilDepletion >= 15) return "aggressive-but-supported";
-
-    return "unsustainable";
-}
 
 function getWhyMessages(zone) {
     if (zone === "green") {
@@ -1398,223 +1390,277 @@ $("runBtn").addEventListener("click", async () => {
     output.textContent = JSON.stringify(full, null, 2);
 });   // ← CLOSES runBtn click handler
 
-/* -------------------------------------------------------
-   PORTFOLIO PARSING & WEIGHTED CAGR / VOLATILITY
-------------------------------------------------------- */
+/* --------------------------------------------------------
+   INSIGHTS HELPERS
+--------------------------------------------------------*/
 
-function parsePortfolio(str) {
-    const parts = str
-        .split(",")
-        .map(s => s.trim())
-        .filter(Boolean);
-
-    const tickers = [];
-    const weights = [];
-
-    for (const part of parts) {
-        const [t, w] = part.split(":").map(s => s.trim());
-        if (!t || !w) continue;
-        const weight = parseFloat(w);
-        if (isNaN(weight) || weight <= 0) continue;
-        tickers.push(t.toUpperCase());
-        weights.push(weight);
-    }
-
-    const total = weights.reduce((s, w) => s + w, 0) || 1;
-    const normalized = weights.map(w => w / total);
-
-    return { tickers, weights: normalized };
-}
-
-async function computeWeightedCAGR(data, tickers, weights) {
-    let total = 0;
-
-    for (let i = 0; i < tickers.length; i++) {
-        const t = tickers[i];
-        const prices = data[t] || [];
-        if (!prices.length) continue;
-        const cagr = calculateCAGR(prices);
-        total += cagr * weights[i];
-    }
-
-    return total;
-}
-
-async function computeWeightedVolatility(data, tickers, weights) {
-    const dailyReturns = {};
-
-    // 1. Compute daily returns for each ticker
-    for (let t of tickers) {
-        const prices = data[t];
-        const rets = [];
-
-        for (let i = 1; i < prices.length; i++) {
-            const prev = prices[i - 1].close;
-            const curr = prices[i].close;
-            rets.push((curr - prev) / prev);
-        }
-
-        dailyReturns[t] = rets;
-    }
-
-    // 2. Annualized volatility for each ticker
-    const vols = {};
-    for (let t of tickers) {
-        const std = Finance.stddev(dailyReturns[t]);
-        vols[t] = std * Math.sqrt(252);
-    }
-
-    // 3. Correlation matrix
-    const corr = {};
-    for (let i = 0; i < tickers.length; i++) {
-        for (let j = i; j < tickers.length; j++) {
-            const a = tickers[i];
-            const b = tickers[j];
-
-            if (i === j) {
-                corr[`${a}-${b}`] = 1;
-            } else {
-                const c = Finance.correlation(dailyReturns[a], dailyReturns[b]);
-                corr[`${a}-${b}`] = c;
-                corr[`${b}-${a}`] = c;
-            }
-        }
-    }
-
-    // 4. Portfolio variance
-    let variance = 0;
-
-    for (let i = 0; i < tickers.length; i++) {
-        for (let j = 0; j < tickers.length; j++) {
-            const a = tickers[i];
-            const b = tickers[j];
-            variance +=
-                weights[i] *
-                weights[j] *
-                vols[a] *
-                vols[b] *
-                corr[`${a}-${b}`];
-        }
-    }
-
-    return Math.sqrt(variance);
-}
-
-/* -------------------------------------------------------
-   GLIDEPATH HELPERS
-------------------------------------------------------- */
-
-const glidepathStockTicker = "FXAIX";
-const glidepathBondTicker = "FXNAX";
-
-function getGlidepathAllocation(age, retirementAge) {
-    const yearsToRetirement = retirementAge - age;
-
-    if (yearsToRetirement <= 10) {
-        if (yearsToRetirement > 2) {
-            return { stockWeight: 0.65, bondWeight: 0.35 };
-        } else if (age < 70) {
-            return { stockWeight: 0.5, bondWeight: 0.5 };
-        } else {
-            return { stockWeight: 0.35, bondWeight: 0.65 };
-        }
-    }
-
-    return { stockWeight: 1.0, bondWeight: 0.0 };
-}
-
-/* -------------------------------------------------------
-   MONTE CARLO SIMULATION (Volatility-Driven)
-------------------------------------------------------- */
-
-async function runMonteCarlo({
-    ticker,
-    portfolioStr,
-    contribution,
-    rothContribution,
-    years,
-    currentTax,
-    retireTax,
-    runs,
-    currentRoth,
-    currentTrad,
-    expectedReturn,
-    stockVolatility,
-    useGlidepath,
-    yearlyExpectedReturns: gpReturns,
-    yearlyVols: gpVols
+function classifySpendingTier({
+    requiredWithdrawalRate,
+    yearsUntilDepletion,
+    catastrophic,
+    bufferScore
 }) {
-    if (!expectedReturn || !stockVolatility) return null;
+    if (catastrophic) return "unsustainable";
 
-    const daysPerYear = 252;
-    const totalDays = years * daysPerYear;
-
-    function getDailyParams(dayIndex) {
-        if (useGlidepath && gpReturns && gpVols) {
-            const yearIndex = Math.floor(dayIndex / daysPerYear);
-            return {
-                dailyMean: gpReturns[yearIndex] / daysPerYear,
-                dailyStd: gpVols[yearIndex] / Math.sqrt(daysPerYear)
-            };
-        }
-
-        return {
-            dailyMean: expectedReturn / daysPerYear,
-            dailyStd: stockVolatility / Math.sqrt(daysPerYear)
-        };
+    // No depletion (120+) → treat as strong longevity
+    if (yearsUntilDepletion == null) {
+        if (requiredWithdrawalRate <= 0.035) return "classic-safe";
+        if (requiredWithdrawalRate <= 0.045) return "supported";
+        if (requiredWithdrawalRate <= 0.055) return "elevated-supported";
+        if (requiredWithdrawalRate <= 0.065) return "aggressive-but-supported";
+        return "unsustainable";
     }
 
-    const rothResults = [];
-    const tradResults = [];
+    const yrs = yearsUntilDepletion;
 
-    function randomNormal() {
-        const u1 = Math.random();
-        const u2 = Math.random();
-        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    if (requiredWithdrawalRate <= 0.04 && yrs >= 35) return "classic-safe";
+    if (requiredWithdrawalRate <= 0.05 && yrs >= 25) return "elevated-supported";
+    if (requiredWithdrawalRate <= 0.06 && yrs >= 15) return "aggressive-but-supported";
+
+    return "unsustainable";
+}
+
+function getWhyMessages(zone) {
+    if (zone === "green") {
+        return [
+            "Your withdrawal rate is within sustainable long‑term ranges.",
+            "Your portfolio growth and Social Security work well together.",
+            "Your projected depletion age leaves ample room for longevity."
+        ];
     }
 
-    for (let run = 0; run < runs; run++) {
-        let rothBal = currentRoth;
-        let tradBal = currentTrad;
-
-        for (let day = 0; day < totalDays; day++) {
-            const z = randomNormal();
-            const { dailyMean, dailyStd } = getDailyParams(day);
-            const r = dailyMean + dailyStd * z;
-
-            rothBal *= 1 + r;
-            tradBal *= 1 + r;
-
-            if (day % 21 === 0) {
-                rothBal += rothContribution / 12;
-                tradBal += contribution / 12;
-            }
-        }
-
-        rothResults.push(rothBal);
-        tradResults.push(tradBal * (1 - retireTax));
+    if (zone === "yellow") {
+        return [
+            "Your withdrawal need is above the typical safe spending range.",
+            "Your withdrawal rate is near the upper edge of the 4%–5% guideline.",
+            "Your portfolio is doing most of the work relative to Social Security.",
+            "Your projected depletion age leaves less room for longevity or market shocks."
+        ];
     }
 
-    const summarize = arr => {
-        const sorted = [...arr].sort((a, b) => a - b);
-        const pct = p => sorted[Math.floor(p * (sorted.length - 1))];
-        return {
-            p10: pct(0.1),
-            p50: pct(0.5),
-            p90: pct(0.9)
-        };
+    return [
+        "Your withdrawal rate exceeds sustainable levels.",
+        "Your projected depletion age is inside the longevity risk window.",
+        "Your retirement readiness score indicates limited resilience.",
+        "Your plan may not withstand typical market variability."
+    ];
+}
+
+/* --------------------------------------------------------
+   RMD DIVISOR (CLAMPED TO PREVENT NEGATIVE RMDs)
+--------------------------------------------------------*/
+
+function getRmdDivisor(age) {
+    if (age < 73) return Infinity;
+    if (age === 73) return 26.5;
+    if (age === 74) return 25.5;
+    if (age === 75) return 24.6;
+    if (age === 76) return 23.7;
+    if (age === 77) return 22.9;
+    if (age === 78) return 22.0;
+    if (age === 79) return 21.1;
+    if (age === 80) return 20.2;
+    if (age === 81) return 19.4;
+    if (age === 82) return 18.5;
+    if (age === 83) return 17.7;
+    if (age === 84) return 16.8;
+    if (age === 85) return 16.0;
+
+    // Prevent negative divisors → clamp to minimum of 1
+    return Math.max(1, 16 - (age - 85) * 0.7);
+}
+
+/* --------------------------------------------------------
+   COMPUTE PRO INSIGHTS (FINAL VERSION)
+--------------------------------------------------------*/
+
+function computeProInsights(result) {
+    const {
+        spendingNeedAtRetirement,
+        tradDepletionAge,
+        rothDepletionAge,
+        combinedDepletionAge,
+        bufferScore,
+        currentAge,
+        retirementAge,
+        engineYears,
+        withdrawalReport
+    } = result;
+
+    /* 1. Required Withdrawal Rate */
+    const requiredWithdrawalRate =
+        withdrawalReport?.requiredWithdrawalRate ?? 0;
+
+    /* 2. Years Until Depletion */
+    let yearsUntilDepletion = null;
+
+    if (
+        combinedDepletionAge != null &&
+        combinedDepletionAge < 120 &&
+        currentAge != null
+    ) {
+        yearsUntilDepletion = combinedDepletionAge - currentAge;
+    }
+
+    /* 3. Catastrophic */
+    const catastrophic =
+        combinedDepletionAge != null &&
+        combinedDepletionAge < 120 &&
+        combinedDepletionAge < retirementAge + 10;
+
+    /* 4. Spending Tier */
+    const spendingTier = classifySpendingTier({
+        requiredWithdrawalRate,
+        yearsUntilDepletion,
+        catastrophic,
+        bufferScore
+    });
+
+    /* 5. Zone */
+    let zone = "green";
+    if (spendingTier === "elevated-supported") zone = "yellow";
+    if (spendingTier === "aggressive-but-supported") zone = "yellow";
+    if (spendingTier === "unsustainable") zone = "red";
+    if (catastrophic) zone = "red";
+
+    /* 6. Buffer Tier */
+    let bufferTier = "strong";
+    if (bufferScore < 80) bufferTier = "supported";
+    if (bufferScore < 60) bufferTier = "warning";
+    if (bufferScore < 40) bufferTier = "danger";
+
+    /* 7. Readiness Score */
+    let readiness = 100;
+
+    if (requiredWithdrawalRate > 0.04) readiness -= 15;
+    if (requiredWithdrawalRate > 0.05) readiness -= 25;
+    if (requiredWithdrawalRate > 0.06) readiness -= 35;
+
+    if (yearsUntilDepletion != null) {
+        if (yearsUntilDepletion < 35) readiness -= 10;
+        if (yearsUntilDepletion < 25) readiness -= 20;
+        if (yearsUntilDepletion < 15) readiness -= 30;
+    }
+
+    if (catastrophic) readiness -= 40;
+
+    readiness = Math.max(0, Math.min(100, readiness));
+
+    /* 8. Why Messages */
+    const whyMessages = getWhyMessages(zone);
+
+    /* 9. Depletion Diagnostics */
+    const depletionDiagnostics = {
+        tradDepletionAge,
+        rothDepletionAge,
+        combinedDepletionAge,
+        yearsUntilDepletion,
+        catastrophic
     };
 
-    const rothSummary = summarize(rothResults);
-    const tradSummary = summarize(tradResults);
+    /* 10. Recommendations */
+    const recommendations = [];
 
-    const rothWins = rothResults.filter((v, i) => v > tradResults[i]).length;
-    const rothWinProb = (rothWins / runs) * 100;
+    if (zone === "red") {
+        recommendations.push("Reduce spending or delay retirement to improve sustainability.");
+        recommendations.push("Consider partial Roth conversions to reduce future RMD pressure.");
+        recommendations.push("Evaluate annuitization or guaranteed income options.");
+    }
+
+    if (zone === "yellow") {
+        recommendations.push("Monitor spending closely — you are near the upper safe withdrawal range.");
+        recommendations.push("Consider modest spending adjustments or delaying Social Security.");
+        recommendations.push("Review asset allocation to ensure appropriate risk exposure.");
+    }
+
+    if (zone === "green") {
+        recommendations.push("Your plan is well‑positioned — maintain current strategy.");
+        recommendations.push("Continue monitoring RMDs and tax brackets for optimization.");
+    }
 
     return {
-        runs,
-        roth: rothSummary,
-        traditional: tradSummary,
-        rothWinProbability: rothWinProb
+        zone,
+        spendingTier,
+        bufferTier,
+        readiness,
+        requiredWithdrawalRate,
+        yearsUntilDepletion,
+        catastrophic,
+        whyMessages,
+        depletionDiagnostics,
+        recommendations
     };
+}
+
+/* --------------------------------------------------------
+   SUMMARY RENDERER (FINAL VERSION)
+--------------------------------------------------------*/
+
+function renderSummary(full) {
+    const {
+        zone,
+        readiness,
+        spendingTier,
+        bufferTier,
+        requiredWithdrawalRate,
+        yearsUntilDepletion,
+        depletionDiagnostics,
+        whyMessages,
+        recommendations
+    } = full;
+
+    const summary = $("summary");
+    if (!summary) return;
+
+    let zoneColor = "#2e7d32";
+    if (zone === "yellow") zoneColor = "#f9a825";
+    if (zone === "red") zoneColor = "#c62828";
+
+    const tierLabels = {
+        "classic-safe": "Classic Safe Range",
+        "supported": "Supported",
+        "elevated-supported": "Elevated but Supported",
+        "aggressive-but-supported": "Aggressive but Supported",
+        "unsustainable": "Unsustainable"
+    };
+
+    const bufferLabels = {
+        strong: "Strong Longevity Buffer",
+        supported: "Supported Longevity Buffer",
+        warning: "Warning Zone",
+        danger: "Danger Zone"
+    };
+
+    summary.innerHTML = `
+        <div class="summary-zone" style="border-left: 6px solid ${zoneColor}; padding-left: 12px;">
+            <h2 style="margin: 0; color: ${zoneColor}; text-transform: capitalize;">
+                ${zone} zone
+            </h2>
+            <p style="margin: 4px 0 0 0; font-size: 0.95rem;">
+                Readiness Score: <strong>${readiness}/100</strong>
+            </p>
+        </div>
+
+        <div class="summary-section">
+            <h3>Spending Outlook</h3>
+            <p><strong>${tierLabels[spendingTier] || spendingTier}</strong></p>
+            <p>Required Withdrawal Rate: <strong>${(requiredWithdrawalRate * 100).toFixed(1)}%</strong></p>
+        </div>
+
+        <div class="summary-section">
+            <h3>Longevity Outlook</h3>
+            <p><strong>${bufferLabels[bufferTier]}</strong></p>
+            <p>Years Until Depletion: <strong>${yearsUntilDepletion ?? "No depletion"}</strong></p>
+        </div>
+
+        <div class="summary-section">
+            <h3>Why This Matters</h3>
+            <ul>${whyMessages.map(m => `<li>${m}</li>`).join("")}</ul>
+        </div>
+
+        <div class="summary-section">
+            <h3>Recommended Actions</h3>
+            <ul>${recommendations.map(r => `<li>${r}</li>`).join("")}</ul>
+        </div>
+    `;
 }
