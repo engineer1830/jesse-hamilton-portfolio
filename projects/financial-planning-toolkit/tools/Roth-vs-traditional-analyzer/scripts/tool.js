@@ -593,36 +593,6 @@ const $ = id => document.getElementById(id);
 let growthChart = null;
 let taxChart = null;
 
-/* --------------------------------------------------------
-  INSIGHTS HELPERS
--------------------------------------------------------*/
-
-
-function getWhyMessages(zone) {
-    if (zone === "green") {
-        return [
-            "Your withdrawal rate is within sustainable long‑term ranges.",
-            "Your portfolio growth and Social Security work well together.",
-            "Your projected depletion age leaves ample room for longevity."
-        ];
-    }
-
-    if (zone === "yellow") {
-        return [
-            "Your withdrawal need is above the typical safe spending range.",
-            "Your withdrawal rate is near the upper edge of the 4%–5% guideline.",
-            "Your portfolio is doing most of the work relative to Social Security.",
-            "Your projected depletion age leaves less room for longevity or market shocks."
-        ];
-    }
-
-    return [
-        "Your withdrawal rate exceeds sustainable levels.",
-        "Your projected depletion age is inside the longevity risk window.",
-        "Your retirement readiness score indicates limited resilience.",
-        "Your plan may not withstand typical market variability."
-    ];
-}
 
 /* -------------------------------------------------------
    DETERMINISTIC ENGINE (Option A — single source of truth)
