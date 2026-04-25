@@ -920,7 +920,7 @@ $("runBtn").addEventListener("click", async () => {
         inflationRate = 0.03
 
     }) {
-        const engineYears = [];
+        // const engineYears = [];
 
         const totalYears = lifeExpectancy - currentAge;
 
@@ -1149,17 +1149,26 @@ $("runBtn").addEventListener("click", async () => {
     };
 
     /* ---------------------------------------------------
-       BUILD & RENDER GROWTH CHART (NOW SAFE)
-    --------------------------------------------------- */
+   BUILD & RENDER GROWTH CHART (NOW SAFE)
+--------------------------------------------------- */
+
+    // Ensure engineYears is the actual array
+    // const engineYears = result.engineYears;
+
+    // Build curves (still used elsewhere)
     const curves = buildYearlyCurves(
         engineYears,
         result.withdrawalReport?.combinedDepletionAge ??
         result.depletionAge
     );
 
+    // Build phases (still used elsewhere)
     const phases = buildPhases(currentAge, lifeExpectancy);
 
-    renderGrowthChart(curves, phases, currentAge, lifeExpectancy);
+    // Render the new chart
+    renderGrowthChart(engineYears, retirementAge, currentAge);
+
+
 
     /* ---------------------------------------------------
    BUILD & RENDER TAX CHART
