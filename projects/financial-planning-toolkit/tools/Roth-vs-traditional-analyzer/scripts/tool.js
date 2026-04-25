@@ -711,7 +711,7 @@ function buildDeterministicEngine({
 }
 
 /* -------------------------------------------------------
-   ADVISOR‑GRADE INSIGHTS ENGINE (computeProInsights)
+   ADVISOR‑GRADE INSIGHTS ENGINE (Corrected Version)
 ------------------------------------------------------- */
 
 function computeProInsights(result) {
@@ -722,23 +722,38 @@ function computeProInsights(result) {
         combinedDepletionAge,
         bufferScore,
         currentAge,
-        retirementTaxDetails,
-        engineYears
+        engineYears,
+        withdrawalReport
     } = result;
 
     /* ---------------------------------------------------
-       1. Spending Tier Classification
+       1. Required Withdrawal Rate (use deterministic truth)
     --------------------------------------------------- */
 
-    const retirementYear = engineYears.find(y => y.age === result.retirementAge);
-    const requiredWithdrawalRate = retirementYear
-        ? spendingNeedAtRetirement / retirementYear.combinedBalance
-        : 0;
+    const requiredWithdrawalRate =
+        withdrawalReport?.requiredWithdrawalRate ?? 0;
+
+    /* ---------------------------------------------------
+       2. Years Until Depletion (use deterministic truth)
+    --------------------------------------------------- */
 
     const yearsUntilDepletion =
-        combinedDepletionAge != null ? combinedDepletionAge - currentAge : 0;
+        result.yearsUntilDepletion ??
+        (combinedDepletionAge != null
+            ? combinedDepletionAge - currentAge
+            : 0);
 
-    const catastrophic = combinedDepletionAge !== null && combinedDepletionAge < result.retirementAge + 10;
+    /* ---------------------------------------------------
+       3. Catastrophic Logic (deterministic)
+    --------------------------------------------------- */
+
+    const catastrophic =
+        combinedDepletionAge != null &&
+        combinedDepletionAge < result.retirementAge + 10;
+
+    /* ---------------------------------------------------
+       4. Spending Tier Classification
+    --------------------------------------------------- */
 
     const spendingTier = classifySpendingTier({
         requiredWithdrawalRate,
@@ -748,7 +763,7 @@ function computeProInsights(result) {
     });
 
     /* ---------------------------------------------------
-       2. Zone Classification (Green / Yellow / Red)
+       5. Zone Classification
     --------------------------------------------------- */
 
     let zone = "green";
@@ -759,7 +774,7 @@ function computeProInsights(result) {
     if (catastrophic) zone = "red";
 
     /* ---------------------------------------------------
-       3. Longevity Buffer Tier
+       6. Longevity Buffer Tier
     --------------------------------------------------- */
 
     let bufferTier = "strong";
@@ -768,7 +783,7 @@ function computeProInsights(result) {
     if (bufferScore < 40) bufferTier = "danger";
 
     /* ---------------------------------------------------
-       4. Readiness Score (0–100)
+       7. Readiness Score (0–100)
     --------------------------------------------------- */
 
     let readiness = 100;
@@ -789,13 +804,13 @@ function computeProInsights(result) {
     readiness = Math.max(0, Math.min(100, readiness));
 
     /* ---------------------------------------------------
-       5. Why Messages (3–5 bullets)
+       8. Why Messages
     --------------------------------------------------- */
 
     const whyMessages = getWhyMessages(zone);
 
     /* ---------------------------------------------------
-       6. Depletion Diagnostics
+       9. Depletion Diagnostics
     --------------------------------------------------- */
 
     const depletionDiagnostics = {
@@ -807,7 +822,7 @@ function computeProInsights(result) {
     };
 
     /* ---------------------------------------------------
-       7. Recommended Actions
+       10. Recommended Actions
     --------------------------------------------------- */
 
     const recommendations = [];
@@ -830,7 +845,7 @@ function computeProInsights(result) {
     }
 
     /* ---------------------------------------------------
-       8. Final Insights Object
+       11. Final Insights Object
     --------------------------------------------------- */
 
     return {
@@ -846,6 +861,7 @@ function computeProInsights(result) {
         recommendations
     };
 }
+
 
 /* -------------------------------------------------------
    SUMMARY RENDERER (Advisor‑Grade)
