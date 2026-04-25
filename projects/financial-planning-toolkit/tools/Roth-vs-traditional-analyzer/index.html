@@ -422,10 +422,59 @@
         
             <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
         
-            <div class="withdrawal-metrics">
+            <div class="withdrawal-summary">
+        
+                <p>
+                    <strong>Annual withdrawal needed to sustain lifestyle:</strong>
+                    <span id="annual-withdrawal-needed"></span>
+                </p>
+        
+                <p>
+                    <strong>Withdrawal rate (based on starting portfolio):</strong>
+                    <span id="required-withdrawal-rate"></span>
+                </p>
+        
+                <p>
+                    <strong>Projected RMDs (Traditional IRA):</strong>
+                </p>
+                <ul class="rmd-list">
+                    <li>Age 73: <strong id="trad-rmd-73"></strong></li>
+                    <li>Age 80: <strong id="trad-rmd-80"></strong></li>
+                    <li>Age 90: <strong id="trad-rmd-90"></strong></li>
+                </ul>
+        
+                <p>
+                    <strong>Withdrawal sequencing strategy:</strong>
+                    <span id="withdrawal-sequencing-note"></span>
+                </p>
+        
+                <p>
+                    <strong>Conservative depletion age (cash‑flow engine):</strong>
+                    <span id="conservative-depletion-age"></span>
+                </p>
+        
+                <p>
+                    <strong>Theoretical depletion age (long‑term averages):</strong>
+                    <span id="theoretical-depletion-age"></span>
+                </p>
+        
+            </div>
+        </section>
+        
+
+        <!-- Old withdrawal panel . . . changed on 4/25/26 -->
+        <!-- ========================= -->
+        <!--   Withdrawal Strategy     -->
+        <!-- ========================= -->
+        <!-- <section class="withdrawal-strategy-block">
+            <h3>Withdrawal Strategy</h3>
+        
+            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
+        
+            <div class="withdrawal-metrics"> -->
         
                 <!-- Traditional Column -->
-                <div class="withdrawal-column">
+                <!-- <div class="withdrawal-column">
                     <h4>Traditional IRA</h4>
         
                     <p>
@@ -439,10 +488,10 @@
                         <li>Age 80: <strong id="trad-rmd-80"></strong></li>
                         <li>Age 90: <strong id="trad-rmd-90"></strong></li>
                     </ul>
-                </div>
+                </div> -->
         
                 <!-- Roth Column -->
-                <div class="withdrawal-column">
+                <!-- <div class="withdrawal-column">
                     <h4>Roth IRA</h4>
         
                     <p>
@@ -459,69 +508,17 @@
                         <strong id="required-withdrawal-rate"></strong>
                     </p>
                 </div>
-            </div>
+            </div> -->
         
             <!-- Combined Depletion Age (NEW, styled outside columns) -->
-            <div class="withdrawal-combined">
+            <!-- <div class="withdrawal-combined">
                 <p>
                     <strong>Projected depletion age:</strong>
                     <span id="combined-depletion-age"></span>
                 </p>
             </div>
-        </section>
-        
-        <!-- <section class="withdrawal-strategy-block">
-            <h3>Withdrawal Strategy</h3>
-        
-            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
-        
-            <div class="withdrawal-metrics">
-                <div class="withdrawal-column">
-                    <h4>Traditional IRA</h4>
-                    <p>
-                        Projected depletion age:
-                        <strong id="trad-depletion-age"></strong>
-                    </p>
-                    <p>
-                        Withdrawals:
-                        <strong id="trad-first-year-withdrawal"></strong>
-                    </p>
-                    <p>RMDs (estimated):</p>
-                    <ul class="rmd-list">
-                        <li>Age 73: <strong id="trad-rmd-73"></strong></li>
-                        <li>Age 80: <strong id="trad-rmd-80"></strong></li>
-                        <li>Age 90: <strong id="trad-rmd-90"></strong></li>
-                    </ul>
-        
-                    ⭐ NEW FIELD -->
-                    <!-- <p>
-                        Combined depletion age:
-                        <strong id="combined-depletion-age"></strong>
-                    </p>
-                </div>
-        
-                <div class="withdrawal-column">
-                    <h4>Roth IRA</h4>
-                    <p>
-                        Projected depletion age:
-                        <strong id="roth-depletion-age"></strong>
-                    </p>
-                    <p>
-                        Withdrawals:
-                        <strong id="roth-first-year-withdrawal"></strong>
-                    </p>
-                    <p class="withdrawal-note">
-                        Roth is used later to preserve tax-free growth and flexibility.
-                    </p>
-        
-                    <!- ⭐ NEW FIELD -->
-                    <!-- <p>
-                        Required withdrawal rate:
-                        <strong id="required-withdrawal-rate"></strong>
-                    </p>
-                </div>
-            </div>
         </section> -->
+    
         
 
         <section>
@@ -535,7 +532,7 @@
         <p id="chart-explanation-note" class="chart-note">
             Why the chart may not match the depletion age
         </p>
-        
+
         <section>
             <h2>Growth Chart</h2>
             <canvas id="growthChart" width="600" height="300"></canvas>

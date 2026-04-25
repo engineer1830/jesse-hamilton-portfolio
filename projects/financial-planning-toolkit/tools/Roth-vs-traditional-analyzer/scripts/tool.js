@@ -2441,55 +2441,106 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-
 function renderWithdrawalStrategy(data) {
+
     // Strategy label
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
-    // Balances at retirement
-    setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
-    setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
+    // Annual withdrawal needed = spending need – Social Security
+    const annualWithdrawal =
+        (data.spendingNeedAtRetirement ?? 0) -
+        (data.ssAnnualStatement ?? 0);
 
-    // ⭐ Combined depletion age (the ONLY depletion age we show)
-    const combinedAge = data.withdrawalReport?.combinedDepletionAge
-        ?? data.depletionAge
-        ?? null;
+    setText("annual-withdrawal-needed", formatCurrency(annualWithdrawal));
 
-    setText(
-        "combined-depletion-age",
-        combinedAge
-            ? `Age ${combinedAge}`
-            : "N/A"
-    );
-
-    // ⭐ Remove account-specific depletion ages from UI
-    // (We intentionally do NOT set trad-depletion-age or roth-depletion-age anymore)
-    setText("trad-depletion-age", "—");
-    setText("roth-depletion-age", "—");
-
-    // First-year withdrawals
-    setText(
-        "trad-first-year-withdrawal",
-        formatCurrency(data.tradFirstYearWithdrawal)
-    );
-    setText(
-        "roth-first-year-withdrawal",
-        formatCurrency(data.rothFirstYearWithdrawal)
-    );
-
-    // ⭐ Use deterministic engine RMDs
-    const rmds = computeRmdSnapshots(data.engineYears);
-
-    setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
-    setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
-    setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
-
-    // Required withdrawal rate
+    // Withdrawal rate (based on starting portfolio)
     setText(
         "required-withdrawal-rate",
         formatPercent(data.requiredWithdrawalRate)
     );
+
+    // RMD snapshots from deterministic engine
+    const rmds = computeRmdSnapshots(data.engineYears);
+    setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
+    setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
+    setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
+
+    // Withdrawal sequencing note
+    setText(
+        "withdrawal-sequencing-note",
+        data.withdrawalStrategyLabel
+    );
+
+    // Conservative depletion age (from engineYears)
+    const conservativeAge =
+        data.withdrawalReport?.combinedDepletionAge ??
+        data.depletionAge ??
+        null;
+
+    setText(
+        "conservative-depletion-age",
+        conservativeAge ? `Age ${conservativeAge}` : "N/A"
+    );
+
+    // Theoretical depletion age (long-term average return model)
+    const theoreticalAge = data.portfolioDepletionAge ?? null;
+
+    setText(
+        "theoretical-depletion-age",
+        theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
+    );
 }
+
+
+// old render withdrawal strategy . . . updated 4/25/26
+// function renderWithdrawalStrategy(data) {
+//     // Strategy label
+//     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
+
+//     // Balances at retirement
+//     setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
+//     setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
+
+//     // ⭐ Combined depletion age (the ONLY depletion age we show)
+//     const combinedAge = data.withdrawalReport?.combinedDepletionAge
+//         ?? data.depletionAge
+//         ?? null;
+
+//     setText(
+//         "combined-depletion-age",
+//         combinedAge
+//             ? `Age ${combinedAge}`
+//             : "N/A"
+//     );
+
+//     // ⭐ Remove account-specific depletion ages from UI
+//     // (We intentionally do NOT set trad-depletion-age or roth-depletion-age anymore)
+//     setText("trad-depletion-age", "—");
+//     setText("roth-depletion-age", "—");
+
+//     // First-year withdrawals
+//     setText(
+//         "trad-first-year-withdrawal",
+//         formatCurrency(data.tradFirstYearWithdrawal)
+//     );
+//     setText(
+//         "roth-first-year-withdrawal",
+//         formatCurrency(data.rothFirstYearWithdrawal)
+//     );
+
+//     // ⭐ Use deterministic engine RMDs
+//     const rmds = computeRmdSnapshots(data.engineYears);
+
+//     setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
+//     setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
+//     setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
+
+//     // Required withdrawal rate
+//     setText(
+//         "required-withdrawal-rate",
+//         formatPercent(data.requiredWithdrawalRate)
+//     );
+// }
 
 function renderChartMismatchMessage(msg) {
     const container = document.getElementById("chart-mismatch-note");
