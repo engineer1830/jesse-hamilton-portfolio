@@ -1090,3 +1090,7 @@ async function runProjection() {
         useGlidepath: true
     });
 }
+
+window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("runBtn").addEventListener("click", runProjection);
+});
