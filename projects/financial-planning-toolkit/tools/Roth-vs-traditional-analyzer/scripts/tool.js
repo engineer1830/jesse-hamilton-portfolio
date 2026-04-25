@@ -2447,11 +2447,15 @@ function renderWithdrawalStrategy(data) {
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
     // Annual withdrawal needed = spending need – Social Security
-    const annualWithdrawal =
-        (data.spendingNeedAtRetirement ?? 0) -
-        (data.ssAnnualStatement ?? 0);
+    const ssIncome = data.ssAnnualStatement ?? 0;
+    const spendingNeed = data.spendingNeedAtRetirement ?? 0;
+    const annualWithdrawal = spendingNeed - ssIncome;
 
     setText("annual-withdrawal-needed", formatCurrency(annualWithdrawal));
+
+    // NEW: Breakdown line
+    setText("ss-contribution", formatCurrency(ssIncome));
+    setText("portfolio-contribution", formatCurrency(annualWithdrawal));
 
     // Withdrawal rate (based on starting portfolio)
     setText(
