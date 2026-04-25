@@ -1391,30 +1391,6 @@ function getWhyMessages(zone) {
 }
 
 /* --------------------------------------------------------
-   RMD DIVISOR (CLAMPED TO PREVENT NEGATIVE RMDs)
---------------------------------------------------------*/
-
-function getRmdDivisor(age) {
-    if (age < 73) return Infinity;
-    if (age === 73) return 26.5;
-    if (age === 74) return 25.5;
-    if (age === 75) return 24.6;
-    if (age === 76) return 23.7;
-    if (age === 77) return 22.9;
-    if (age === 78) return 22.0;
-    if (age === 79) return 21.1;
-    if (age === 80) return 20.2;
-    if (age === 81) return 19.4;
-    if (age === 82) return 18.5;
-    if (age === 83) return 17.7;
-    if (age === 84) return 16.8;
-    if (age === 85) return 16.0;
-
-    // Prevent negative divisors → clamp to minimum of 1
-    return Math.max(1, 16 - (age - 85) * 0.7);
-}
-
-/* --------------------------------------------------------
    COMPUTE PRO INSIGHTS (FINAL VERSION)
 --------------------------------------------------------*/
 
