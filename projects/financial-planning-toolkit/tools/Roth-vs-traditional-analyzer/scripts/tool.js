@@ -2445,6 +2445,13 @@ function renderWithdrawalStrategy(result) {
 
     const data = result; // clarity
 
+    // temp test
+    console.log("SS fields:", {
+        ssAnnualStatement: data.ssAnnualStatement,
+        ssAtClaimAge: data.ssAtClaimAge,
+        ssIncome: data.ssIncome
+    });
+    
     // Strategy label
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
