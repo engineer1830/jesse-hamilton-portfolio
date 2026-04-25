@@ -2441,7 +2441,9 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-function renderWithdrawalStrategy(data) {
+function renderWithdrawalStrategy(result) {
+
+    const data = result; // clarity
 
     // Strategy label
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
@@ -2494,6 +2496,7 @@ function renderWithdrawalStrategy(data) {
         theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
     );
 }
+
 
 
 // old render withdrawal strategy . . . updated 4/25/26
