@@ -1053,6 +1053,7 @@ $("runBtn").addEventListener("click", async () => {
    BUILD & RENDER GROWTH CHART
 --------------------------------------------------- */
 
+    
     // 1. Run deterministic engine (full year-by-year output)
     const engineYears = buildDeterministicChart({
         currentAge,
