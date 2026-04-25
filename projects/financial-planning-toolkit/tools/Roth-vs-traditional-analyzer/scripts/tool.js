@@ -1373,21 +1373,113 @@ function getGlidepathAllocation(age, retirementAge) {
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
+function renderGrowthChart(engineYears, retirementAge, currentAge) {
     const ctx = $("growthChart").getContext("2d");
 
     if (growthChart) growthChart.destroy();
 
-    const { labels, roth, trad, combined, depletionAge } = curves;
+    // Build arrays directly from engineYears
+    const labels = engineYears.map(y => y.age);
+    const roth = engineYears.map(y => ({ x: y.age, y: y.rothBalance }));
+    const trad = engineYears.map(y => ({ x: y.age, y: y.tradBalance }));
+    const combined = engineYears.map(y => ({ x: y.age, y: y.combinedBalance }));
 
+    // Identify depletion ages
+    const tradDepletionAge = engineYears.find(y => y.tradBalance <= 0)?.age ?? null;
+    const rothDepletionAge = engineYears.find(y => y.rothBalance <= 0)?.age ?? null;
+    const combinedDepletionAge = engineYears.find(y => y.combinedBalance <= 0)?.age ?? null;
+
+    // Extend chart horizon +10 years beyond combined depletion
+    const lastAge = engineYears.at(-1).age;
+    const horizon = (combinedDepletionAge ?? lastAge) + 10;
+
+    // Build annotation objects
+    const annotations = {};
+
+    // Retirement marker
+    annotations.retirementLine = {
+        type: "line",
+        xMin: retirementAge,
+        xMax: retirementAge,
+        borderColor: "#1976d2",
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        label: {
+            enabled: true,
+            content: `Retirement (${retirementAge})`,
+            position: "start",
+            backgroundColor: "#1976d2",
+            color: "#fff"
+        }
+    };
+
+    // Traditional depletion marker
+    if (tradDepletionAge) {
+        annotations.tradDepletion = {
+            type: "line",
+            xMin: tradDepletionAge,
+            xMax: tradDepletionAge,
+            borderColor: "#b36b00",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Traditional depleted (${tradDepletionAge})`,
+                position: "center",
+                backgroundColor: "#b36b00",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Roth depletion marker
+    if (rothDepletionAge) {
+        annotations.rothDepletion = {
+            type: "line",
+            xMin: rothDepletionAge,
+            xMax: rothDepletionAge,
+            borderColor: "#1a7f37",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Roth depleted (${rothDepletionAge})`,
+                position: "center",
+                backgroundColor: "#1a7f37",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Combined depletion marker
+    if (combinedDepletionAge) {
+        annotations.combinedDepletion = {
+            type: "line",
+            xMin: combinedDepletionAge,
+            xMax: combinedDepletionAge,
+            borderColor: "#d32f2f",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Combined depleted (${combinedDepletionAge})`,
+                position: "start",
+                backgroundColor: "#d32f2f",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Build the chart
     growthChart = new Chart(ctx, {
         type: "line",
+
         data: {
             labels,
             datasets: [
                 {
                     label: "Combined (after-tax)",
-                    data: combined.map(p => ({ x: p.age, y: p.balance })),
+                    data: combined,
                     borderColor: "#1f6feb",
                     backgroundColor: "rgba(31, 111, 235, 0.08)",
                     borderWidth: 2,
@@ -1395,7 +1487,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
                 },
                 {
                     label: "Traditional (after-tax, after RMDs)",
-                    data: trad.map(p => ({ x: p.age, y: p.balance })),
+                    data: trad,
                     borderColor: "#b36b00",
                     backgroundColor: "rgba(179, 107, 0, 0.05)",
                     borderWidth: 1.5,
@@ -1404,7 +1496,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
                 },
                 {
                     label: "Roth (tax-free)",
-                    data: roth.map(p => ({ x: p.age, y: p.balance })),
+                    data: roth,
                     borderColor: "#1a7f37",
                     backgroundColor: "rgba(26, 127, 55, 0.05)",
                     borderWidth: 1.5,
@@ -1417,47 +1509,25 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
             responsive: true,
 
             plugins: {
-                phaseShading: { phases },
+                // Your existing shading plugin
+                phaseShading: { phases: [] },
 
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            const datasetLabel = context.dataset.label;
-                            const value = context.parsed.y;
-                            return `${datasetLabel}: ${formatCurrency(value)}`;
+                            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
                         }
                     }
                 },
 
-                // Depletion marker (if applicable)
-                annotation: depletionAge
-                    ? {
-                        annotations: {
-                            depletionLine: {
-                                type: "line",
-                                xMin: depletionAge,
-                                xMax: depletionAge,
-                                borderColor: "#d32f2f",
-                                borderWidth: 1.5,
-                                borderDash: [6, 4],
-                                label: {
-                                    enabled: true,
-                                    content: `Depletion age ${depletionAge}`,
-                                    position: "start",
-                                    backgroundColor: "#d32f2f",
-                                    color: "#fff"
-                                }
-                            }
-                        }
-                    }
-                    : {}
+                annotation: { annotations }
             },
 
             scales: {
                 x: {
                     type: "linear",
                     min: currentAge,
-                    max: lifeExpectancy,
+                    max: horizon,
                     title: { text: "Age", display: true }
                 },
                 y: {
@@ -1472,6 +1542,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
         plugins: [phaseShadingPlugin]
     });
 }
+
 
 
 function renderTaxChart({
