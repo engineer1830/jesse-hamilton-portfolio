@@ -920,7 +920,7 @@ $("runBtn").addEventListener("click", async () => {
         inflationRate = 0.03
 
     }) {
-        // const engineYears = [];
+        const engineYears = [];
 
         const totalYears = lifeExpectancy - currentAge;
 
