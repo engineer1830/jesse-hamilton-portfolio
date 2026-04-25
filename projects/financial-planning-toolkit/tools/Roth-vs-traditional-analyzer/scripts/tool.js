@@ -722,37 +722,41 @@ function computeProInsights(result) {
         combinedDepletionAge,
         bufferScore,
         currentAge,
+        retirementAge,
         engineYears,
         withdrawalReport
     } = result;
 
     /* ---------------------------------------------------
-       1. Required Withdrawal Rate (use deterministic truth)
+       1. Required withdrawal rate (primary source = withdrawalReport)
     --------------------------------------------------- */
 
     const requiredWithdrawalRate =
-        withdrawalReport?.requiredWithdrawalRate ?? 0;
+        withdrawalReport?.requiredWithdrawalRate ??
+        (() => {
+            const retirementYear = engineYears.find(y => y.age === retirementAge);
+            if (!retirementYear || retirementYear.combinedBalance <= 0) return 0;
+            return spendingNeedAtRetirement / retirementYear.combinedBalance;
+        })();
 
     /* ---------------------------------------------------
-       2. Years Until Depletion (use deterministic truth)
+       2. Years until depletion (fallback if not precomputed)
     --------------------------------------------------- */
 
     const yearsUntilDepletion =
         result.yearsUntilDepletion ??
-        (combinedDepletionAge != null
-            ? combinedDepletionAge - currentAge
-            : 0);
+        (combinedDepletionAge != null ? combinedDepletionAge - currentAge : 0);
 
     /* ---------------------------------------------------
-       3. Catastrophic Logic (deterministic)
+       3. Catastrophic flag
     --------------------------------------------------- */
 
     const catastrophic =
         combinedDepletionAge != null &&
-        combinedDepletionAge < result.retirementAge + 10;
+        combinedDepletionAge < retirementAge + 10;
 
     /* ---------------------------------------------------
-       4. Spending Tier Classification
+       4. Spending tier classification
     --------------------------------------------------- */
 
     const spendingTier = classifySpendingTier({
@@ -763,7 +767,7 @@ function computeProInsights(result) {
     });
 
     /* ---------------------------------------------------
-       5. Zone Classification
+       5. Zone classification (Green / Yellow / Red)
     --------------------------------------------------- */
 
     let zone = "green";
@@ -774,7 +778,7 @@ function computeProInsights(result) {
     if (catastrophic) zone = "red";
 
     /* ---------------------------------------------------
-       6. Longevity Buffer Tier
+       6. Longevity buffer tier
     --------------------------------------------------- */
 
     let bufferTier = "strong";
@@ -783,7 +787,7 @@ function computeProInsights(result) {
     if (bufferScore < 40) bufferTier = "danger";
 
     /* ---------------------------------------------------
-       7. Readiness Score (0–100)
+       7. Readiness score (0–100)
     --------------------------------------------------- */
 
     let readiness = 100;
@@ -804,13 +808,13 @@ function computeProInsights(result) {
     readiness = Math.max(0, Math.min(100, readiness));
 
     /* ---------------------------------------------------
-       8. Why Messages
+       8. Why messages
     --------------------------------------------------- */
 
     const whyMessages = getWhyMessages(zone);
 
     /* ---------------------------------------------------
-       9. Depletion Diagnostics
+       9. Depletion diagnostics
     --------------------------------------------------- */
 
     const depletionDiagnostics = {
@@ -822,7 +826,7 @@ function computeProInsights(result) {
     };
 
     /* ---------------------------------------------------
-       10. Recommended Actions
+       10. Recommended actions
     --------------------------------------------------- */
 
     const recommendations = [];
@@ -845,7 +849,7 @@ function computeProInsights(result) {
     }
 
     /* ---------------------------------------------------
-       11. Final Insights Object
+       11. Final insights object
     --------------------------------------------------- */
 
     return {
@@ -861,6 +865,7 @@ function computeProInsights(result) {
         recommendations
     };
 }
+
 
 
 /* -------------------------------------------------------
