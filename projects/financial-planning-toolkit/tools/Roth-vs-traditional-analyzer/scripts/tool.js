@@ -711,24 +711,58 @@ function buildDeterministicEngine({
 }
 
 /* -------------------------------------------------------
+   CLASSIFY SPENDING TIER
+------------------------------------------------------- */
+
+function classifySpendingTier({
+    requiredWithdrawalRate,
+    yearsUntilDepletion,
+    catastrophic,
+    bufferScore
+}) {
+    // If catastrophic, always unsustainable
+    if (catastrophic) return "unsustainable";
+
+    // If no depletion within horizon (120+) and buffer is strong, treat as supported
+    if (yearsUntilDepletion == null && bufferScore >= 80) {
+        if (requiredWithdrawalRate <= 0.035) return "conservative";
+        if (requiredWithdrawalRate <= 0.045) return "supported";
+        if (requiredWithdrawalRate <= 0.055) return "elevated-supported";
+        if (requiredWithdrawalRate <= 0.065) return "aggressive-but-supported";
+        return "unsustainable";
+    }
+
+    // If we *do* have a depletion age, use both rate and yearsUntilDepletion
+    const yrs = yearsUntilDepletion ?? 0;
+
+    if (requiredWithdrawalRate <= 0.035 && yrs >= 40) return "conservative";
+    if (requiredWithdrawalRate <= 0.045 && yrs >= 35) return "supported";
+    if (requiredWithdrawalRate <= 0.055 && yrs >= 30) return "elevated-supported";
+    if (requiredWithdrawalRate <= 0.065 && yrs >= 25) return "aggressive-but-supported";
+
+    return "unsustainable";
+}
+
+/* -------------------------------------------------------
    ADVISOR‑GRADE INSIGHTS ENGINE (Corrected Version)
 ------------------------------------------------------- */
 
-function computeProInsights(result) {
+function computeProInsights(result, context = {}) {
     const {
         spendingNeedAtRetirement,
         tradDepletionAge,
         rothDepletionAge,
         combinedDepletionAge,
         bufferScore,
-        currentAge,
-        retirementAge,
         engineYears,
         withdrawalReport
     } = result;
 
+    const currentAge = context.currentAge ?? result.currentAge;
+    const retirementAge = context.retirementAge ?? result.retirementAge;
+
     /* ---------------------------------------------------
-       1. Required withdrawal rate (primary source = withdrawalReport)
+       1. Required withdrawal rate
     --------------------------------------------------- */
 
     const requiredWithdrawalRate =
@@ -740,12 +774,23 @@ function computeProInsights(result) {
         })();
 
     /* ---------------------------------------------------
-       2. Years until depletion (fallback if not precomputed)
+       2. Years until depletion (robust, no NaN)
     --------------------------------------------------- */
 
-    const yearsUntilDepletion =
-        result.yearsUntilDepletion ??
-        (combinedDepletionAge != null ? combinedDepletionAge - currentAge : 0);
+    let yearsUntilDepletion = result.yearsUntilDepletion ?? null;
+
+    if (yearsUntilDepletion == null) {
+        // If depletion age is missing or at/above 120, treat as "no depletion"
+        if (
+            combinedDepletionAge == null ||
+            combinedDepletionAge >= 120 ||
+            currentAge == null
+        ) {
+            yearsUntilDepletion = null;
+        } else {
+            yearsUntilDepletion = combinedDepletionAge - currentAge;
+        }
+    }
 
     /* ---------------------------------------------------
        3. Catastrophic flag
@@ -753,6 +798,8 @@ function computeProInsights(result) {
 
     const catastrophic =
         combinedDepletionAge != null &&
+        combinedDepletionAge < 120 &&
+        retirementAge != null &&
         combinedDepletionAge < retirementAge + 10;
 
     /* ---------------------------------------------------
@@ -767,7 +814,7 @@ function computeProInsights(result) {
     });
 
     /* ---------------------------------------------------
-       5. Zone classification (Green / Yellow / Red)
+       5. Zone classification
     --------------------------------------------------- */
 
     let zone = "green";
@@ -797,10 +844,12 @@ function computeProInsights(result) {
     if (requiredWithdrawalRate > 0.05) readiness -= 25;
     if (requiredWithdrawalRate > 0.06) readiness -= 35;
 
-    // Longevity penalty
-    if (yearsUntilDepletion < 35) readiness -= 10;
-    if (yearsUntilDepletion < 25) readiness -= 20;
-    if (yearsUntilDepletion < 15) readiness -= 30;
+    // Longevity penalty (only if we actually have a depletion age)
+    if (yearsUntilDepletion != null) {
+        if (yearsUntilDepletion < 35) readiness -= 10;
+        if (yearsUntilDepletion < 25) readiness -= 20;
+        if (yearsUntilDepletion < 15) readiness -= 30;
+    }
 
     // Catastrophic penalty
     if (catastrophic) readiness -= 40;
@@ -865,7 +914,6 @@ function computeProInsights(result) {
         recommendations
     };
 }
-
 
 
 /* -------------------------------------------------------
@@ -1334,8 +1382,11 @@ $("runBtn").addEventListener("click", async () => {
    INSIGHTS + SUMMARY
     --------------------------------------------------- */
 
-    const insights = computeProInsights(result);
-
+    const insights = computeProInsights(result, {
+        currentAge: formValues.currentAge,      // or whatever your source is
+        retirementAge: formValues.retirementAge
+    });
+    
     const full = {
         ...result,
         ...insights
