@@ -703,39 +703,6 @@ function buildDeterministicEngine({
 }
 
 /* -------------------------------------------------------
-   CLASSIFY SPENDING TIER
-------------------------------------------------------- */
-
-function classifySpendingTier({
-    requiredWithdrawalRate,
-    yearsUntilDepletion,
-    catastrophic,
-    bufferScore
-}) {
-    // If catastrophic, always unsustainable
-    if (catastrophic) return "unsustainable";
-
-    // If no depletion within horizon (120+) and buffer is strong, treat as supported
-    if (yearsUntilDepletion == null && bufferScore >= 80) {
-        if (requiredWithdrawalRate <= 0.035) return "conservative";
-        if (requiredWithdrawalRate <= 0.045) return "supported";
-        if (requiredWithdrawalRate <= 0.055) return "elevated-supported";
-        if (requiredWithdrawalRate <= 0.065) return "aggressive-but-supported";
-        return "unsustainable";
-    }
-
-    // If we *do* have a depletion age, use both rate and yearsUntilDepletion
-    const yrs = yearsUntilDepletion ?? 0;
-
-    if (requiredWithdrawalRate <= 0.035 && yrs >= 40) return "conservative";
-    if (requiredWithdrawalRate <= 0.045 && yrs >= 35) return "supported";
-    if (requiredWithdrawalRate <= 0.055 && yrs >= 30) return "elevated-supported";
-    if (requiredWithdrawalRate <= 0.065 && yrs >= 25) return "aggressive-but-supported";
-
-    return "unsustainable";
-}
-
-/* -------------------------------------------------------
    ADVISOR‑GRADE INSIGHTS ENGINE (Corrected Version)
 ------------------------------------------------------- */
 
