@@ -1235,7 +1235,7 @@ $("runBtn").addEventListener("click", async () => {
         rothDepletionAge: insights.rothDepletionAge,
         combinedDepletionAge: insights.portfolioDepletionAge,
         lifeExpectancy: result.lifeExpectancy ?? 95,
-        currentAge: result.taxContext.currentAge,
+        currentAge: currentAge,
         engineYears: result.engineYears
     });
 
