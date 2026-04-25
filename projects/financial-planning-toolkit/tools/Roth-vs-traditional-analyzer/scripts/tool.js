@@ -2445,6 +2445,9 @@ function renderWithdrawalStrategy(result) {
 
     const data = result; // clarity
 
+    console.log("FULL DATA RECEIVED BY UI:", data);
+
+
     // temp test
     console.log("SS fields:", {
         ssAnnualStatement: data.ssAnnualStatement,
