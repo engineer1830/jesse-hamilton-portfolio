@@ -547,13 +547,13 @@ function computeTaxableSS(ssIncome, filingStatus) {
 // 3. Find Traditional depletion age
 function findTradDepletionAge(engineYears) {
     const year = engineYears.find(y => y.tradBalance <= 0);
-    return year ? year.age : Infinity;
+    return year ? year.age : null;
 }
 
 // 4. Find Roth depletion age
 function findRothDepletionAge(engineYears) {
     const year = engineYears.find(y => y.rothBalance <= 0);
-    return year ? year.age : Infinity;
+    return year ? year.age : null;
 }
 
 // 5. Build withdrawal report
@@ -617,7 +617,7 @@ function buildDeterministicChart({
     useGlidepath,
     retirementAge,
     claimAge,
-    ssAnnualStatement,
+    ssAnnualStatement: ssIncome,
     spendingNeed,
     retireTax,
     lifeExpectancy,
@@ -655,13 +655,14 @@ function buildDeterministicChart({
         let withdrawal = undefined;
         let taxDrag = undefined;
         let rmdComponent = 0;
-        let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
+        let ssIncomeForYear = age >= claimAge ? ssIncome : 0;
 
         let rmdGross = 0;
         let tradGrossActual = 0;
 
+        // changed ssIncome in this line
         if (age >= retirementAge) {
-            const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
+            const needBasedNet = Math.max(spendingNeed - ssIncomeForYear, 0);
 
             if (age >= 73 && trad > 0) {
                 const divisor = getRmdDivisor(age);
@@ -708,8 +709,8 @@ function buildDeterministicChart({
         trad *= 1 + mu;
 
         const combinedBalance = roth + trad;
-
-        const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
+// changed this ssincome line (2 instances)
+        const taxableSS = ssIncomeForYear > 0 ? computeTaxableSS(ssIncomeForYear, filingStatus) : 0;
 
         const taxableIncome =
             (rmdGross || 0) +
@@ -723,7 +724,7 @@ function buildDeterministicChart({
             combinedBalance,
             withdrawal,
             taxableSS,
-            ssIncome,
+            ssIncome: ssIncomeForYear,
             taxableIncome,
             taxDrag,
             rmdComponent
