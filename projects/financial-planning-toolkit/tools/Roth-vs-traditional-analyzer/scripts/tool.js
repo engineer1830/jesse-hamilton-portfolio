@@ -539,6 +539,85 @@ function getUserInputs() {
     };
 }
 
+function runEngine(inputs) {
+    const {
+        currentAge,
+        retirementAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        spendingNeed,
+        ssAnnualStatement,
+        claimAge,
+        filingStatus,
+        expectedReturn,
+        retireTax
+    } = inputs;
+
+    const lifeExpectancy = 120;
+
+    // Build deterministic engine
+    const engineYears = buildDeterministicChart({
+        currentAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        rothContribution: contribution * (1 - retireTax),
+        expectedReturn,
+        yearlyExpectedReturns: null,
+        yearlyVols: null,
+        useGlidepath: false,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
+        lifeExpectancy
+    });
+
+    // Compute depletion ages
+    const tradDepletionAge = findTradDepletionAge(engineYears);
+    const rothDepletionAge = findRothDepletionAge(engineYears);
+
+    const lastPositive = engineYears
+        .slice()
+        .reverse()
+        .find(y => y.combinedBalance > 0);
+
+    const combinedDepletionAge = lastPositive ? lastPositive.age : null;
+
+    // Build withdrawal report
+    const withdrawalReport = {
+        tradDepletionAge,
+        rothDepletionAge,
+        combinedDepletionAge,
+        yearsUntilDepletion:
+            combinedDepletionAge != null
+                ? combinedDepletionAge - retirementAge
+                : null
+    };
+
+    // Compute portfolio at retirement
+    const retirementYear = engineYears.find(y => y.age === retirementAge);
+    const portfolioAtRetirement = retirementYear
+        ? retirementYear.combinedBalance
+        : 0;
+
+    // Compute withdrawal rate
+    const withdrawalRate =
+        spendingNeed > 0
+            ? spendingNeed / portfolioAtRetirement
+            : 0;
+
+    return {
+        withdrawalReport,
+        requiredWithdrawalRate: withdrawalRate,
+        ssAtClaimAge: ssAnnualStatement,
+        portfolioAtRetirement,
+        engineYears
+    };
+}
+
 /* -------------------------------------------------------
    COMPARISON FUNCTIONS
 ------------------------------------------------------- */
