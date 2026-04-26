@@ -193,6 +193,71 @@ body
     background-color: #005fa3;
 }
 
+/* 62 vs 67 scenario button */
+#compare-62-67
+{
+    padding: 14px 28px;
+    font-size: 1.05rem;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 320px;
+}
+
+#compare-62-67:hover
+{
+    background-color: #005fa3;
+}
+
+/* ----- Comparison styling 62-67 ------------------------------------------ */
+
+.comparison-grid
+{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.comparison-column
+{
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.comparison-column h2
+{
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.comparison-grid
+{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.comparison-narrative h3
+{
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.comparison-narrative
+{
+    margin-top: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
 /* --- SUMMARY CARD -------------------------------------------------------- */
 
 .summary-card

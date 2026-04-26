@@ -512,12 +512,140 @@ function getWhyMessages(zone) {
     ];
 }
 
+/* -------------------------------------------------------
+   COMPARISON FUNCTIONS
+------------------------------------------------------- */
+
+function runRetirementComparison() {
+    // 1. Pull current inputs
+    const inputs = getUserInputs();
+    if (!inputs) {
+        console.error("No inputs found for comparison run.");
+        return;
+    }
+
+    // 2. Clone inputs for each scenario
+    const inputs62 = { ...inputs, retirementAge: 62 };
+    const inputs67 = { ...inputs, retirementAge: 67 };
+
+    // 3. Run the engine twice
+    const result62 = runEngine(inputs62);
+    const result67 = runEngine(inputs67);
+
+    // 4. Render the comparison panel
+    renderComparison(result62, result67);
+}
+
+function renderComparison(result62, result67) {
+    // Clear any previous comparison
+    const container = document.getElementById("comparison-section");
+    container.innerHTML = "";
+
+    // Compute stress ages using your existing logic
+    const stress62 = Math.min(
+        result62.withdrawalReport?.tradDepletionAge ?? Infinity,
+        result62.withdrawalReport?.rothDepletionAge ?? Infinity
+    );
+
+    const stress67 = Math.min(
+        result67.withdrawalReport?.tradDepletionAge ?? Infinity,
+        result67.withdrawalReport?.rothDepletionAge ?? Infinity
+    );
+
+    // Combined depletion ages (your engine already computes this)
+    const depletion62 = result62.withdrawalReport?.combinedDepletionAge ?? "N/A";
+    const depletion67 = result67.withdrawalReport?.combinedDepletionAge ?? "N/A";
+
+    // Differences
+    const stressDiff = stress67 - stress62;
+    const depletionDiff = depletion67 - depletion62;
+
+    const withdrawalRateDiff =
+        (result67.requiredWithdrawalRate ?? 0) -
+        (result62.requiredWithdrawalRate ?? 0);
+
+    const ssIncomeDiff =
+        (result67.ssAtClaimAge ?? 0) -
+        (result62.ssAtClaimAge ?? 0);
+
+    const portfolioAtRetirementDiff =
+        (result67.portfolioAtRetirement ?? 0) -
+        (result62.portfolioAtRetirement ?? 0);
+
+    // Narrative summary
+    let narrative = "";
+
+    // Stress age narrative
+    if (stressDiff > 0) {
+        narrative += `Retiring at 67 improves your stress age by ${stressDiff} years. `;
+    } else if (stressDiff < 0) {
+        narrative += `Retiring at 62 improves your stress age by ${Math.abs(stressDiff)} years. `;
+    } else {
+        narrative += `Both retirement ages produce the same stress age. `;
+    }
+
+    // Portfolio at retirement narrative
+    if (portfolioAtRetirementDiff > 0) {
+        narrative += `You would have ${formatCurrency(portfolioAtRetirementDiff)} more at retirement if you wait until 67. `;
+    } else if (portfolioAtRetirementDiff < 0) {
+        narrative += `You would have ${formatCurrency(Math.abs(portfolioAtRetirementDiff))} more at retirement if you retire at 62. `;
+    }
+
+    // Withdrawal rate narrative
+    if (withdrawalRateDiff < 0) {
+        narrative += `Your required withdrawal rate is lower if you retire at 67. `;
+    } else if (withdrawalRateDiff > 0) {
+        narrative += `Your required withdrawal rate is lower if you retire at 62. `;
+    }
+        
+    // Build the 3-column layout
+    const html = `
+    <div class="comparison-grid">
+        <div class="comparison-column">
+            <h2>Retire at 62</h2>
+            <p><strong>Stress Age:</strong> ${stress62}</p>
+            <p><strong>Depletion Age:</strong> ${depletion62}</p>
+            <p><strong>Withdrawal Rate:</strong> ${formatPercent(result62.requiredWithdrawalRate)}</p>
+            <p><strong>SS Income:</strong> ${formatCurrency(result62.ssAtClaimAge ?? 0)}</p>
+            <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(result62.portfolioAtRetirement ?? 0)}</p>
+        </div>
+
+        <div class="comparison-column">
+            <h2>Retire at 67</h2>
+            <p><strong>Stress Age:</strong> ${stress67}</p>
+            <p><strong>Depletion Age:</strong> ${depletion67}</p>
+            <p><strong>Withdrawal Rate:</strong> ${formatPercent(result67.requiredWithdrawalRate)}</p>
+            <p><strong>SS Income:</strong> ${formatCurrency(result67.ssAtClaimAge ?? 0)}</p>
+            <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(result67.portfolioAtRetirement ?? 0)}</p>
+        </div>
+
+        <div class="comparison-column">
+            <h2>Difference</h2>
+            <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
+            <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
+            <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
+            <p><strong>SS Income:</strong> ${formatCurrency(ssIncomeDiff)}</p>
+            <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioAtRetirementDiff)}</p>
+        </div>
+    </div>
+
+    <div class="comparison-narrative">
+        <h3>Summary</h3>
+        <p>${narrative}</p>
+    </div>
+`;
 
 
+    container.innerHTML = html;
+}
 
 /* -------------------------------------------------------
    MAIN RUN HANDLER
 ------------------------------------------------------- */
+
+document.getElementById("compare-62-67").addEventListener("click", () => {
+    runRetirementComparison();
+});
 
 $("runBtn").addEventListener("click", async () => {
     const loading = $("loading");
@@ -527,6 +655,8 @@ $("runBtn").addEventListener("click", async () => {
     output.textContent = "";
     summary.innerHTML = "";
     loading.style.display = "block";
+
+    
 
     /* ---------------------------------------------------
        INPUTS
