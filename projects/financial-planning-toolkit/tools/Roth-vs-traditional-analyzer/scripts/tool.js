@@ -67,30 +67,31 @@ import { getHistoricalPrices, getMultipleTickers } from "../../../scripts/data.j
 import { calculateCAGR } from "../../../scripts/transforms.js";
 import { estimateRetirementTaxRate } from "./retirement.js";
 
-// Simple IRS Uniform Lifetime Table approximation
-function getRmdDivisor(age) {
-    if (age < 73) return Infinity; // no RMD yet
-    if (age === 73) return 26.5;
-    if (age === 74) return 25.5;
-    if (age === 75) return 24.6;
-    if (age === 76) return 23.7;
-    if (age === 77) return 22.9;
-    if (age === 78) return 22.0;
-    if (age === 79) return 21.1;
-    if (age === 80) return 20.2;
-    if (age === 81) return 19.4;
-    if (age === 82) return 18.5;
-    if (age === 83) return 17.7;
-    if (age === 84) return 16.8;
-    if (age === 85) return 16.0;
-    // beyond: just keep decreasing slowly
-    return 16 - (age - 85) * 0.7;
-}
+// Simple IRS Uniform Lifetime Table approximation -- commented out as replacement is near line 523
+// function getRmdDivisor(age) {
+//     if (age < 73) return Infinity; // no RMD yet
+//     if (age === 73) return 26.5;
+//     if (age === 74) return 25.5;
+//     if (age === 75) return 24.6;
+//     if (age === 76) return 23.7;
+//     if (age === 77) return 22.9;
+//     if (age === 78) return 22.0;
+//     if (age === 79) return 21.1;
+//     if (age === 80) return 20.2;
+//     if (age === 81) return 19.4;
+//     if (age === 82) return 18.5;
+//     if (age === 83) return 17.7;
+//     if (age === 84) return 16.8;
+//     if (age === 85) return 16.0;
+//     // beyond: just keep decreasing slowly
+//     return 16 - (age - 85) * 0.7;
+// }
 
-function computeTaxableSS(ssAnnual, filingStatus) {
-    // IRS simplified provisional income thresholds
-    const base = filingStatus === "married" ? 32000 : 25000;
-    const max = filingStatus === "married" ? 44000 : 34000;
+// Commented out because replacement function is down lin ~538
+// function computeTaxableSS(ssAnnual, filingStatus) {
+//     // IRS simplified provisional income thresholds
+//     const base = filingStatus === "married" ? 32000 : 25000;
+//     const max = filingStatus === "married" ? 44000 : 34000;
 
     // For now, provisional income = SS only (you can expand later)
     const provisional = ssAnnual;
@@ -99,7 +100,6 @@ function computeTaxableSS(ssAnnual, filingStatus) {
     if (provisional <= max) return 0.5 * (provisional - base);
 
     return 0.85 * (provisional - max) + 0.5 * (max - base);
-}
 
 // -------------------------------------------------------
 // TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
@@ -330,7 +330,7 @@ function computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed)
 
     return balance > 0 ? spendingNeed / balance : 0;
 }
-
+// This is the withdrawalreport that has been running and looks different from the new one down around line 561
 function buildWithdrawalReport(engineYears, {
     currentAge,
     retirementAge,
@@ -438,11 +438,12 @@ function buildPhases(currentAge, lifeExpectancy) {
   HELPER FUNCTIONS for DEPLETION Calcs
   -------------------------------------------------------*/
 
-function findTradDepletionAge(engineYears) {
-    const year = engineYears.find(y => y.tradBalance <= 0);
-    return year ? year.age : null;
-}
-
+// commenting out because replacement function is down at ~line 548
+// function findTradDepletionAge(engineYears) {
+//     const year = engineYears.find(y => y.tradBalance <= 0);
+//     return year ? year.age : null;
+// }
+// commenting out because replacement function is down at ~line 555
 function findRothDepletionAge(engineYears) {
     const year = engineYears.find(y => y.rothBalance <= 0);
     return year ? year.age : null;
@@ -511,7 +512,384 @@ function getWhyMessages(zone) {
         "Your plan may not withstand typical market variability."
     ];
 }
+// Start paste of new block
 
+/* -------------------------------------------------------
+   SHARED ENGINE FUNCTIONS (EXTRACTED FROM runBtn)
+------------------------------------------------------- */
+
+// 1. Compute RMD divisor
+function getRmdDivisor(age) {
+    if (age < 73) return Infinity;
+    const table = {
+        73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0,
+        79: 21.1, 80: 20.2, 81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8,
+        85: 16.0, 86: 15.2, 87: 14.4, 88: 13.7, 89: 12.9, 90: 12.2,
+        91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9, 96: 8.4,
+        97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4, 101: 6.0, 102: 5.6,
+        103: 5.2, 104: 4.9, 105: 4.6, 106: 4.3, 107: 4.1, 108: 3.9,
+        109: 3.7, 110: 3.5, 111: 3.4, 112: 3.3, 113: 3.1, 114: 3.0,
+        115: 2.9, 116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3, 120: 2.0
+    };
+    return table[age] ?? 2.0;
+}
+
+// 2. Compute taxable Social Security (old function is at the top ~90 line)
+function computeTaxableSS(ssIncome, filingStatus) {
+    if (!ssIncome) return 0;
+    const base = filingStatus === "married" ? 32000 : 25000;
+    const halfSS = ssIncome / 2;
+    const provisional = halfSS; // simplified
+    if (provisional <= base) return 0;
+    return Math.min(ssIncome * 0.85, (provisional - base) * 0.5);
+}
+
+// 3. Find Traditional depletion age
+function findTradDepletionAge(engineYears) {
+    const year = engineYears.find(y => y.tradBalance <= 0);
+    return year ? year.age : Infinity;
+}
+
+// 4. Find Roth depletion age
+function findRothDepletionAge(engineYears) {
+    const year = engineYears.find(y => y.rothBalance <= 0);
+    return year ? year.age : Infinity;
+}
+
+// 5. Build withdrawal report
+function buildComparisonWithdrawalReport(engineYears, { retirementAge }) {
+    const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
+    const combinedDepletionAge = lastPositive ? lastPositive.age : null;
+
+    return {
+        combinedDepletionAge,
+        yearsUntilDepletion:
+            combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null
+    };
+}
+
+// 6. Deterministic engine (shared)
+function buildDeterministicChart({
+    currentAge,
+    currentRoth,
+    currentTrad,
+    contribution,
+    rothContribution,
+    expectedReturn,
+    yearlyExpectedReturns,
+    yearlyVols,
+    useGlidepath,
+    retirementAge,
+    claimAge,
+    ssAnnualStatement,
+    spendingNeed,
+    retireTax,
+    lifeExpectancy,
+    filingStatus,
+    inflationRate = 0.03
+}) {
+    const engineYears = [];
+    const totalYears = lifeExpectancy - currentAge;
+
+    let roth = currentRoth;
+    let trad = currentTrad;
+
+    for (let i = 0; i < totalYears; i++) {
+        const age = currentAge + i;
+
+        // Real return
+        const inflation = inflationRate;
+        let mu;
+
+        if (useGlidepath && yearlyExpectedReturns) {
+            const nominal = yearlyExpectedReturns[i] ??
+                yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+            mu = (1 + nominal) / (1 + inflation) - 1;
+        } else {
+            mu = (1 + expectedReturn) / (1 + inflation) - 1;
+        }
+
+        // Contributions before retirement
+        if (age < retirementAge) {
+            roth += rothContribution;
+            trad += contribution;
+        }
+
+        // Withdrawals after retirement
+        let withdrawal = undefined;
+        let taxDrag = undefined;
+        let rmdComponent = 0;
+        let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
+
+        let rmdGross = 0;
+        let tradGrossActual = 0;
+
+        if (age >= retirementAge) {
+            const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
+
+            if (age >= 73 && trad > 0) {
+                const divisor = getRmdDivisor(age);
+                rmdGross = trad / divisor;
+            }
+
+            const rmdNet = rmdGross * (1 - retireTax);
+            const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
+
+            tradGrossActual = Math.min(trad, rmdGross);
+            let tradNet = tradGrossActual * (1 - retireTax);
+
+            rmdComponent = Math.round(tradNet);
+
+            if (extraNeedNet > 0) {
+                const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
+                const extraTradGrossActual = Math.min(
+                    trad - tradGrossActual,
+                    extraTradGrossNeeded
+                );
+
+                const extraTradNet = extraTradGrossActual * (1 - retireTax);
+
+                tradGrossActual += extraTradGrossActual;
+                tradNet += extraTradNet;
+
+                const remainingNet = extraNeedNet - extraTradNet;
+                const rothActual = Math.min(roth, remainingNet);
+
+                roth -= rothActual;
+                trad -= extraTradGrossActual;
+
+                withdrawal = Math.round(tradNet + rothActual);
+                taxDrag = Math.round(tradGrossActual * retireTax);
+            } else {
+                trad -= tradGrossActual;
+                withdrawal = Math.round(tradNet);
+                taxDrag = Math.round(tradGrossActual * retireTax);
+            }
+        }
+
+        // Growth
+        roth *= 1 + mu;
+        trad *= 1 + mu;
+
+        const combinedBalance = roth + trad;
+
+        const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
+
+        const taxableIncome =
+            (rmdGross || 0) +
+            ((tradGrossActual || 0) - (rmdGross || 0)) +
+            taxableSS;
+
+        engineYears.push({
+            age,
+            rothBalance: roth,
+            tradBalance: trad,
+            combinedBalance,
+            withdrawal,
+            taxableSS,
+            ssIncome,
+            taxableIncome,
+            taxDrag,
+            rmdComponent
+        });
+
+        if (combinedBalance <= 0) break;
+    }
+
+    return engineYears;
+}
+
+/* -------------------------------------------------------
+   COMPARISON ENGINE
+------------------------------------------------------- */
+
+function getUserInputs() {
+    return {
+        currentAge: parseInt($("currentAge").value) || 60,
+        retirementAge: parseInt($("retirementAge").value) || 67,
+        currentRoth: parseFloat($("currentRoth").value) || 0,
+        currentTrad: parseFloat($("currentTrad").value) || 0,
+        contribution: parseFloat($("contribution").value) || 0,
+        spendingNeed: parseFloat($("spendingNeed").value) || 0,
+        ssAnnualStatement: parseFloat($("ssAnnual").value) || 0,
+        claimAge: parseInt($("claimAge").value) || 67,
+        filingStatus: $("filingStatus") ? $("filingStatus").value : "married",
+        expectedReturn: (parseFloat($("growth").value) || 0) / 100,
+        retireTax: (parseFloat($("retireTax").value) || 0) / 100
+    };
+}
+
+function runEngine(inputs) {
+    const {
+        currentAge,
+        retirementAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        spendingNeed,
+        ssAnnualStatement,
+        claimAge,
+        filingStatus,
+        expectedReturn,
+        retireTax
+    } = inputs;
+
+    const lifeExpectancy = 120;
+
+    const engineYears = buildDeterministicChart({
+        currentAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        rothContribution: contribution * (1 - retireTax),
+        expectedReturn,
+        yearlyExpectedReturns: null,
+        yearlyVols: null,
+        useGlidepath: false,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement,
+        spendingNeed,
+        retireTax,
+        lifeExpectancy,
+        filingStatus
+    });
+
+    const tradDepletionAge = findTradDepletionAge(engineYears);
+    const rothDepletionAge = findRothDepletionAge(engineYears);
+
+    const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
+        retirementAge
+    });
+        
+    const retirementYear = engineYears.find(y => y.age === retirementAge);
+    const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
+
+    const withdrawalRate =
+        spendingNeed > 0 ? spendingNeed / portfolioAtRetirement : 0;
+
+    return {
+        withdrawalReport,
+        requiredWithdrawalRate: withdrawalRate,
+        ssAtClaimAge: ssAnnualStatement,
+        portfolioAtRetirement,
+        engineYears
+    };
+}
+
+/* -------------------------------------------------------
+   COMPARISON WORKFLOW
+------------------------------------------------------- */
+
+function runRetirementComparison() {
+    const inputs = getUserInputs();
+    if (!inputs) return;
+
+    const inputs62 = { ...inputs, retirementAge: 62 };
+    const inputs67 = { ...inputs, retirementAge: 67 };
+
+    const result62 = runEngine(inputs62);
+    const result67 = runEngine(inputs67);
+
+    renderComparison(result62, result67);
+}
+
+function renderComparison(result62, result67) {
+    const container = document.getElementById("comparison-section");
+    container.innerHTML = "";
+
+    const stress62 = Math.min(
+        result62.withdrawalReport.tradDepletionAge,
+        result62.withdrawalReport.rothDepletionAge
+    );
+
+    const stress67 = Math.min(
+        result67.withdrawalReport.tradDepletionAge,
+        result67.withdrawalReport.rothDepletionAge
+    );
+
+    const depletion62 = result62.withdrawalReport.combinedDepletionAge ?? "N/A";
+    const depletion67 = result67.withdrawalReport.combinedDepletionAge ?? "N/A";
+
+    const stressDiff = stress67 - stress62;
+    const depletionDiff = depletion67 - depletion62;
+    const withdrawalRateDiff = result67.requiredWithdrawalRate - result62.requiredWithdrawalRate;
+    const ssIncomeDiff = result67.ssAtClaimAge - result62.ssAtClaimAge;
+    const portfolioAtRetirementDiff =
+        result67.portfolioAtRetirement - result62.portfolioAtRetirement;
+
+    let narrative = "";
+
+    if (stressDiff > 0) {
+        narrative += `Retiring at 67 improves your stress age by ${stressDiff} years. `;
+    } else if (stressDiff < 0) {
+        narrative += `Retiring at 62 improves your stress age by ${Math.abs(stressDiff)} years. `;
+    } else {
+        narrative += `Both retirement ages produce the same stress age. `;
+    }
+
+    if (portfolioAtRetirementDiff > 0) {
+        narrative += `You would have ${formatCurrency(portfolioAtRetirementDiff)} more at retirement if you wait until 67. `;
+    } else if (portfolioAtRetirementDiff < 0) {
+        narrative += `You would have ${formatCurrency(Math.abs(portfolioAtRetirementDiff))} more at retirement if you retire at 62. `;
+    }
+
+    if (withdrawalRateDiff < 0) {
+        narrative += `Your required withdrawal rate is lower if you retire at 67. `;
+    } else if (withdrawalRateDiff > 0) {
+        narrative += `Your required withdrawal rate is lower if you retire at 62. `;
+    }
+
+    const html = `
+        <div class="comparison-grid">
+            <div class="comparison-column">
+                <h2>Retire at 62</h2>
+                <p><strong>Stress Age:</strong> ${stress62}</p>
+                <p><strong>Depletion Age:</strong> ${depletion62}</p>
+                <p><strong>Withdrawal Rate:</strong> ${formatPercent(result62.requiredWithdrawalRate)}</p>
+                <p><strong>SS Income:</strong> ${formatCurrency(result62.ssAtClaimAge)}</p>
+                <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(result62.portfolioAtRetirement)}</p>
+            </div>
+
+            <div class="comparison-column">
+                <h2>Retire at 67</h2>
+                <p><strong>Stress Age:</strong> ${stress67}</p>
+                <p><strong>Depletion Age:</strong> ${depletion67}</p>
+                <p><strong>Withdrawal Rate:</strong> ${formatPercent(result67.requiredWithdrawalRate)}</p>
+                <p><strong>SS Income:</strong> ${formatCurrency(result67.ssAtClaimAge)}</p>
+                <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(result67.portfolioAtRetirement)}</p>
+            </div>
+
+            <div class="comparison-column">
+                <h2>Difference</h2>
+                <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
+                <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
+                <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
+                <p><strong>SS Income:</strong> ${formatCurrency(ssIncomeDiff)}</p>
+                <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioAtRetirementDiff)}</p>
+            </div>
+        </div>
+
+        <div class="comparison-narrative">
+            <h3>Summary</h3>
+            <p>${narrative}</p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+/* -------------------------------------------------------
+   COMPARISON BUTTON
+------------------------------------------------------- */
+
+document.getElementById("compare-62-67").addEventListener("click", () => {
+    runRetirementComparison();
+});
+
+// end paste of new block
+
+// begin replacement block space
 /* -------------------------------------------------------
    HELP FUNCTION for COMPARISON
 ------------------------------------------------------- */
@@ -1132,158 +1510,158 @@ $("runBtn").addEventListener("click", async () => {
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
-    /* ---------------------------------------------------
-       DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
-    --------------------------------------------------- */
+    // /* ---------------------------------------------------
+    //    DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
+    // --------------------------------------------------- */
 
-    function buildDeterministicChart({
-        currentAge,
-        currentRoth,
-        currentTrad,
-        contribution,
-        rothContribution,
-        expectedReturn,
-        yearlyExpectedReturns,
-        yearlyVols,
-        useGlidepath,
-        retirementAge,
-        claimAge,
-        ssAnnualStatement,
-        spendingNeed,
-        retireTax,
-        lifeExpectancy,
-        filingStatus,
-        inflationRate = 0.03
+    // function buildDeterministicChart({
+    //     currentAge,
+    //     currentRoth,
+    //     currentTrad,
+    //     contribution,
+    //     rothContribution,
+    //     expectedReturn,
+    //     yearlyExpectedReturns,
+    //     yearlyVols,
+    //     useGlidepath,
+    //     retirementAge,
+    //     claimAge,
+    //     ssAnnualStatement,
+    //     spendingNeed,
+    //     retireTax,
+    //     lifeExpectancy,
+    //     filingStatus,
+    //     inflationRate = 0.03
 
-    }) {
-        const engineYears = [];
+    // }) {
+    //     const engineYears = [];
 
-        const totalYears = lifeExpectancy - currentAge;
+    //     const totalYears = lifeExpectancy - currentAge;
 
-        let roth = currentRoth;
-        let trad = currentTrad;
+    //     let roth = currentRoth;
+    //     let trad = currentTrad;
 
-        for (let i = 0; i < totalYears; i++) {
-            const age = currentAge + i;
+    //     for (let i = 0; i < totalYears; i++) {
+    //         const age = currentAge + i;
 
-            // Determine REAL return for this year
-            const inflation = inflationRate; // user‑set or default inflation
-            let mu;
+    //         // Determine REAL return for this year
+    //         const inflation = inflationRate; // user‑set or default inflation
+    //         let mu;
 
-            // If using glidepath, convert nominal → real
-            if (useGlidepath && yearlyExpectedReturns) {
-                const nominal = yearlyExpectedReturns[i] ??
-                    yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
+    //         // If using glidepath, convert nominal → real
+    //         if (useGlidepath && yearlyExpectedReturns) {
+    //             const nominal = yearlyExpectedReturns[i] ??
+    //                 yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
 
-                mu = (1 + nominal) / (1 + inflation) - 1;
-            }
-            // Otherwise convert expectedReturn → real
-            else {
-                mu = (1 + expectedReturn) / (1 + inflation) - 1;
-            }
+    //             mu = (1 + nominal) / (1 + inflation) - 1;
+    //         }
+    //         // Otherwise convert expectedReturn → real
+    //         else {
+    //             mu = (1 + expectedReturn) / (1 + inflation) - 1;
+    //         }
 
 
-            // Contributions BEFORE retirement
-            if (age < retirementAge) {
-                roth += rothContribution;
-                trad += contribution;
-            }
+    //         // Contributions BEFORE retirement
+    //         if (age < retirementAge) {
+    //             roth += rothContribution;
+    //             trad += contribution;
+    //         }
 
-            // Withdrawals AFTER retirement (Traditional-first)
-            let withdrawal = undefined;
-            let taxDrag = undefined;
-            let rmdComponent = 0;
-            let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
+    //         // Withdrawals AFTER retirement (Traditional-first)
+    //         let withdrawal = undefined;
+    //         let taxDrag = undefined;
+    //         let rmdComponent = 0;
+    //         let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
 
-            let rmdGross = 0;
-            let tradGrossActual = 0;
+    //         let rmdGross = 0;
+    //         let tradGrossActual = 0;
 
-            if (age >= retirementAge) {
-                const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
+    //         if (age >= retirementAge) {
+    //             const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
 
-                // Compute RMD
-                if (age >= 73 && trad > 0) {
-                    const divisor = getRmdDivisor(age);
-                    rmdGross = trad / divisor;
-                }
+    //             // Compute RMD
+    //             if (age >= 73 && trad > 0) {
+    //                 const divisor = getRmdDivisor(age);
+    //                 rmdGross = trad / divisor;
+    //             }
 
-                const rmdNet = rmdGross * (1 - retireTax);
-                const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
+    //             const rmdNet = rmdGross * (1 - retireTax);
+    //             const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
 
-                // Always withdraw RMD gross from Traditional
-                tradGrossActual = Math.min(trad, rmdGross);
-                let tradNet = tradGrossActual * (1 - retireTax);
+    //             // Always withdraw RMD gross from Traditional
+    //             tradGrossActual = Math.min(trad, rmdGross);
+    //             let tradNet = tradGrossActual * (1 - retireTax);
 
-                rmdComponent = Math.round(tradNet);
+    //             rmdComponent = Math.round(tradNet);
 
-                if (extraNeedNet > 0) {
-                    const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
+    //             if (extraNeedNet > 0) {
+    //                 const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
 
-                    const extraTradGrossActual = Math.min(
-                        trad - tradGrossActual,
-                        extraTradGrossNeeded
-                    );
+    //                 const extraTradGrossActual = Math.min(
+    //                     trad - tradGrossActual,
+    //                     extraTradGrossNeeded
+    //                 );
 
-                    const extraTradNet = extraTradGrossActual * (1 - retireTax);
+    //                 const extraTradNet = extraTradGrossActual * (1 - retireTax);
 
-                    tradGrossActual += extraTradGrossActual;
-                    tradNet += extraTradNet;
+    //                 tradGrossActual += extraTradGrossActual;
+    //                 tradNet += extraTradNet;
 
-                    const remainingNet = extraNeedNet - extraTradNet;
-                    const rothActual = Math.min(roth, remainingNet);
+    //                 const remainingNet = extraNeedNet - extraTradNet;
+    //                 const rothActual = Math.min(roth, remainingNet);
 
-                    roth -= rothActual;
-                    trad -= extraTradGrossActual;
+    //                 roth -= rothActual;
+    //                 trad -= extraTradGrossActual;
 
-                    withdrawal = Math.round(tradNet + rothActual);
-                    taxDrag = Math.round(tradGrossActual * retireTax);
-                } else {
-                    trad -= tradGrossActual;
-                    withdrawal = Math.round(tradNet);
-                    taxDrag = Math.round(tradGrossActual * retireTax);
-                }
-            }
+    //                 withdrawal = Math.round(tradNet + rothActual);
+    //                 taxDrag = Math.round(tradGrossActual * retireTax);
+    //             } else {
+    //                 trad -= tradGrossActual;
+    //                 withdrawal = Math.round(tradNet);
+    //                 taxDrag = Math.round(tradGrossActual * retireTax);
+    //             }
+    //         }
 
-            // ⭐ Apply growth AFTER withdrawals
-            roth *= 1 + mu;
-            trad *= 1 + mu;
+    //         // ⭐ Apply growth AFTER withdrawals
+    //         roth *= 1 + mu;
+    //         trad *= 1 + mu;
 
-            // Combined after-tax balance
-            const combinedBalance = roth + trad;
+    //         // Combined after-tax balance
+    //         const combinedBalance = roth + trad;
 
-            // Compute taxable SS
-            const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
+    //         // Compute taxable SS
+    //         const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
 
-            // Compute taxable income
-            const taxableIncome =
-                (rmdGross || 0) +
-                ((tradGrossActual || 0) - (rmdGross || 0)) +
-                taxableSS;
+    //         // Compute taxable income
+    //         const taxableIncome =
+    //             (rmdGross || 0) +
+    //             ((tradGrossActual || 0) - (rmdGross || 0)) +
+    //             taxableSS;
 
-            engineYears.push({
-                age,
-                rothBalance: roth,
-                tradBalance: trad,
-                combinedBalance,
-                mu,
-                vol: yearlyVols ? yearlyVols[i] : undefined,
-                stockWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).stockWeight : undefined,
-                bondWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).bondWeight : undefined,
-                contribution: age < retirementAge ? contribution : undefined,
-                withdrawal,
-                taxableSS,
-                ssIncome,
-                taxableIncome,
-                taxDrag,
-                rmdComponent
-            });
+    //         engineYears.push({
+    //             age,
+    //             rothBalance: roth,
+    //             tradBalance: trad,
+    //             combinedBalance,
+    //             mu,
+    //             vol: yearlyVols ? yearlyVols[i] : undefined,
+    //             stockWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).stockWeight : undefined,
+    //             bondWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).bondWeight : undefined,
+    //             contribution: age < retirementAge ? contribution : undefined,
+    //             withdrawal,
+    //             taxableSS,
+    //             ssIncome,
+    //             taxableIncome,
+    //             taxDrag,
+    //             rmdComponent
+    //         });
 
-            // ⭐ Stop early if depleted
-            if (combinedBalance <= 0) break;
-        }
+    //         // ⭐ Stop early if depleted
+    //         if (combinedBalance <= 0) break;
+    //     }
 
-        return engineYears;
-    }
+    //     return engineYears;
+    // }
 
     /* ---------------------------------------------------
    BUILD & RENDER GROWTH CHART
@@ -1489,6 +1867,7 @@ $("runBtn").addEventListener("click", async () => {
 
 });
 
+// End replacement block space
 /* -------------------------------------------------------
    PORTFOLIO PARSING & WEIGHTED CAGR
 ------------------------------------------------------- */
