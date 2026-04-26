@@ -444,10 +444,10 @@ function buildPhases(currentAge, lifeExpectancy) {
 //     return year ? year.age : null;
 // }
 // commenting out because replacement function is down at ~line 555
-function findRothDepletionAge(engineYears) {
-    const year = engineYears.find(y => y.rothBalance <= 0);
-    return year ? year.age : null;
-}
+// function findRothDepletionAge(engineYears) {
+//     const year = engineYears.find(y => y.rothBalance <= 0);
+//     return year ? year.age : null;
+// }
 
 function findCombinedDepletionAge(engineYears) {
     const lastPositive = engineYears
