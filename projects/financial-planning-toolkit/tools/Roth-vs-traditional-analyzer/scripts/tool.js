@@ -94,12 +94,12 @@ import { estimateRetirementTaxRate } from "./retirement.js";
 //     const max = filingStatus === "married" ? 44000 : 34000;
 
     // For now, provisional income = SS only (you can expand later)
-    const provisional = ssAnnual;
+    // const provisional = ssAnnual;
 
-    if (provisional <= base) return 0;
-    if (provisional <= max) return 0.5 * (provisional - base);
+    // if (provisional <= base) return 0;
+    // if (provisional <= max) return 0.5 * (provisional - base);
 
-    return 0.85 * (provisional - max) + 0.5 * (max - base);
+    // return 0.85 * (provisional - max) + 0.5 * (max - base);
 
 // -------------------------------------------------------
 // TAX BRACKETS & IRMAA THRESHOLDS (HELPERS)
