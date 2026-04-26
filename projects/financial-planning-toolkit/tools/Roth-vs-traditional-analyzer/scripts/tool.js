@@ -2494,7 +2494,7 @@ function renderWithdrawalStrategy(result) {
         data.withdrawalStrategyLabel
     );
 
-    setText("conservative-depletion-age", `Age ${conservativeAge}`);
+    setText("conservative-depletion-age", `Age ${stressAge}`);
 
 
     // Theoretical depletion age (long-term average return model)
