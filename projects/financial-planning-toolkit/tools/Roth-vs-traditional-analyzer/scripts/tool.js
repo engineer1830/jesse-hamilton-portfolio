@@ -2441,7 +2441,7 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-function renderWithdrawalStrategy(result) {
+function renderWithdrawalStrategy(result, stressAge) {
 
     function findAccountDepletionAge(engineYears, field) {
         for (let i = 0; i < engineYears.length; i++) {
@@ -2494,6 +2494,7 @@ function renderWithdrawalStrategy(result) {
         data.withdrawalStrategyLabel
     );
 
+    // Use the stressAge
     setText("conservative-depletion-age", `Age ${stressAge}`);
 
 
