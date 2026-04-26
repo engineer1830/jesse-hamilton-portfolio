@@ -2453,11 +2453,11 @@ function showSustainability(zone) {
         }
 
 
-        const data = result; // clarity
+        let data = result; // clarity
         const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
         const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
 
-        let conservativeAge = Math.max(tradAge, rothAge);
+        const conservativeAge = Math.max(tradAge, rothAge);
 
         setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
