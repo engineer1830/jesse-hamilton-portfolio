@@ -2441,7 +2441,7 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-    function renderWithdrawalStrategy(data, stressAge) {
+    function renderWithdrawalStrategy(result, stressAge) {
 
         function findAccountDepletionAge(engineYears, field) {
             for (let i = 0; i < engineYears.length; i++) {
@@ -2453,7 +2453,7 @@ function showSustainability(zone) {
         }
 
 
-        let data = result; // clarity
+        const data = result; // clarity
         const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
         const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
 
