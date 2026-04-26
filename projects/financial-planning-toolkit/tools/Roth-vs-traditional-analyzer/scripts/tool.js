@@ -2452,6 +2452,8 @@ function renderWithdrawalStrategy(result, stressAge) {
         return engineYears[engineYears.length - 1].age;
     }
 
+    console.log("stressage:", stressAge);
+
     const data = result; // clarity
     const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
     const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
