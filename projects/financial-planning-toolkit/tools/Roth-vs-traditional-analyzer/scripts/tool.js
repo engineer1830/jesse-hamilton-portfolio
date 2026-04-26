@@ -2441,73 +2441,74 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
-function renderWithdrawalStrategy(result, stressAge) {
+    function renderWithdrawalStrategy(data, stressAge) {
 
-    function findAccountDepletionAge(engineYears, field) {
-        for (let i = 0; i < engineYears.length; i++) {
-            if (engineYears[i][field] <= 0) {
-                return engineYears[i].age;
+        function findAccountDepletionAge(engineYears, field) {
+            for (let i = 0; i < engineYears.length; i++) {
+                if (engineYears[i][field] <= 0) {
+                    return engineYears[i].age;
+                }
             }
+            return engineYears[engineYears.length - 1].age;
         }
-        return engineYears[engineYears.length - 1].age;
+
+
+        const data = result; // clarity
+        const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
+        const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
+
+        const conservativeAge = Math.max(tradAge, rothAge);
+
+        setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
+
+        // Annual withdrawal needed = spending need – Social Security
+        const ssIncome =
+            data.ssAnnualStatement ??
+            data.ssAtClaimAge ??
+            data.retirementTaxDetails?.ssAtClaimAge ??
+            0;
+
+        const spendingNeed = data.spendingNeedAtRetirement ?? 0;
+        const annualWithdrawal = spendingNeed - ssIncome;
+
+        setText("annual-withdrawal-needed", formatCurrency(annualWithdrawal));
+
+        // NEW: Breakdown line
+        setText("ss-contribution", formatCurrency(ssIncome));
+        setText("portfolio-contribution", formatCurrency(annualWithdrawal));
+
+        // Withdrawal rate (based on starting portfolio)
+        setText(
+            "required-withdrawal-rate",
+            formatPercent(data.requiredWithdrawalRate)
+        );
+
+        // RMD snapshots from deterministic engine
+        const rmds = computeRmdSnapshots(data.engineYears);
+        setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
+        setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
+        setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
+
+        // Withdrawal sequencing note
+        setText(
+            "withdrawal-sequencing-note",
+            data.withdrawalStrategyLabel
+        );
+
+        console.log("stress age:", stressAge);
+
+        // Use the stressAge
+        setText("conservative-depletion-age", `Age ${stressAge}`);
+
+
+        // Theoretical depletion age (long-term average return model)
+        const theoreticalAge = data.portfolioDepletionAge ?? null;
+
+        setText(
+            "theoretical-depletion-age",
+            theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
+        );
     }
-
-    console.log("stressage:", stressAge);
-
-    const data = result; // clarity
-    const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
-    const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
-
-    const conservativeAge = Math.max(tradAge, rothAge);
-
-    setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
-
-    // Annual withdrawal needed = spending need – Social Security
-    const ssIncome =
-        data.ssAnnualStatement ??
-        data.ssAtClaimAge ??
-        data.retirementTaxDetails?.ssAtClaimAge ??
-        0;
-
-    const spendingNeed = data.spendingNeedAtRetirement ?? 0;
-    const annualWithdrawal = spendingNeed - ssIncome;
-
-    setText("annual-withdrawal-needed", formatCurrency(annualWithdrawal));
-
-    // NEW: Breakdown line
-    setText("ss-contribution", formatCurrency(ssIncome));
-    setText("portfolio-contribution", formatCurrency(annualWithdrawal));
-
-    // Withdrawal rate (based on starting portfolio)
-    setText(
-        "required-withdrawal-rate",
-        formatPercent(data.requiredWithdrawalRate)
-    );
-
-    // RMD snapshots from deterministic engine
-    const rmds = computeRmdSnapshots(data.engineYears);
-    setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
-    setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
-    setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
-
-    // Withdrawal sequencing note
-    setText(
-        "withdrawal-sequencing-note",
-        data.withdrawalStrategyLabel
-    );
-
-    // Use the stressAge
-    setText("conservative-depletion-age", `Age ${stressAge}`);
-
-
-    // Theoretical depletion age (long-term average return model)
-    const theoreticalAge = data.portfolioDepletionAge ?? null;
-
-    setText(
-        "theoretical-depletion-age",
-        theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
-    );
-}
 
 function renderChartMismatchMessage(msg) {
     const container = document.getElementById("chart-mismatch-note");
@@ -3565,7 +3566,7 @@ function renderSummary(data) {
     renderChartMismatchMessage(chartMsg);
 
 
-    renderWithdrawalStrategy(data);
+    renderWithdrawalStrategy(data, stressAge);
 
     renderProInsights(insights);
 
