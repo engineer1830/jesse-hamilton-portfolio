@@ -667,7 +667,7 @@ $("runBtn").addEventListener("click", async () => {
                 : growth;
 
             console.log("Glidepath returns:", { stockReturn, bondReturn, growth });
-            
+
             const stockVolDaily = stockPrices.length
                 ? Finance.stddev(
                     stockPrices.slice(1).map((p, i) => {
@@ -728,7 +728,7 @@ $("runBtn").addEventListener("click", async () => {
                 yearlyExpectedReturns: yearlyExpectedReturns.slice(0, 15),
                 yearlyVols: yearlyVols.slice(0, 15)
             });
-              
+
             expectedReturn = yearlyExpectedReturns[0];
             stockVol = yearlyVols[0];
 
@@ -921,7 +921,7 @@ $("runBtn").addEventListener("click", async () => {
 
     }) {
         const engineYears = [];
-        
+
         const totalYears = lifeExpectancy - currentAge;
 
         let roth = currentRoth;
@@ -1045,14 +1045,15 @@ $("runBtn").addEventListener("click", async () => {
             // ⭐ Stop early if depleted
             if (combinedBalance <= 0) break;
         }
-        
+
         return engineYears;
     }
-    
+
     /* ---------------------------------------------------
    BUILD & RENDER GROWTH CHART
 --------------------------------------------------- */
 
+    
     // 1. Run deterministic engine (full year-by-year output)
     const engineYears = buildDeterministicChart({
         currentAge,
@@ -1075,7 +1076,7 @@ $("runBtn").addEventListener("click", async () => {
     // ⭐ Unified depletion ages (deterministic engine = source of truth)
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
-    
+
     /* ---------------------------------------------------
        MONTE CARLO
     --------------------------------------------------- */
@@ -1149,17 +1150,26 @@ $("runBtn").addEventListener("click", async () => {
     };
 
     /* ---------------------------------------------------
-       BUILD & RENDER GROWTH CHART (NOW SAFE)
-    --------------------------------------------------- */
+   BUILD & RENDER GROWTH CHART (NOW SAFE)
+--------------------------------------------------- */
+
+    // Ensure engineYears is the actual array
+    // const engineYears = result.engineYears;
+
+    // Build curves (still used elsewhere)
     const curves = buildYearlyCurves(
         engineYears,
         result.withdrawalReport?.combinedDepletionAge ??
         result.depletionAge
     );
 
+    // Build phases (still used elsewhere)
     const phases = buildPhases(currentAge, lifeExpectancy);
 
-    renderGrowthChart(curves, phases, currentAge, lifeExpectancy);
+    // Render the new chart
+    renderGrowthChart(engineYears, retirementAge, currentAge);
+
+
 
     /* ---------------------------------------------------
    BUILD & RENDER TAX CHART
@@ -1182,7 +1192,7 @@ $("runBtn").addEventListener("click", async () => {
         lifeExpectancy,
         spendingNeed
     });
-    
+
     withdrawalReport.tradDepletionAge = tradDepletionAge;
     withdrawalReport.rothDepletionAge = rothDepletionAge;
 
@@ -1201,16 +1211,16 @@ $("runBtn").addEventListener("click", async () => {
         withdrawalReport.combinedDepletionAge != null
             ? withdrawalReport.combinedDepletionAge - retirementAge
             : null;
-    
-    
+
+
     console.log("AFTER OVERRIDE (immediately):", {
         tradDepletionAge,
         rothDepletionAge,
         combinedFromOverride: withdrawalReport.combinedDepletionAge,
         withdrawalReportSnapshot: { ...withdrawalReport }
     });
-        
-    
+
+
     result.withdrawalReport = withdrawalReport;
 
     result.engineYears = engineYears;
@@ -1225,10 +1235,10 @@ $("runBtn").addEventListener("click", async () => {
         rothDepletionAge: insights.rothDepletionAge,
         combinedDepletionAge: insights.portfolioDepletionAge,
         lifeExpectancy: result.lifeExpectancy ?? 95,
-        currentAge: result.taxContext.currentAge,
+        currentAge: currentAge,
         engineYears: result.engineYears
     });
-    
+
     // 4) merge everything into a single object
     const full = {
         ...result,
@@ -1373,21 +1383,113 @@ function getGlidepathAllocation(age, retirementAge) {
    CHARTS
 ------------------------------------------------------- */
 
-function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
+function renderGrowthChart(engineYears, retirementAge, currentAge) {
     const ctx = $("growthChart").getContext("2d");
 
     if (growthChart) growthChart.destroy();
 
-    const { labels, roth, trad, combined, depletionAge } = curves;
+    // Build arrays directly from engineYears
+    const labels = engineYears.map(y => y.age);
+    const roth = engineYears.map(y => ({ x: y.age, y: y.rothBalance }));
+    const trad = engineYears.map(y => ({ x: y.age, y: y.tradBalance }));
+    const combined = engineYears.map(y => ({ x: y.age, y: y.combinedBalance }));
 
+    // Identify depletion ages
+    const tradDepletionAge = engineYears.find(y => y.tradBalance <= 0)?.age ?? null;
+    const rothDepletionAge = engineYears.find(y => y.rothBalance <= 0)?.age ?? null;
+    const combinedDepletionAge = engineYears.find(y => y.combinedBalance <= 0)?.age ?? null;
+
+    // Extend chart horizon +10 years beyond combined depletion
+    const lastAge = engineYears.at(-1).age;
+    const horizon = (combinedDepletionAge ?? lastAge) + 10;
+
+    // Build annotation objects
+    const annotations = {};
+
+    // Retirement marker
+    annotations.retirementLine = {
+        type: "line",
+        xMin: retirementAge,
+        xMax: retirementAge,
+        borderColor: "#1976d2",
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        label: {
+            enabled: true,
+            content: `Retirement (${retirementAge})`,
+            position: "start",
+            backgroundColor: "#1976d2",
+            color: "#fff"
+        }
+    };
+
+    // Traditional depletion marker
+    if (tradDepletionAge) {
+        annotations.tradDepletion = {
+            type: "line",
+            xMin: tradDepletionAge,
+            xMax: tradDepletionAge,
+            borderColor: "#b36b00",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Traditional depleted (${tradDepletionAge})`,
+                position: "center",
+                backgroundColor: "#b36b00",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Roth depletion marker
+    if (rothDepletionAge) {
+        annotations.rothDepletion = {
+            type: "line",
+            xMin: rothDepletionAge,
+            xMax: rothDepletionAge,
+            borderColor: "#1a7f37",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Roth depleted (${rothDepletionAge})`,
+                position: "center",
+                backgroundColor: "#1a7f37",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Combined depletion marker
+    if (combinedDepletionAge) {
+        annotations.combinedDepletion = {
+            type: "line",
+            xMin: combinedDepletionAge,
+            xMax: combinedDepletionAge,
+            borderColor: "#d32f2f",
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            label: {
+                enabled: true,
+                content: `Combined depleted (${combinedDepletionAge})`,
+                position: "start",
+                backgroundColor: "#d32f2f",
+                color: "#fff"
+            }
+        };
+    }
+
+    // Build the chart
     growthChart = new Chart(ctx, {
         type: "line",
+
         data: {
             labels,
             datasets: [
                 {
                     label: "Combined (after-tax)",
-                    data: combined.map(p => ({ x: p.age, y: p.balance })),
+                    data: combined,
                     borderColor: "#1f6feb",
                     backgroundColor: "rgba(31, 111, 235, 0.08)",
                     borderWidth: 2,
@@ -1395,7 +1497,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
                 },
                 {
                     label: "Traditional (after-tax, after RMDs)",
-                    data: trad.map(p => ({ x: p.age, y: p.balance })),
+                    data: trad,
                     borderColor: "#b36b00",
                     backgroundColor: "rgba(179, 107, 0, 0.05)",
                     borderWidth: 1.5,
@@ -1404,7 +1506,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
                 },
                 {
                     label: "Roth (tax-free)",
-                    data: roth.map(p => ({ x: p.age, y: p.balance })),
+                    data: roth,
                     borderColor: "#1a7f37",
                     backgroundColor: "rgba(26, 127, 55, 0.05)",
                     borderWidth: 1.5,
@@ -1417,47 +1519,25 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
             responsive: true,
 
             plugins: {
-                phaseShading: { phases },
+                // Your existing shading plugin
+                phaseShading: { phases: [] },
 
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            const datasetLabel = context.dataset.label;
-                            const value = context.parsed.y;
-                            return `${datasetLabel}: ${formatCurrency(value)}`;
+                            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
                         }
                     }
                 },
 
-                // Depletion marker (if applicable)
-                annotation: depletionAge
-                    ? {
-                        annotations: {
-                            depletionLine: {
-                                type: "line",
-                                xMin: depletionAge,
-                                xMax: depletionAge,
-                                borderColor: "#d32f2f",
-                                borderWidth: 1.5,
-                                borderDash: [6, 4],
-                                label: {
-                                    enabled: true,
-                                    content: `Depletion age ${depletionAge}`,
-                                    position: "start",
-                                    backgroundColor: "#d32f2f",
-                                    color: "#fff"
-                                }
-                            }
-                        }
-                    }
-                    : {}
+                annotation: { annotations }
             },
 
             scales: {
                 x: {
                     type: "linear",
                     min: currentAge,
-                    max: lifeExpectancy,
+                    max: horizon,
                     title: { text: "Age", display: true }
                 },
                 y: {
@@ -1472,6 +1552,7 @@ function renderGrowthChart(curves, phases, currentAge, lifeExpectancy) {
         plugins: [phaseShadingPlugin]
     });
 }
+
 
 
 function renderTaxChart({
@@ -1793,7 +1874,7 @@ function computeProInsights(result) {
     let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
     let tradBalance = tradAtRetirement;
     let rothBalance = rothAtRetirement;
-    
+
     function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
         let age = startAge;
         let balance = startBalance;
@@ -1825,7 +1906,7 @@ function computeProInsights(result) {
 
         return age;
     }
-    
+
     function computeRmd(balance, age) {
         const divisor = getIrsDivisor(age);
         return divisor ? balance / divisor : 0;
@@ -1834,7 +1915,7 @@ function computeProInsights(result) {
     tradRmdAt73 = computeRmd(tradBalance, 73);
     tradRmdAt80 = computeRmd(tradBalance, 80);
     tradRmdAt90 = computeRmd(tradBalance, 90);
-    
+
     function simulateWithdrawal(balance, rate, growthRate, years) {
         const annual = balance * rate;
         let b = balance;
@@ -1933,7 +2014,7 @@ function computeProInsights(result) {
     let currentBracketRate = null;
     let nextBracketRate = null;
     let taxJump = null;
-    
+
     if (retirementTaxDetails && taxContext) {
         const { rmd, tradAt73, estimatedRate } = retirementTaxDetails;
         const {
@@ -1953,7 +2034,7 @@ function computeProInsights(result) {
         for (let i = 0; i < yearsToRetirement; i++) {
             rothAtRetirement *= (1 + growth);
         }
-        
+
         rothBalance = rothAtRetirement;
 
 
@@ -2126,7 +2207,7 @@ function computeProInsights(result) {
         // Under "Traditional first", all portfolio withdrawals start from Trad
         tradFirstYearWithdrawal = Math.max(firstYearRmd, firstYearPortfolioWithdrawal);
         rothFirstYearWithdrawal = 0;
-                
+
         // --- Traditional stays at 0 unless user explicitly contributes ---
         const userAllowsTradGrowth =
             result.userTradContribution > 0 ||
@@ -2176,7 +2257,7 @@ function computeProInsights(result) {
             rothFirstYearWithdrawal = spendingGap;
         }
 
-        
+
         // 4% / 5% insights
         fourPercent = withdrawalInsight(
             retirementBalance,
@@ -2239,7 +2320,7 @@ function computeProInsights(result) {
         }
 
         yearsUntilDepletion = yearsOfRetirementSupported;
-        
+
         // ⭐ Catastrophic logic
         catastrophic =
             requiredWithdrawalRate > 0.06 ||
@@ -2280,7 +2361,7 @@ function computeProInsights(result) {
         ) {
             zone = "yellow";
         }
-        
+
     }
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
@@ -2360,55 +2441,74 @@ function showSustainability(zone) {
     void section.offsetHeight;
 }
 
+    function renderWithdrawalStrategy(result, stressAge) {
 
-function renderWithdrawalStrategy(data) {
-    // Strategy label
-    setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
+        function findAccountDepletionAge(engineYears, field) {
+            for (let i = 0; i < engineYears.length; i++) {
+                if (engineYears[i][field] <= 0) {
+                    return engineYears[i].age;
+                }
+            }
+            return engineYears[engineYears.length - 1].age;
+        }
 
-    // Balances at retirement
-    setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
-    setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
 
-    // ⭐ Combined depletion age (the ONLY depletion age we show)
-    const combinedAge = data.withdrawalReport?.combinedDepletionAge
-        ?? data.depletionAge
-        ?? null;
+        const data = result; // clarity
+        const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
+        const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
 
-    setText(
-        "combined-depletion-age",
-        combinedAge
-            ? `Age ${combinedAge}`
-            : "N/A"
-    );
+        const conservativeAge = Math.max(tradAge, rothAge);
 
-    // ⭐ Remove account-specific depletion ages from UI
-    // (We intentionally do NOT set trad-depletion-age or roth-depletion-age anymore)
-    setText("trad-depletion-age", "—");
-    setText("roth-depletion-age", "—");
+        setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
-    // First-year withdrawals
-    setText(
-        "trad-first-year-withdrawal",
-        formatCurrency(data.tradFirstYearWithdrawal)
-    );
-    setText(
-        "roth-first-year-withdrawal",
-        formatCurrency(data.rothFirstYearWithdrawal)
-    );
+        // Annual withdrawal needed = spending need – Social Security
+        const ssIncome =
+            data.ssAnnualStatement ??
+            data.ssAtClaimAge ??
+            data.retirementTaxDetails?.ssAtClaimAge ??
+            0;
 
-    // ⭐ Use deterministic engine RMDs
-    const rmds = computeRmdSnapshots(data.engineYears);
+        const spendingNeed = data.spendingNeedAtRetirement ?? 0;
+        const annualWithdrawal = spendingNeed - ssIncome;
 
-    setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
-    setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
-    setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
+        setText("annual-withdrawal-needed", formatCurrency(annualWithdrawal));
 
-    // Required withdrawal rate
-    setText(
-        "required-withdrawal-rate",
-        formatPercent(data.requiredWithdrawalRate)
-    );
-}
+        // NEW: Breakdown line
+        setText("ss-contribution", formatCurrency(ssIncome));
+        setText("portfolio-contribution", formatCurrency(annualWithdrawal));
+
+        // Withdrawal rate (based on starting portfolio)
+        setText(
+            "required-withdrawal-rate",
+            formatPercent(data.requiredWithdrawalRate)
+        );
+
+        // RMD snapshots from deterministic engine
+        const rmds = computeRmdSnapshots(data.engineYears);
+        setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
+        setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
+        setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
+
+        // Withdrawal sequencing note
+        setText(
+            "withdrawal-sequencing-note",
+            data.withdrawalStrategyLabel
+        );
+
+        console.log("stress age:", stressAge);
+
+        // Use the stressAge
+        setText("conservative-depletion-age", `Age ${stressAge}`);
+
+
+        // Theoretical depletion age (long-term average return model)
+        const theoreticalAge = data.portfolioDepletionAge ?? null;
+
+        setText(
+            "theoretical-depletion-age",
+            theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
+        );
+    }
 
 function renderChartMismatchMessage(msg) {
     const container = document.getElementById("chart-mismatch-note");
@@ -2480,7 +2580,7 @@ function renderPositiveSustainability({
         setText("positive-why-1", msg[0]);
         setText("positive-why-2", msg[1]);
         setText("positive-why-3", msg[2]);
-        
+
 
     }
 }
@@ -2893,12 +2993,18 @@ function attachChartExplanation() {
 
     el.addEventListener("click", () => {
         alert(
-            "The growth chart shows projected balances year-by-year, " +
-            "but the depletion age is based on the sustainability engine, " +
-            "which includes taxes, Social Security timing, and spending patterns. " +
-            "These models use different assumptions, so the depletion age may not " +
-            "match the exact point where the chart crosses zero."
+            "The growth chart shows year‑by‑year projected balances, while the depletion age " +
+            "comes from the sustainability engine, which includes taxes, Social Security timing, " +
+            "withdrawal sequencing, and spending patterns.Because the chart uses a large Y‑axis " +
+            "scale, late‑retirement balances appear to decline earlier than they actually do. " +
+            "This makes the chart visually more conservative than the underlying calculations." +
+            "" +
+            "These two models use different assumptions, so the chart’s visual “zero point” may " +
+            "not match the precise depletion age. Together, they provide a fuller picture of how " +
+            "saving decisions before retirement and spending decisions during retirement influence " +
+            "long‑term sustainability."
         );
+
     });
 }
 
@@ -2983,7 +3089,7 @@ function renderProInsights(result) {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
-    
+
     const retirementAge = result.taxContext?.retirementAge;
 
     let html = `
@@ -3050,7 +3156,7 @@ function renderProInsights(result) {
                 <div class="pro-insights-label">Bracket Fill Opportunity</div>
                 <div>
                     <strong>Total space before you spill beyond the next tax bracket:</strong>
-                    $${fmt(totalRoom) }
+                    $${fmt(totalRoom)}
                 </div>
     
                 <div class="pro-insights-note">
@@ -3178,7 +3284,7 @@ function renderProInsights(result) {
             </div>
         `;
     }
-    
+
     if (retirementReadiness !== null) {
         let readinessClass = "bad";
         if (retirementReadiness >= 90) readinessClass = "good";
@@ -3304,8 +3410,8 @@ function renderSummary(data) {
 
         renderSpendingMessage(insights);
     }
-    
-    
+
+
 
     const diffLabel =
         difference >= 0 ? "Roth ahead by" : "Traditional ahead by";
@@ -3319,7 +3425,7 @@ function renderSummary(data) {
         "combined-depletion-age",
         combinedAge ? `Age ${combinedAge}` : "N/A"
     );
-        
+
 
     let html = `
     <h3>Portfolio Depletion Age</h3>
@@ -3452,7 +3558,7 @@ function renderSummary(data) {
     `;
 
     document.getElementById("guidance").innerHTML = guidanceHtml;
-    
+
     console.log("chartDiagnostic:", data.chartDiagnostic);
     console.log("chartMsg:", getChartMismatchMessage(data));
 
@@ -3460,7 +3566,7 @@ function renderSummary(data) {
     renderChartMismatchMessage(chartMsg);
 
 
-    renderWithdrawalStrategy(data);
+    renderWithdrawalStrategy(data, stressAge);
 
     renderProInsights(insights);
 
@@ -3515,196 +3621,3 @@ function renderSummary(data) {
     attachChartExplanation();
     attachTooltipHandlers();
 }
-
-// function renderCatastrophicUX(result) {
-//     console.log("renderCatastrophicUX CALLED", { catastrophic: result?.catastrophic });
-//     const bannerEl = document.getElementById("catastrophic-banner");
-//     const sanityEl = document.getElementById("sanity-check");
-//     const actionsEl = document.getElementById("recommended-actions");
-//     const depletionMsgEl = document.getElementById(
-//         "catastrophic-depletion-message"
-//     );
-
-//     if (!bannerEl || !sanityEl || !actionsEl) return;
-
-//     const catastrophic = !!result.catastrophic;
-//     const requiredRate = result.requiredWithdrawalRate ?? null;
-//     const spendingGap = result.spendingGap ?? null;
-//     const ssIncome =
-//         result.retirementTaxDetails?.ssAtClaimAge ?? null;
-//     const yearsUntilDepletion = result.yearsUntilDepletion ?? null;
-//     const depletionAge = result.depletionAge ?? null;
-
-//     const needsAdjustment =
-//         catastrophic ||
-//         (requiredRate != null && requiredRate > 0.05) ||
-//         (result.safeSpendingDelta != null &&
-//             result.safeSpendingDelta > 0);
-
-//     if (depletionMsgEl) {
-//         if (needsAdjustment && yearsUntilDepletion != null) {
-//             const depletionLine = depletionAge
-//                 ? `At your current spending level, your savings may be depleted near age <strong>${depletionAge}</strong>.`
-//                 : `At your current spending level, your savings may be depleted well before age 85.`;
-
-//             depletionMsgEl.innerHTML = `
-//                 ${depletionLine}
-//                 Your plan requires adjustment to improve long‑term sustainability.
-//             `;
-//         } else {
-//             depletionMsgEl.innerHTML = "";
-//         }
-//     }
-
-//     if (catastrophic) {
-//         bannerEl.style.display = "flex";
-
-//         const rateEl = document.getElementById(
-//             "catastrophic-withdrawal-rate"
-//         );
-//         const gapEl = document.getElementById(
-//             "catastrophic-spending-gap"
-//         );
-//         const ssEl = document.getElementById("catastrophic-ss-income");
-
-//         if (rateEl && requiredRate != null) {
-//             rateEl.textContent = formatPercent(requiredRate);
-//         }
-//         if (gapEl && spendingGap != null) {
-//             gapEl.textContent = formatCurrency(spendingGap);
-//         }
-//         if (ssEl && ssIncome != null) {
-//             ssEl.textContent = formatCurrency(ssIncome);
-//         }
-//     } else {
-//         bannerEl.style.display = "none";
-//     }
-
-//     let statusLine = "";
-//     if (catastrophic) {
-//         statusLine =
-//             "Yes — at your current spending level, your savings would run out early.";
-//     } else if (
-//         requiredRate != null &&
-//         requiredRate > 0.05 &&
-//         requiredRate <= 0.08
-//     ) {
-//         statusLine =
-//             "Possibly — your plan is fragile and may not withstand market volatility.";
-//     } else {
-//         statusLine =
-//             "Unlikely — your plan appears sustainable under typical market conditions.";
-//     }
-
-//     const yearsText = yearsUntilDepletion
-//         ? `Estimated depletion age: <strong>${depletionAge}</strong> (in ${yearsUntilDepletion} years)`
-//         : "";
-
-//     const safeSpendingText =
-//         needsAdjustment &&
-//             result.safeSpendingMin != null &&
-//             result.safeSpendingMax != null
-//             ? `To stay within the 4%–5% safe range, your sustainable spending level is 
-//                <strong>${formatCurrency(
-//                 result.safeSpendingMin
-//             )}–${formatCurrency(
-//                 result.safeSpendingMax
-//             )}</strong> per year.`
-//             : "";
-
-//     const safeSpendingDelta =
-//         needsAdjustment && result.safeSpendingDelta != null
-//             ? result.safeSpendingDelta
-//             : null;
-
-//     const safeDeltaText =
-//         safeSpendingDelta !== null && safeSpendingDelta > 0
-//             ? `You would need to reduce spending by 
-//                <strong>${formatCurrency(
-//                 safeSpendingDelta
-//             )}</strong> 
-//                to reach the safe range.`
-//             : "";
-
-//     const requiredPortfolioText =
-//         needsAdjustment && result.requiredPortfolioSize
-//             ? `<p class="sanity-required">
-//                  To safely sustain your current lifestyle, you would need a portfolio of 
-//                  <strong>${formatCurrency(
-//                 result.requiredPortfolioSize
-//             )}</strong>.
-//                </p>`
-//             : "";
-
-//     let statusClass = "";
-//     let statusIcon = "";
-
-//     if (catastrophic) {
-//         statusClass = "bad";
-//         statusIcon = "⛔";
-//     } else if (requiredRate != null && requiredRate > 0.05) {
-//         statusClass = "warn";
-//         statusIcon = "⚠️";
-//     } else {
-//         statusClass = "good";
-//         statusIcon = "✓";
-//     }
-
-//     sanityEl.innerHTML = `
-//         <div class="sanity-block fade-in">
-//           <h3>Will I Run Out of Money?</h3>
-
-//           <p class="sanity-status ${statusClass}">
-//             <span class="status-icon">${statusIcon}</span>
-//             ${statusLine}
-//           </p>
-
-//           ${needsAdjustment
-//             ? `<p class="sanity-detail">
-//                        Your annual spending need is <strong>${formatCurrency(
-//                 result.spendingNeedAtRetirement ?? 0
-//             )}</strong>, but your portfolio can safely support only
-//                        <strong>${formatCurrency(
-//                 result.fourPercentInsight?.annual ?? 0
-//             )}–${formatCurrency(
-//                 result.fivePercentInsight?.annual ?? 0
-//             )}</strong> per year under the 4%–5% rule.
-//                        This mismatch creates a withdrawal rate that leads to early depletion.
-//                      </p>`
-//             : ""
-//         }
-
-//           ${yearsText ? `<p class="sanity-years">${yearsText}</p>` : ""}
-//           ${safeSpendingText
-//             ? `<p class="sanity-safe">${safeSpendingText}</p>`
-//             : ""
-//         }
-//           ${safeDeltaText
-//             ? `<p class="sanity-delta">${safeDeltaText}</p>`
-//             : ""
-//         }
-//           ${requiredPortfolioText}
-//         </div>
-//     `;
-
-//     sanityEl.style.display = "block";
-
-//     if (catastrophic) {
-//         actionsEl.innerHTML = `
-//             <div class="actions-block fade-in">
-//               <h3>Recommended Next Steps</h3>
-//               <ol>
-//                 <li><strong>Reduce annual spending.</strong> Even a 10–20% reduction dramatically improves sustainability.</li>
-//                 <li><strong>Delay retirement.</strong> Each additional year of work increases savings and shortens the withdrawal horizon.</li>
-//                 <li><strong>Increase savings contributions.</strong> Extra savings in the final working years have outsized impact.</li>
-//                 <li><strong>Adjust investment allocation.</strong> A more growth‑oriented mix may improve sustainability but increases volatility.</li>
-//                 <li><strong>Re‑evaluate Social Security timing.</strong> Delaying benefits increases lifetime income and reduces portfolio pressure.</li>
-//               </ol>
-//             </div>
-//         `;
-//         actionsEl.style.display = "block";
-//     } else {
-//         actionsEl.innerHTML = "";
-//         actionsEl.style.display = "none";
-//     }
-// }
