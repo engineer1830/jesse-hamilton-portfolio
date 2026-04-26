@@ -2443,19 +2443,21 @@ function showSustainability(zone) {
 
 function renderWithdrawalStrategy(result) {
 
+    function findAccountDepletionAge(engineYears, field) {
+        for (let i = 0; i < engineYears.length; i++) {
+            if (engineYears[i][field] <= 0) {
+                return engineYears[i].age;
+            }
+        }
+        return engineYears[engineYears.length - 1].age;
+    }
+
     const data = result; // clarity
+    const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
+    const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
 
-    // console.log("FULL DATA RECEIVED BY UI:", data);
+    const conservativeAge = Math.max(tradAge, rothAge);
 
-
-    // // temp test
-    // console.log("SS fields:", {
-    //     ssAnnualStatement: data.ssAnnualStatement,
-    //     ssAtClaimAge: data.ssAtClaimAge,
-    //     ssIncome: data.ssIncome
-    // });
-    
-    // Strategy label
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
     // Annual withdrawal needed = spending need – Social Security
@@ -2492,22 +2494,8 @@ function renderWithdrawalStrategy(result) {
         data.withdrawalStrategyLabel
     );
 
-    function findConservativeDepletionAge(engineYears) {
-        for (let i = 0; i < engineYears.length; i++) {
-            if (engineYears[i].combinedBalance <= 0) {
-                return engineYears[i].age;
-            }
-        }
-        return engineYears[engineYears.length - 1].age; // fallback
-    }
-    
-    // Conservative depletion age (from engineYears)
-    const conservativeAge = findConservativeDepletionAge(data.engineYears);
+    setText("conservative-depletion-age", `Age ${conservativeAge}`);
 
-    setText(
-        "conservative-depletion-age",
-        conservativeAge ? `Age ${conservativeAge}` : "N/A"
-    );
 
     // Theoretical depletion age (long-term average return model)
     const theoreticalAge = data.portfolioDepletionAge ?? null;
@@ -2517,58 +2505,6 @@ function renderWithdrawalStrategy(result) {
         theoreticalAge ? `Age ${theoreticalAge}` : "N/A"
     );
 }
-
-
-
-// old render withdrawal strategy . . . updated 4/25/26
-// function renderWithdrawalStrategy(data) {
-//     // Strategy label
-//     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
-
-//     // Balances at retirement
-//     setText("trad-balance-at-retirement", formatCurrency(data.tradAtRetirement));
-//     setText("roth-balance-at-retirement", formatCurrency(data.rothAtRetirement));
-
-//     // ⭐ Combined depletion age (the ONLY depletion age we show)
-//     const combinedAge = data.withdrawalReport?.combinedDepletionAge
-//         ?? data.depletionAge
-//         ?? null;
-
-//     setText(
-//         "combined-depletion-age",
-//         combinedAge
-//             ? `Age ${combinedAge}`
-//             : "N/A"
-//     );
-
-//     // ⭐ Remove account-specific depletion ages from UI
-//     // (We intentionally do NOT set trad-depletion-age or roth-depletion-age anymore)
-//     setText("trad-depletion-age", "—");
-//     setText("roth-depletion-age", "—");
-
-//     // First-year withdrawals
-//     setText(
-//         "trad-first-year-withdrawal",
-//         formatCurrency(data.tradFirstYearWithdrawal)
-//     );
-//     setText(
-//         "roth-first-year-withdrawal",
-//         formatCurrency(data.rothFirstYearWithdrawal)
-//     );
-
-//     // ⭐ Use deterministic engine RMDs
-//     const rmds = computeRmdSnapshots(data.engineYears);
-
-//     setText("trad-rmd-73", formatCurrency(rmds.rmdAt73));
-//     setText("trad-rmd-80", formatCurrency(rmds.rmdAt80));
-//     setText("trad-rmd-90", formatCurrency(rmds.rmdAt90));
-
-//     // Required withdrawal rate
-//     setText(
-//         "required-withdrawal-rate",
-//         formatPercent(data.requiredWithdrawalRate)
-//     );
-// }
 
 function renderChartMismatchMessage(msg) {
     const container = document.getElementById("chart-mismatch-note");
