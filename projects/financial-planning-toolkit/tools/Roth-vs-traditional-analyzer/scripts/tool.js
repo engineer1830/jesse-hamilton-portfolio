@@ -2457,7 +2457,7 @@ function showSustainability(zone) {
         const tradAge = findAccountDepletionAge(data.engineYears, "tradBalance");
         const rothAge = findAccountDepletionAge(data.engineYears, "rothBalance");
 
-        const conservativeAge = Math.max(tradAge, rothAge);
+        let conservativeAge = Math.max(tradAge, rothAge);
 
         setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
