@@ -2445,21 +2445,26 @@ function renderWithdrawalStrategy(result) {
 
     const data = result; // clarity
 
-    console.log("FULL DATA RECEIVED BY UI:", data);
+    // console.log("FULL DATA RECEIVED BY UI:", data);
 
 
-    // temp test
-    console.log("SS fields:", {
-        ssAnnualStatement: data.ssAnnualStatement,
-        ssAtClaimAge: data.ssAtClaimAge,
-        ssIncome: data.ssIncome
-    });
+    // // temp test
+    // console.log("SS fields:", {
+    //     ssAnnualStatement: data.ssAnnualStatement,
+    //     ssAtClaimAge: data.ssAtClaimAge,
+    //     ssIncome: data.ssIncome
+    // });
     
     // Strategy label
     setText("withdrawal-strategy-label", data.withdrawalStrategyLabel);
 
     // Annual withdrawal needed = spending need – Social Security
-    const ssIncome = data.ssAnnualStatement ?? 0;
+    const ssIncome =
+        data.ssAnnualStatement ??
+        data.ssAtClaimAge ??
+        data.retirementTaxDetails?.ssAtClaimAge ??
+        0;
+
     const spendingNeed = data.spendingNeedAtRetirement ?? 0;
     const annualWithdrawal = spendingNeed - ssIncome;
 
