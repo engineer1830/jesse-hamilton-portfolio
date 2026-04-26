@@ -562,11 +562,47 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge }) {
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
     return {
+        tradDepletionAge: findTradDepletionAge(engineYears),
+        rothDepletionAge: findRothDepletionAge(engineYears),
         combinedDepletionAge,
         yearsUntilDepletion:
             combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null
     };
 }
+
+function computeSocialSecurityBenefit(ssAnnualStatement, claimAge) {
+    if (!ssAnnualStatement) return 0;
+
+    // FRA = 67 for simplicity (your tool can expand this later)
+    const FRA = 67;
+
+    // Early claiming (62–66)
+    if (claimAge < FRA) {
+        // 62 = 70% of FRA, linear increase to 100% at 67
+        const minAge = 62;
+        const minFactor = 0.70;
+        const maxFactor = 1.00;
+        const slope = (maxFactor - minFactor) / (FRA - minAge);
+        const factor = minFactor + slope * (claimAge - minAge);
+        return ssAnnualStatement * factor;
+    }
+
+    // FRA (67)
+    if (claimAge === FRA) {
+        return ssAnnualStatement;
+    }
+
+    // Delayed retirement credits (68–70)
+    if (claimAge > FRA) {
+        // 8% per year after FRA, up to age 70
+        const yearsDelayed = Math.min(claimAge - FRA, 3);
+        const factor = 1 + 0.08 * yearsDelayed;
+        return ssAnnualStatement * factor;
+    }
+
+    return ssAnnualStatement;
+}
+
 
 // 6. Deterministic engine (shared)
 function buildDeterministicChart({
@@ -736,6 +772,10 @@ function runEngine(inputs) {
 
     const lifeExpectancy = 120;
 
+    // ⭐ Compute SS benefit BEFORE running the engine
+    const ssIncome = computeSocialSecurityBenefit(ssAnnualStatement, claimAge);
+
+    // ⭐ Pass computed SS into the deterministic engine
     const engineYears = buildDeterministicChart({
         currentAge,
         currentRoth,
@@ -748,7 +788,7 @@ function runEngine(inputs) {
         useGlidepath: false,
         retirementAge,
         claimAge,
-        ssAnnualStatement,
+        ssAnnualStatement: ssIncome,
         spendingNeed,
         retireTax,
         lifeExpectancy,
@@ -761,7 +801,7 @@ function runEngine(inputs) {
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge
     });
-        
+
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
 
@@ -771,11 +811,12 @@ function runEngine(inputs) {
     return {
         withdrawalReport,
         requiredWithdrawalRate: withdrawalRate,
-        ssAtClaimAge: ssAnnualStatement,
+        ssAtClaimAge: ssIncome,
         portfolioAtRetirement,
         engineYears
     };
 }
+
 
 /* -------------------------------------------------------
    COMPARISON WORKFLOW
