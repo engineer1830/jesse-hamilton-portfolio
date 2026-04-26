@@ -513,6 +513,33 @@ function getWhyMessages(zone) {
 }
 
 /* -------------------------------------------------------
+   HELP FUNCTION for COMPARISON
+------------------------------------------------------- */
+
+function getUserInputs() {
+    return {
+        currentAge: parseInt($("currentAge").value) || 60,
+        retirementAge: parseInt($("retirementAge").value) || 67,
+
+        currentRoth: parseFloat($("currentRoth").value) || 0,
+        currentTrad: parseFloat($("currentTrad").value) || 0,
+
+        contribution: parseFloat($("contribution").value) || 0,
+
+        spendingNeed: parseFloat($("spendingNeed").value) || 0,
+
+        ssAnnualStatement: parseFloat($("ssAnnual").value) || 0,
+        claimAge: parseInt($("claimAge").value) || 67,
+
+        filingStatus: $("filingStatus") ? $("filingStatus").value : "married",
+
+        expectedReturn: (parseFloat($("growth").value) || 0) / 100,
+
+        retireTax: (parseFloat($("retireTax").value) || 0) / 100
+    };
+}
+
+/* -------------------------------------------------------
    COMPARISON FUNCTIONS
 ------------------------------------------------------- */
 
