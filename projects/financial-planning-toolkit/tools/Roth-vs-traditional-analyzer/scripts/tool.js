@@ -1064,8 +1064,8 @@ function renderComparison(result62, result67) {
     // const stress62 = result62.withdrawalReport.stressAge;
     // const stress67 = result67.withdrawalReport.stressAge;
 
-    const stress62 = result62.stressAge;
-    const stress67 = result67.stressAge;
+    const stress62 = result62.withdrawalReport?.stressAge ?? "N/A";
+    const stress67 = result67.withdrawalReport?.stressAge ?? "N/A";
 
     const depletion62 = result62.withdrawalReport.combinedDepletionAge ?? "N/A";
     const depletion67 = result67.withdrawalReport.combinedDepletionAge ?? "N/A";
