@@ -606,34 +606,6 @@ $("runBtn").addEventListener("click", async () => {
     summary.innerHTML = "";
     loading.style.display = "block";
 
-    try {
-        // 1️⃣ Gather inputs
-        const inputs = getUserInputs();   // your existing function
-
-        // 2️⃣ Run the full engine
-        const result = runFullEngine(inputs);
-
-        // 3️⃣ Render the main summary UI
-        renderSummary(result);
-
-        // 4️⃣ Build insights for snapshot
-        const insights = computeProInsights(result);
-
-        // 5️⃣ Save scenario snapshot
-        const snapshot = buildScenarioSnapshot(result, insights);
-        saveScenarioRun(snapshot);
-
-        // 6️⃣ Show raw output (optional)
-        output.textContent = JSON.stringify(result, null, 2);
-
-    } catch (err) {
-        console.error(err);
-        output.textContent = "Error running analysis.";
-    }
-
-    // 7️⃣ Hide loading spinner
-    loading.style.display = "none";
-
 
 
     /* ---------------------------------------------------
@@ -1338,15 +1310,6 @@ $("runBtn").addEventListener("click", async () => {
     // 3) compute insights
     const insights = computeProInsights(result);
 
-    result.chartDiagnostic = buildChartDepletionDiagnostic({
-        tradDepletionAge: insights.tradDepletionAge,
-        rothDepletionAge: insights.rothDepletionAge,
-        combinedDepletionAge: insights.portfolioDepletionAge,
-        lifeExpectancy: result.lifeExpectancy ?? 95,
-        currentAge: currentAge,
-        engineYears: result.engineYears
-    });
-
     // 4) merge everything into a single object
     const full = {
         ...result,
@@ -1356,9 +1319,15 @@ $("runBtn").addEventListener("click", async () => {
     // 5) render summary with the merged object
     renderSummary(full);
 
-    loading.style.display = "none";
+    // 6) save snapshot
+    const snapshot = buildScenarioSnapshot(full, insights);
+    saveScenarioRun(snapshot);
+
+    // 7) show raw output
     output.textContent = JSON.stringify(full, null, 2);
 
+    // 8) hide loading spinner
+    loading.style.display = "none";
 });
 
 /* -------------------------------------------------------
