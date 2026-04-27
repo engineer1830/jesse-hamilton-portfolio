@@ -914,25 +914,7 @@ function runEngine(inputs) {
     const ssIncomeAtClaimAge = ssIncome;
     const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
 
-    // Use full-engine depletion logic
-    const tradDepletionAge = simulateTradDepletion(
-        currentTrad,
-        retirementAge,
-        spendingGap,
-        expectedReturn
-    );
-
-    const rothDepletionAge = simulateRothDepletion(
-        currentRoth,
-        tradDepletionAge,
-        spendingGap,
-        expectedReturn
-    );
-
-    const stressAge = Math.min(tradDepletionAge, rothDepletionAge);
-
-
-    // 3️⃣ Now it's safe to call the deterministic engine
+    // 3️⃣ Build deterministic engine (must happen BEFORE depletion simulation)
     const engineYears = buildDeterministicChartComparison({
         currentAge,
         currentRoth,
@@ -953,36 +935,47 @@ function runEngine(inputs) {
         spendingGap
     });
 
-    // const tradDepletionAge = findTradDepletionAge(engineYears);
-    // const rothDepletionAge = findRothDepletionAge(engineYears);
-
-    // const stressAge = Math.min(
-    //     tradDepletionAge ?? Infinity,
-    //     rothDepletionAge ?? Infinity
-    // );
-
-
     // 4️⃣ Retirement snapshot
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
 
-    // 5️⃣ Build withdrawal report
+    // ⭐ This is the correct place for your console.log
+    console.log("RETIREMENT YEAR:", retirementYear);
+
+    // 5️⃣ Now we can safely compute depletion ages using balances AT retirement
+    const tradDepletionAge = simulateTradDepletion(
+        retirementYear.tradBalance,   // <-- these must exist
+        retirementAge,
+        spendingGap,
+        expectedReturn
+    );
+
+    const rothDepletionAge = simulateRothDepletion(
+        retirementYear.rothBalance,   // <-- these must exist
+        tradDepletionAge,
+        spendingGap,
+        expectedReturn
+    );
+
+    const stressAge = Math.min(tradDepletionAge, rothDepletionAge);
+
+    // 6️⃣ Build withdrawal report
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
         spendingGap
     });
 
-    // 6️⃣ Withdrawal rate
+    // 7️⃣ Withdrawal rate
     const withdrawalRate =
         spendingGap > 0
             ? spendingGap / portfolioAtRetirement
             : 0;
 
-    
+    // 8️⃣ Return result, overriding incorrect stressAge in withdrawalReport
     return {
         withdrawalReport: {
             ...withdrawalReport,
-            stressAge   // <-- overwrite the incorrect one
+            stressAge
         },
         requiredWithdrawalRate: withdrawalRate,
         ssAtClaimAge: ssIncome,
@@ -990,16 +983,8 @@ function runEngine(inputs) {
         engineYears,
         stressAge
     };
-            
-    // return {
-    //     withdrawalReport,
-    //     requiredWithdrawalRate: withdrawalRate,
-    //     ssAtClaimAge: ssIncome,
-    //     portfolioAtRetirement,
-    //     engineYears,
-    //     stressAge
-    // };
 }
+
 
 
 /* -------------------------------------------------------
