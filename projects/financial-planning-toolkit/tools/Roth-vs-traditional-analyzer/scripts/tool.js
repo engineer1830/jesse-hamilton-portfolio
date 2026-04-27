@@ -556,35 +556,47 @@ function findRothDepletionAge(engineYears) {
     return year ? year.age : null;
 }
 
-function findStressAge(engineYears, spendingNeed) {
-    for (let i = 0; i < engineYears.length - 1; i++) {
-        const y = engineYears[i];
-        const next = engineYears[i + 1];
+function findStressAge(engineYears, spendingGap, retirementAge, growthRate = 0.05) {
+    const start = engineYears.find(y => y.age === retirementAge);
+    if (!start) return engineYears[engineYears.length - 1].age;
 
-        // 1. Portfolio gone
-        if (y.combinedBalance <= 0) {
-            return y.age;
-        }
+    const tradStart = start.tradBalance;
+    const rothStart = start.rothBalance;
 
-        // 2. Withdrawal exceeds spending need
-        if (y.withdrawal !== undefined && y.withdrawal > spendingNeed) {
-            return y.age;
-        }
+    // --- Traditional depletion ---
+    let age = retirementAge;
+    let tradBalance = tradStart;
 
-        // 3. Sustainability check (the missing piece)
-        const nextYearNeed = Math.max(spendingNeed - next.ssIncome, 0);
-        if (next.combinedBalance < nextYearNeed) {
-            return y.age;
-        }
+    while (tradBalance > 0 && age < 120) {
+        const divisor = getIrsDivisor(age);
+        const rmd = divisor ? tradBalance / divisor : 0;
+        const withdrawal = Math.max(rmd, spendingGap);
+
+        tradBalance = tradBalance - withdrawal;
+        tradBalance = tradBalance * (1 + growthRate);
+        age++;
     }
 
-    // No stress found → return last modeled age
-    return engineYears[engineYears.length - 1].age;
+    const tradDepletionAge = age;
+
+    // --- Roth depletion ---
+    age = tradDepletionAge;
+    let rothBalance = rothStart;
+
+    while (rothBalance > 0 && age < 120) {
+        rothBalance = rothBalance - spendingGap;
+        rothBalance = rothBalance * (1 + growthRate);
+        age++;
+    }
+
+    const rothDepletionAge = age;
+
+    return Math.min(tradDepletionAge, rothDepletionAge);
 }
 
 
 // 5. Build withdrawal report
-function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingNeed }) {
+function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingGap }) {
     const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
@@ -594,7 +606,7 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingN
         combinedDepletionAge,
         yearsUntilDepletion:
             combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null,
-        stressAge: findStressAge(engineYears, spendingNeed)
+        stressAge: findStressAge(engineYears, spendingGap, retirementAge)
     };
 }
 
@@ -804,6 +816,8 @@ function runEngine(inputs) {
     // ⭐ Compute SS benefit BEFORE running the engine
     const ssIncome = computeSocialSecurityBenefit(ssAnnualStatement, claimAge);
 
+    const spendingGap = spendingNeed - ssIncome;
+
     // ⭐ Pass computed SS into the deterministic engine
     const engineYears = buildDeterministicChart({
         currentAge,
@@ -829,7 +843,7 @@ function runEngine(inputs) {
 
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
-        spendingNeed
+        spendingGap
     });
     
 
@@ -2936,8 +2950,6 @@ function showSustainability(zone) {
             "withdrawal-sequencing-note",
             data.withdrawalStrategyLabel
         );
-
-        console.log("stress age:", stressAge);
 
         // Use the stressAge
         setText("conservative-depletion-age", `Age ${stressAge}`);
