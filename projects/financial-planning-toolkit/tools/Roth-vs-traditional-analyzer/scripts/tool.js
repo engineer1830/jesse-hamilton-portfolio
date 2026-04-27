@@ -608,15 +608,24 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
     const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
+    const tradDepletionAge = findTradDepletionAge(engineYears);
+    const rothDepletionAge = findRothDepletionAge(engineYears);
+
+    const stressAge = Math.min(
+        tradDepletionAge ?? Infinity,
+        rothDepletionAge ?? Infinity
+    );
+
     return {
-        tradDepletionAge: findTradDepletionAge(engineYears),
-        rothDepletionAge: findRothDepletionAge(engineYears),
+        tradDepletionAge,
+        rothDepletionAge,
         combinedDepletionAge,
         yearsUntilDepletion:
             combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null,
-        stressAge: findStressAge(engineYears, spendingGap, retirementAge)
+        stressAge: Number.isFinite(stressAge) ? stressAge : null
     };
 }
+
 
 
 function computeSocialSecurityBenefit(ssAnnualStatement, claimAge) {
