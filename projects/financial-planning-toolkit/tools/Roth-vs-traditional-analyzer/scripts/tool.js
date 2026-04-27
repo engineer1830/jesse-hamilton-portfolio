@@ -857,18 +857,15 @@ function runRetirementComparison() {
     const inputs = getUserInputs();
     if (!inputs) return;
 
-    const inputs62 = { ...inputs, retirementAge: 62, claimAge: 62 };
-    const inputs67 = { ...inputs, retirementAge: 67, claimAge: 67 };
+    const inputs62 = { ...inputs, claimAge: 62 };
+    const inputs67 = { ...inputs, claimAge: 67 };
 
     const result62 = runEngine(inputs62);
     const result67 = runEngine(inputs67);
 
     renderComparison(result62, result67);
-
-    console.log("62 engineYears", result62.engineYears);
-    console.log("67 engineYears", result67.engineYears);
-
 }
+
 
 function renderComparison(result62, result67) {
     const container = document.getElementById("comparison-section");
@@ -915,7 +912,7 @@ function renderComparison(result62, result67) {
     const html = `
         <div class="comparison-grid">
             <div class="comparison-column">
-                <h2>Retire at 62</h2>
+                <h2>Claim Social Security at 62</h2>
                 <p><strong>Stress Age:</strong> ${stress62}</p>
                 <p><strong>Depletion Age:</strong> ${depletion62}</p>
                 <p><strong>Withdrawal Rate:</strong> ${formatPercent(result62.requiredWithdrawalRate)}</p>
@@ -924,7 +921,7 @@ function renderComparison(result62, result67) {
             </div>
 
             <div class="comparison-column">
-                <h2>Retire at 67</h2>
+                <h2>Claim Social Security at 67</h2>
                 <p><strong>Stress Age:</strong> ${stress67}</p>
                 <p><strong>Depletion Age:</strong> ${depletion67}</p>
                 <p><strong>Withdrawal Rate:</strong> ${formatPercent(result67.requiredWithdrawalRate)}</p>
