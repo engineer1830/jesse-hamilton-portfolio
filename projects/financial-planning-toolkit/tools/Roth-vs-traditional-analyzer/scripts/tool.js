@@ -641,10 +641,10 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
 
-    const stressAge = Math.min(
-        tradDepletionAge ?? Infinity,
-        rothDepletionAge ?? Infinity
-    );
+    const stressAge =
+        combinedDepletionAge ??
+        Math.min(tradDepletionAge ?? Infinity, rothDepletionAge ?? Infinity);
+
 
     const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
@@ -993,21 +993,26 @@ function runEngine(inputs) {
         retirementGrowthRate   // <-- use full-engine growth rate
     );
 
-    const stressAge = Math.min(tradDepletionAge, rothDepletionAge);
-
-    // 7️⃣ Build withdrawal report
+    // 7️⃣ Build withdrawal report (includes combinedDepletionAge)
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
-        spendingGap
+        spendingGap,
+        tradDepletionAge,
+        rothDepletionAge
     });
 
-    // 8️⃣ Withdrawal rate
+    // 8️⃣ Stress age = portfolio depletion age if available, otherwise min(trad, roth)
+    const stressAge =
+        withdrawalReport.combinedDepletionAge ??
+        Math.min(tradDepletionAge, rothDepletionAge);
+
+    // 9️⃣ Withdrawal rate
     const withdrawalRate =
         spendingGap > 0
             ? spendingGap / portfolioAtRetirement
             : 0;
 
-    // 9️⃣ Return result, overriding incorrect stressAge in withdrawalReport
+    // 🔟 Return result, with corrected stressAge wired into withdrawalReport
     return {
         withdrawalReport: {
             ...withdrawalReport,
@@ -1020,6 +1025,7 @@ function runEngine(inputs) {
         stressAge
     };
 }
+
 
 
 
