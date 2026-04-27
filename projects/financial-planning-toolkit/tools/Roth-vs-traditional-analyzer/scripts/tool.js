@@ -864,6 +864,10 @@ function runRetirementComparison() {
     const result67 = runEngine(inputs67);
 
     renderComparison(result62, result67);
+
+    console.log("62 engineYears", result62.engineYears);
+    console.log("67 engineYears", result67.engineYears);
+
 }
 
 function renderComparison(result62, result67) {
