@@ -885,7 +885,13 @@ function getUserInputs() {
         claimAge: parseInt($("claimAge").value) || 67,
         filingStatus: $("filingStatus") ? $("filingStatus").value : "married",
         expectedReturn: (parseFloat($("growth").value) || 0) / 100,
-        retireTax: (parseFloat($("retireTax").value) || 0) / 100
+        retireTax: (parseFloat($("retireTax").value) || 0) / 100,
+
+        // ⭐ Inject glidepath + return series from full engine
+        yearlyExpectedReturns: window.lastFullEngineGlidepath?.yearlyExpectedReturns || null,
+        yearlyVols: window.lastFullEngineGlidepath?.yearlyVols || null,
+        glidepath: window.lastFullEngineGlidepath?.glidepath || null
+
     };
 }
 
@@ -901,7 +907,10 @@ function runEngine(inputs) {
         claimAge,
         filingStatus,
         expectedReturn,
-        retireTax
+        retireTax,
+        yearlyExpectedReturns,
+        yearlyVols,
+        glidepath
     } = inputs;
 
     const lifeExpectancy = 120;
@@ -941,36 +950,60 @@ function runEngine(inputs) {
 
     console.log("RETIREMENT YEAR:", retirementYear);
 
-    // 5️⃣ NOW compute depletion ages using balances AT retirement
+    // ⭐ Compute retirement-phase growth rate (matches full engine behavior)
+    let retirementGrowthRate = expectedReturn;  // fallback
+
+    // If glidepath exists, compute average retirement returns
+    if (inputs.glidepath && Array.isArray(inputs.glidepath.yearlyExpectedReturns)) {
+        const gp = inputs.glidepath.yearlyExpectedReturns;
+
+        const yearsToRetirement = retirementAge - currentAge;
+        const yearsInRetirement = Math.max(0, 85 - retirementAge);
+
+        const retirementReturns = gp.slice(
+            yearsToRetirement,
+            yearsToRetirement + yearsInRetirement
+        );
+
+        if (retirementReturns.length > 0) {
+            retirementGrowthRate =
+                retirementReturns.reduce((sum, r) => sum + r, 0) /
+                retirementReturns.length;
+        }
+    }
+    
+
+
+    // 6️⃣ NOW compute depletion ages using balances AT retirement
     const tradDepletionAge = simulateTradDepletion(
         retirementYear.tradBalance,
         retirementAge,
         spendingGap,
-        expectedReturn
+        retirementGrowthRate   // <-- use full-engine growth rate
     );
 
     const rothDepletionAge = simulateRothDepletion(
         retirementYear.rothBalance,
         tradDepletionAge,
         spendingGap,
-        expectedReturn
+        retirementGrowthRate   // <-- use full-engine growth rate
     );
 
     const stressAge = Math.min(tradDepletionAge, rothDepletionAge);
 
-    // 6️⃣ Build withdrawal report
+    // 7️⃣ Build withdrawal report
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
         spendingGap
     });
 
-    // 7️⃣ Withdrawal rate
+    // 8️⃣ Withdrawal rate
     const withdrawalRate =
         spendingGap > 0
             ? spendingGap / portfolioAtRetirement
             : 0;
 
-    // 8️⃣ Return result, overriding incorrect stressAge in withdrawalReport
+    // 9️⃣ Return result, overriding incorrect stressAge in withdrawalReport
     return {
         withdrawalReport: {
             ...withdrawalReport,
@@ -985,6 +1018,7 @@ function runEngine(inputs) {
 }
 
 
+
 /* -------------------------------------------------------
    COMPARISON WORKFLOW
 ------------------------------------------------------- */
@@ -993,14 +1027,28 @@ function runRetirementComparison() {
     const inputs = getUserInputs();
     if (!inputs) return;
 
-    const inputs62 = { ...inputs, claimAge: 62 };
-    const inputs67 = { ...inputs, claimAge: 67 };
+    const inputs62 = {
+        ...inputs,
+        claimAge: 62,
+        yearlyExpectedReturns: inputs.yearlyExpectedReturns,
+        yearlyVols: inputs.yearlyVols,
+        glidepath: inputs.glidepath
+    };
+
+    const inputs67 = {
+        ...inputs,
+        claimAge: 67,
+        yearlyExpectedReturns: inputs.yearlyExpectedReturns,
+        yearlyVols: inputs.yearlyVols,
+        glidepath: inputs.glidepath
+    };
 
     const result62 = runEngine(inputs62);
     const result67 = runEngine(inputs67);
 
     renderComparison(result62, result67);
 }
+
 
 
 function renderComparison(result62, result67) {
@@ -1669,6 +1717,18 @@ $("runBtn").addEventListener("click", async () => {
     const full = {
         ...result,
         ...insights,
+    };
+
+    // ⭐ Export glidepath + return series so comparison engine can use them
+    full.yearlyExpectedReturns = yearlyExpectedReturns;
+    full.yearlyVols = yearlyVols;
+    full.glidepath = result.glidepath;
+
+    // ⭐ Make glidepath available to comparison engine
+    window.lastFullEngineGlidepath = {
+        yearlyExpectedReturns: full.yearlyExpectedReturns,
+        yearlyVols: full.yearlyVols,
+        glidepath: full.glidepath
     };
 
     // 5) render summary with the merged object
