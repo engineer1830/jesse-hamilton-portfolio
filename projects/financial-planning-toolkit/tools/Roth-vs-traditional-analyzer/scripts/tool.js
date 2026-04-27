@@ -817,10 +817,15 @@ function runEngine(inputs) {
 
     const lifeExpectancy = 120;
 
-    // Compute SS benefit BEFORE running the engine
+    // 1️⃣ Compute SS benefit FIRST
     const ssIncome = computeSocialSecurityBenefit(ssAnnualStatement, claimAge);
 
-    // Run deterministic engine
+    // 2️⃣ Compute spendingGap AFTER ssIncome exists
+    const spendingNeedAtRetirement = spendingNeed;
+    const ssIncomeAtClaimAge = ssIncome;
+    const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
+
+    // 3️⃣ Now it's safe to call the deterministic engine
     const engineYears = buildDeterministicChart({
         currentAge,
         currentRoth,
@@ -841,20 +846,17 @@ function runEngine(inputs) {
         spendingGap
     });
 
-    // Retirement snapshot
+    // 4️⃣ Retirement snapshot
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
 
-    // For the comparison engine, approximate full-engine behavior:
-    const spendingNeedAtRetirement = spendingNeed;
-    const ssIncomeAtClaimAge = ssIncome;
-    const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
-
+    // 5️⃣ Build withdrawal report
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
         spendingGap
     });
 
+    // 6️⃣ Withdrawal rate
     const withdrawalRate =
         spendingNeedAtRetirement > 0
             ? spendingNeedAtRetirement / portfolioAtRetirement
@@ -868,6 +870,7 @@ function runEngine(inputs) {
         engineYears
     };
 }
+
 
 /* -------------------------------------------------------
    COMPARISON WORKFLOW
