@@ -5,9 +5,9 @@ body
     /* background: #f5f7fa; */
     /* soft gray-blue */
     background: #cad0c4;
-        /* soft sage tint */
+    /* soft sage tint */
     /* background: #f0f5fb; */
-        /* soft blue wash */
+    /* soft blue wash */
     /* background: #ccdff1; */
 }
 
@@ -510,6 +510,7 @@ body
 {
     color: #2d6bb3;
 }
+
 .tooltip-bubble
 {
     position: absolute;
@@ -582,6 +583,7 @@ body
     font-size: 0.9rem;
     color: #555;
 }
+
 .sustain-yellow
 {
     border-left: 6px solid #f4c542;
@@ -758,4 +760,3 @@ body
         transform: translateY(0);
     }
 }
-
