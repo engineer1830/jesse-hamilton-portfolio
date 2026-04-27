@@ -1193,11 +1193,20 @@ $("runBtn").addEventListener("click", async () => {
             filingStatus,
             currentAge,
             retirementAge,
+            claimAge,
             rmd: retirementTaxDetails.rmd,
             taxableIncome: retirementTaxDetails.taxableIncome,
             grossIncome: retirementTaxDetails.grossIncome
         }
-        : null;
+        : {
+            currentTax,
+            retireTax,
+            filingStatus,
+            currentAge,
+            retirementAge,
+            claimAge
+        };
+        
 
     const result = {
         mode,
@@ -1219,6 +1228,7 @@ $("runBtn").addEventListener("click", async () => {
         tradDepletionAge,
         rothDepletionAge,
         depletionAge: Math.max(tradDepletionAge || 0, rothDepletionAge || 0),
+        claimAge,
         glidepath: useGlidepath
             ? {
                 yearlyExpectedReturns,
