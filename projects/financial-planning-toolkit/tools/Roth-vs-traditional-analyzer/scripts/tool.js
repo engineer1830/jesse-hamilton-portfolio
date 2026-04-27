@@ -605,9 +605,6 @@ function findStressAge(engineYears, spendingGap, retirementAge, growthRate = 0.0
 
 // 5. Build withdrawal report
 function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingGap }) {
-    const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
-    const combinedDepletionAge = lastPositive ? lastPositive.age : null;
-
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
 
@@ -615,6 +612,9 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
         tradDepletionAge ?? Infinity,
         rothDepletionAge ?? Infinity
     );
+
+    const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
+    const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
     return {
         tradDepletionAge,
@@ -625,6 +625,7 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
         stressAge: Number.isFinite(stressAge) ? stressAge : null
     };
 }
+
 
 
 
@@ -880,6 +881,24 @@ function runEngine(inputs) {
     const ssIncomeAtClaimAge = ssIncome;
     const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
 
+    // Use full-engine depletion logic
+    const tradDepletionAge = simulateTradDepletion(
+        currentTrad,
+        retirementAge,
+        spendingGap,
+        expectedReturn
+    );
+
+    const rothDepletionAge = simulateRothDepletion(
+        currentRoth,
+        tradDepletionAge,
+        spendingGap,
+        expectedReturn
+    );
+
+    const stressAge = Math.min(tradDepletionAge, rothDepletionAge);
+
+
     // 3️⃣ Now it's safe to call the deterministic engine
     const engineYears = buildDeterministicChartComparison({
         currentAge,
@@ -901,6 +920,15 @@ function runEngine(inputs) {
         spendingGap
     });
 
+    // const tradDepletionAge = findTradDepletionAge(engineYears);
+    // const rothDepletionAge = findRothDepletionAge(engineYears);
+
+    // const stressAge = Math.min(
+    //     tradDepletionAge ?? Infinity,
+    //     rothDepletionAge ?? Infinity
+    // );
+
+
     // 4️⃣ Retirement snapshot
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
@@ -917,13 +945,27 @@ function runEngine(inputs) {
             ? spendingGap / portfolioAtRetirement
             : 0;
 
+    
     return {
-        withdrawalReport,
+        withdrawalReport: {
+            ...withdrawalReport,
+            stressAge   // <-- overwrite the incorrect one
+        },
         requiredWithdrawalRate: withdrawalRate,
         ssAtClaimAge: ssIncome,
         portfolioAtRetirement,
-        engineYears
+        engineYears,
+        stressAge
     };
+            
+    // return {
+    //     withdrawalReport,
+    //     requiredWithdrawalRate: withdrawalRate,
+    //     ssAtClaimAge: ssIncome,
+    //     portfolioAtRetirement,
+    //     engineYears,
+    //     stressAge
+    // };
 }
 
 
@@ -951,9 +993,11 @@ function renderComparison(result62, result67) {
     while (container.firstChild) container.removeChild(container.firstChild);
 
 
-    const stress62 = result62.withdrawalReport.stressAge;
-    const stress67 = result67.withdrawalReport.stressAge;
+    // const stress62 = result62.withdrawalReport.stressAge;
+    // const stress67 = result67.withdrawalReport.stressAge;
 
+    const stress62 = result62.stressAge;
+    const stress67 = result67.stressAge;
 
     const depletion62 = result62.withdrawalReport.combinedDepletionAge ?? "N/A";
     const depletion67 = result67.withdrawalReport.combinedDepletionAge ?? "N/A";
