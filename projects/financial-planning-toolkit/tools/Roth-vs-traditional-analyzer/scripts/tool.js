@@ -876,7 +876,7 @@ function runEngine(inputs) {
         useGlidepath: false,
         retirementAge,
         claimAge,
-        ssAnnualStatement: ssIncome,
+        ssAnnualStatement,
         spendingNeed,
         retireTax,
         lifeExpectancy,
@@ -896,8 +896,8 @@ function runEngine(inputs) {
 
     // 6️⃣ Withdrawal rate
     const withdrawalRate =
-        spendingNeedAtRetirement > 0
-            ? spendingNeedAtRetirement / portfolioAtRetirement
+        spendingGap > 0
+            ? spendingGap / portfolioAtRetirement
             : 0;
 
     return {
