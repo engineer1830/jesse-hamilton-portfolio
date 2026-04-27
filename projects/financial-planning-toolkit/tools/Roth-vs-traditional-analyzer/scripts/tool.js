@@ -606,6 +606,36 @@ $("runBtn").addEventListener("click", async () => {
     summary.innerHTML = "";
     loading.style.display = "block";
 
+    try {
+        // 1️⃣ Gather inputs
+        const inputs = getUserInputs();   // your existing function
+
+        // 2️⃣ Run the full engine
+        const result = runFullEngine(inputs);
+
+        // 3️⃣ Render the main summary UI
+        renderSummary(result);
+
+        // 4️⃣ Build insights for snapshot
+        const insights = computeProInsights(result);
+
+        // 5️⃣ Save scenario snapshot
+        const snapshot = buildScenarioSnapshot(result, insights);
+        saveScenarioRun(snapshot);
+
+        // 6️⃣ Show raw output (optional)
+        output.textContent = JSON.stringify(result, null, 2);
+
+    } catch (err) {
+        console.error(err);
+        output.textContent = "Error running analysis.";
+    }
+
+    // 7️⃣ Hide loading spinner
+    loading.style.display = "none";
+
+
+
     /* ---------------------------------------------------
        INPUTS
     --------------------------------------------------- */
