@@ -564,6 +564,39 @@ function findRothDepletionAge(engineYears) {
     return year ? year.age : null;
 }
 
+function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
+    let age = startAge;
+    let balance = startBalance;
+
+    while (balance > 0 && age < 120) {
+        const divisor = getIrsDivisor(age);
+        const rmd = divisor ? balance / divisor : 0;
+
+        const withdrawal = Math.max(rmd, spendingNeed);
+
+        balance = balance - withdrawal;
+        balance = balance * (1 + growthRate);
+
+        age++;
+    }
+
+    return age;
+}
+
+function simulateRothDepletion(startBalance, startAge, spendingNeed, growthRate) {
+    let age = startAge;
+    let balance = startBalance;
+
+    while (balance > 0 && age < 120) {
+        balance = balance - spendingNeed;
+        balance = balance * (1 + growthRate);
+        age++;
+    }
+
+    return age;
+}
+
+
 function findStressAge(engineYears, spendingGap, retirementAge, growthRate = 0.05) {
     const start = engineYears.find(y => y.age === retirementAge);
     if (!start) return engineYears[engineYears.length - 1].age;
@@ -2286,37 +2319,7 @@ function computeProInsights(result) {
     let tradBalance = tradAtRetirement;
     let rothBalance = rothAtRetirement;
 
-    function simulateTradDepletion(startBalance, startAge, spendingNeed, growthRate) {
-        let age = startAge;
-        let balance = startBalance;
-
-        while (balance > 0 && age < 120) {
-            const divisor = getIrsDivisor(age);
-            const rmd = divisor ? balance / divisor : 0;
-
-            const withdrawal = Math.max(rmd, spendingNeed);
-
-            balance = balance - withdrawal;
-            balance = balance * (1 + growthRate);
-
-            age++;
-        }
-
-        return age;
-    }
-
-    function simulateRothDepletion(startBalance, startAge, spendingNeed, growthRate) {
-        let age = startAge;
-        let balance = startBalance;
-
-        while (balance > 0 && age < 120) {
-            balance = balance - spendingNeed;
-            balance = balance * (1 + growthRate);
-            age++;
-        }
-
-        return age;
-    }
+  
 
     function computeRmd(balance, age) {
         const divisor = getIrsDivisor(age);
