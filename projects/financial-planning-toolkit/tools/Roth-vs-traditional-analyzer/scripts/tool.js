@@ -557,25 +557,31 @@ function findRothDepletionAge(engineYears) {
 }
 
 function findStressAge(engineYears, spendingNeed) {
-    for (let i = 0; i < engineYears.length; i++) {
+    for (let i = 0; i < engineYears.length - 1; i++) {
         const y = engineYears[i];
+        const next = engineYears[i + 1];
 
-        // If portfolio is gone → stress
+        // 1. Portfolio gone
         if (y.combinedBalance <= 0) {
             return y.age;
         }
 
-        // If withdrawal is defined and exceeds sustainable level → stress
-        if (y.withdrawal !== undefined && y.withdrawal !== null) {
-            if (y.withdrawal > spendingNeed) {
-                return y.age;
-            }
+        // 2. Withdrawal exceeds spending need
+        if (y.withdrawal !== undefined && y.withdrawal > spendingNeed) {
+            return y.age;
+        }
+
+        // 3. Sustainability check (the missing piece)
+        const nextYearNeed = Math.max(spendingNeed - next.ssIncome, 0);
+        if (next.combinedBalance < nextYearNeed) {
+            return y.age;
         }
     }
 
     // No stress found → return last modeled age
     return engineYears[engineYears.length - 1].age;
 }
+
 
 // 5. Build withdrawal report
 function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingNeed }) {
@@ -862,7 +868,7 @@ function runRetirementComparison() {
 
 function renderComparison(result62, result67) {
     const container = document.getElementById("comparison-section");
-    
+
     while (container.firstChild) container.removeChild(container.firstChild);
 
 
