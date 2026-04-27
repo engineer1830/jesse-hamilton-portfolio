@@ -2831,6 +2831,9 @@ function computeProInsights(result) {
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
 
+    console.log("FULL ENGINE — spendingNeedAtRetirement:", result.spendingNeedAtRetirement);
+    console.log("FULL ENGINE — ssAtClaimAge:", result.retirementTaxDetails?.ssAtClaimAge);
+
 
     return {
         diversificationScore,
