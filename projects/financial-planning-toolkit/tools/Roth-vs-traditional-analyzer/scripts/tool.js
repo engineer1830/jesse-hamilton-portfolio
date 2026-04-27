@@ -827,14 +827,15 @@ function runRetirementComparison() {
     const inputs = getUserInputs();
     if (!inputs) return;
 
-    const inputs62 = { ...inputs, retirementAge: 62 };
-    const inputs67 = { ...inputs, retirementAge: 67 };
+    const inputs62 = { ...inputs, retirementAge: 62, claimAge: 62 };
+    const inputs67 = { ...inputs, retirementAge: 67, claimAge: 67 };
 
     const result62 = runEngine(inputs62);
     const result67 = runEngine(inputs67);
 
     renderComparison(result62, result67);
 }
+
 
 function renderComparison(result62, result67) {
     const container = document.getElementById("comparison-section");
