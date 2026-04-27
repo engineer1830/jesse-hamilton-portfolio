@@ -914,7 +914,7 @@ function runEngine(inputs) {
     const ssIncomeAtClaimAge = ssIncome;
     const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
 
-    // 3️⃣ Build deterministic engine (must happen BEFORE depletion simulation)
+    // 3️⃣ Build deterministic engine
     const engineYears = buildDeterministicChartComparison({
         currentAge,
         currentRoth,
@@ -939,19 +939,18 @@ function runEngine(inputs) {
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
 
-    // ⭐ This is the correct place for your console.log
     console.log("RETIREMENT YEAR:", retirementYear);
 
-    // 5️⃣ Now we can safely compute depletion ages using balances AT retirement
+    // 5️⃣ NOW compute depletion ages using balances AT retirement
     const tradDepletionAge = simulateTradDepletion(
-        retirementYear.tradBalance,   // <-- these must exist
+        retirementYear.tradBalance,
         retirementAge,
         spendingGap,
         expectedReturn
     );
 
     const rothDepletionAge = simulateRothDepletion(
-        retirementYear.rothBalance,   // <-- these must exist
+        retirementYear.rothBalance,
         tradDepletionAge,
         spendingGap,
         expectedReturn
@@ -984,6 +983,7 @@ function runEngine(inputs) {
         stressAge
     };
 }
+
 
 
 
