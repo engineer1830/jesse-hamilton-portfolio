@@ -641,11 +641,7 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
     const tradDepletionAge = findTradDepletionAge(engineYears);
     const rothDepletionAge = findRothDepletionAge(engineYears);
 
-    const stressAge =
-        combinedDepletionAge ??
-        Math.min(tradDepletionAge ?? Infinity, rothDepletionAge ?? Infinity);
-
-
+    // Combined depletion age = last year with positive combined balance
     const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
@@ -655,7 +651,14 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingG
         combinedDepletionAge,
         yearsUntilDepletion:
             combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null,
-        stressAge: Number.isFinite(stressAge) ? stressAge : null
+
+        // Stress age = combined depletion age (preferred)
+        // fallback = min(trad, roth)
+        stressAge: combinedDepletionAge ??
+            Math.min(
+                tradDepletionAge ?? Infinity,
+                rothDepletionAge ?? Infinity
+            )
     };
 }
 
@@ -978,51 +981,41 @@ function runEngine(inputs) {
     console.log("retirementGrowthRate:", retirementGrowthRate);
 
 
-    // 6️⃣ NOW compute depletion ages using balances AT retirement
+    // 6️⃣ Compute depletion ages using balances AT retirement
     const tradDepletionAge = simulateTradDepletion(
         retirementYear.tradBalance,
         retirementAge,
         spendingGap,
-        retirementGrowthRate   // <-- use full-engine growth rate
+        retirementGrowthRate
     );
 
     const rothDepletionAge = simulateRothDepletion(
         retirementYear.rothBalance,
         tradDepletionAge,
         spendingGap,
-        retirementGrowthRate   // <-- use full-engine growth rate
+        retirementGrowthRate
     );
 
-    // 7️⃣ Build withdrawal report (includes combinedDepletionAge)
+    // 7️⃣ Build withdrawal report (now includes combinedDepletionAge + stressAge)
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
         retirementAge,
-        spendingGap,
-        tradDepletionAge,
-        rothDepletionAge
+        spendingGap
     });
 
-    // 8️⃣ Stress age = portfolio depletion age if available, otherwise min(trad, roth)
-    const stressAge =
-        withdrawalReport.combinedDepletionAge ??
-        Math.min(tradDepletionAge, rothDepletionAge);
-
-    // 9️⃣ Withdrawal rate
+    // 8️⃣ Withdrawal rate
     const withdrawalRate =
         spendingGap > 0
             ? spendingGap / portfolioAtRetirement
             : 0;
 
-    // 🔟 Return result, with corrected stressAge wired into withdrawalReport
+    // 🔟 Return result
     return {
-        withdrawalReport: {
-            ...withdrawalReport,
-            stressAge
-        },
+        withdrawalReport,
         requiredWithdrawalRate: withdrawalRate,
         ssAtClaimAge: ssIncome,
         portfolioAtRetirement,
         engineYears,
-        stressAge
+        stressAge: withdrawalReport.stressAge
     };
 }
 
