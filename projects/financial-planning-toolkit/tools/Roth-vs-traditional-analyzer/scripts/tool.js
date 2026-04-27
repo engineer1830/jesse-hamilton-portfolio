@@ -556,8 +556,29 @@ function findRothDepletionAge(engineYears) {
     return year ? year.age : null;
 }
 
+function findStressAge(engineYears, spendingNeed) {
+    for (let i = 0; i < engineYears.length; i++) {
+        const y = engineYears[i];
+
+        // If portfolio is gone → stress
+        if (y.combinedBalance <= 0) {
+            return y.age;
+        }
+
+        // If withdrawal is defined and exceeds sustainable level → stress
+        if (y.withdrawal !== undefined && y.withdrawal !== null) {
+            if (y.withdrawal > spendingNeed) {
+                return y.age;
+            }
+        }
+    }
+
+    // No stress found → return last modeled age
+    return engineYears[engineYears.length - 1].age;
+}
+
 // 5. Build withdrawal report
-function buildComparisonWithdrawalReport(engineYears, { retirementAge }) {
+function buildComparisonWithdrawalReport(engineYears, { retirementAge, spendingNeed }) {
     const lastPositive = engineYears.slice().reverse().find(y => y.combinedBalance > 0);
     const combinedDepletionAge = lastPositive ? lastPositive.age : null;
 
@@ -566,9 +587,11 @@ function buildComparisonWithdrawalReport(engineYears, { retirementAge }) {
         rothDepletionAge: findRothDepletionAge(engineYears),
         combinedDepletionAge,
         yearsUntilDepletion:
-            combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null
+            combinedDepletionAge != null ? combinedDepletionAge - retirementAge : null,
+        stressAge: findStressAge(engineYears, spendingNeed)
     };
 }
+
 
 function computeSocialSecurityBenefit(ssAnnualStatement, claimAge) {
     if (!ssAnnualStatement) return 0;
@@ -602,7 +625,6 @@ function computeSocialSecurityBenefit(ssAnnualStatement, claimAge) {
 
     return ssAnnualStatement;
 }
-
 
 // 6. Deterministic engine (shared)
 function buildDeterministicChart({
@@ -800,8 +822,10 @@ function runEngine(inputs) {
     const rothDepletionAge = findRothDepletionAge(engineYears);
 
     const withdrawalReport = buildComparisonWithdrawalReport(engineYears, {
-        retirementAge
+        retirementAge,
+        spendingNeed
     });
+    
 
     const retirementYear = engineYears.find(y => y.age === retirementAge);
     const portfolioAtRetirement = retirementYear ? retirementYear.combinedBalance : 0;
@@ -836,20 +860,15 @@ function runRetirementComparison() {
     renderComparison(result62, result67);
 }
 
-
 function renderComparison(result62, result67) {
     const container = document.getElementById("comparison-section");
-    container.innerHTML = "";
+    
+    while (container.firstChild) container.removeChild(container.firstChild);
 
-    const stress62 = Math.min(
-        result62.withdrawalReport.tradDepletionAge,
-        result62.withdrawalReport.rothDepletionAge
-    );
 
-    const stress67 = Math.min(
-        result67.withdrawalReport.tradDepletionAge,
-        result67.withdrawalReport.rothDepletionAge
-    );
+    const stress62 = result62.withdrawalReport.stressAge;
+    const stress67 = result67.withdrawalReport.stressAge;
+
 
     const depletion62 = result62.withdrawalReport.combinedDepletionAge ?? "N/A";
     const depletion67 = result67.withdrawalReport.combinedDepletionAge ?? "N/A";
