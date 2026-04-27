@@ -14,9 +14,10 @@ function buildScenarioSnapshot(data, insights) {
         // User inputs
         currentAge: data.taxContext?.currentAge ?? null,
         retirementAge: data.taxContext?.retirementAge ?? null,
+        claimAge: data.taxContext?.claimAge ?? null,
         currentRoth: data.currentRoth ?? 0,
         currentTrad: data.currentTrad ?? 0,
-        contribution: data.contribution ?? null, // if present
+        contribution: data.contribution ?? null,
         ssAtClaimAge: data.retirementTaxDetails?.ssAtClaimAge ?? 0,
         spendingNeedAtRetirement: insights.spendingNeedAtRetirement ?? 0,
 
@@ -32,9 +33,14 @@ function buildScenarioSnapshot(data, insights) {
         spendingGap: insights.spendingGap,
         retirementReadiness: insights.retirementReadiness,
         bufferScore: insights.bufferScore,
-        zone: insights.zone
+        zone: insights.zone,
+
+        // ⭐ New Early-Retirement Pressure Metrics
+        yearsWithoutSS: insights.yearsWithoutSS,
+        earlyRetirementBurden: insights.earlyRetirementBurden
     };
 }
+
 
 function saveScenarioRun(snapshot) {
     for (let i = 0; i < 3; i++) {
@@ -590,6 +596,190 @@ function getWhyMessages(zone) {
     ];
 }
 
+function renderEarlyRetirementNarrative(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const base = runs[0];
+    const others = runs.slice(1);
+
+    let html = `
+        <div class="comparison-narrative">
+            <h3>Interpretation & Key Insights</h3>
+            <p>Your retirement plan is strong in all scenarios, but the timing of Social Security creates very different levels of early‑retirement pressure on your portfolio.</p>
+    `;
+
+    others.forEach((snap) => {
+        html += `
+            <p>
+                Delaying Social Security to <strong>age ${snap.claimAge}</strong> increases the years your portfolio must fully fund retirement from 
+                <strong>${base.yearsWithoutSS}</strong> to <strong>${snap.yearsWithoutSS}</strong> years.  
+                This raises the early‑retirement burden from 
+                <strong>${formatCurrency(base.earlyRetirementBurden)}</strong> to 
+                <strong>${formatCurrency(snap.earlyRetirementBurden)}</strong>.
+            </p>
+        `;
+    });
+
+    html += `
+        <p>
+            Even though your long‑term stress age and depletion age remain unchanged, the <strong>front‑loaded withdrawal pressure</strong> increases significantly when delaying Social Security.  
+            This is the period most vulnerable to market downturns — known as <strong>sequence‑of‑returns risk</strong>.
+        </p>
+
+        <p>
+            In short:  
+            <strong>Delaying Social Security improves long‑term income and reduces withdrawal rates, but increases early‑retirement portfolio strain.</strong>  
+            Claiming earlier reduces that strain but provides a lower guaranteed benefit.
+        </p>
+        </div>
+    `;
+
+    container.innerHTML += html;
+}
+
+function normalize(value, min, max) {
+    if (max === min) return 50; // avoid divide-by-zero
+    return ((value - min) / (max - min)) * 100;
+}
+
+function renderScenarioDifferences(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const base = runs[0];
+
+    const getPortfolioAtRetirement = run =>
+        (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "comparison-diff";
+
+    const title = document.createElement("h3");
+    title.textContent = `Differences vs ${base.label || "Scenario 1"}`;
+    wrapper.appendChild(title);
+
+    runs.slice(1).forEach((run, idx) => {
+        const label = run.label || `Scenario ${idx + 2}`;
+        const basePortfolio = getPortfolioAtRetirement(base);
+        const runPortfolio = getPortfolioAtRetirement(run);
+
+        const stressDiff = (run.stressAge ?? 0) - (base.stressAge ?? 0);
+        const depletionDiff = (run.portfolioDepletionAge ?? 0) - (base.portfolioDepletionAge ?? 0);
+        const withdrawalRateDiff = (run.requiredWithdrawalRate ?? 0) - (base.requiredWithdrawalRate ?? 0);
+        const ssDiff = (run.ssAtClaimAge ?? 0) - (base.ssAtClaimAge ?? 0);
+        const portfolioDiff = runPortfolio - basePortfolio;
+        const spendingGapDiff = (run.spendingGap ?? 0) - (base.spendingGap ?? 0);
+        const yearsNoSSDiff = (run.yearsWithoutSS ?? 0) - (base.yearsWithoutSS ?? 0);
+        const burdenDiff = (run.earlyRetirementBurden ?? 0) - (base.earlyRetirementBurden ?? 0);
+
+        const col = document.createElement("div");
+        col.className = "comparison-column";
+
+        col.innerHTML = `
+            <h4>${label} vs ${base.label || "Scenario 1"}</h4>
+
+            <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
+            <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
+            <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
+            <p><strong>SS Income:</strong> ${formatCurrency(ssDiff)}</p>
+            <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioDiff)}</p>
+            <p><strong>Portfolio Withdrawal Need:</strong> ${formatCurrency(spendingGapDiff)}</p>
+
+            <hr>
+
+            <h4>Early-Retirement Pressure</h4>
+            <p><strong>Years Without SS:</strong> ${yearsNoSSDiff > 0 ? "+" + yearsNoSSDiff : yearsNoSSDiff}</p>
+            <p><strong>Early-Retirement Burden:</strong> ${formatCurrency(burdenDiff)}</p>
+        `;
+
+        wrapper.appendChild(col);
+    });
+
+    container.appendChild(wrapper);
+}
+
+function computeRecommendedClaimAge(scenarios) {
+    if (!scenarios || scenarios.length === 0) return null;
+
+    // Extract arrays for normalization
+    const burdens = scenarios.map(s => s.earlyRetirementBurden);
+    const withdrawalRates = scenarios.map(s => s.requiredWithdrawalRate);
+    const ssIncomes = scenarios.map(s => s.ssAtClaimAge);
+
+    const minBurden = Math.min(...burdens);
+    const maxBurden = Math.max(...burdens);
+
+    const minWR = Math.min(...withdrawalRates);
+    const maxWR = Math.max(...withdrawalRates);
+
+    const minSS = Math.min(...ssIncomes);
+    const maxSS = Math.max(...ssIncomes);
+
+    // Weights (advisor-grade)
+    const riskWeight = 0.45;     // early-retirement burden
+    const safetyWeight = 0.35;   // withdrawal rate
+    const securityWeight = 0.20; // SS income
+
+    let bestScenario = null;
+    let bestScore = -Infinity;
+
+    scenarios.forEach(s => {
+        // RISK: lower burden = better → invert scale
+        const riskScore = 100 - normalize(s.earlyRetirementBurden, minBurden, maxBurden);
+
+        // SAFETY: lower withdrawal rate = better → invert scale
+        const safetyScore = 100 - normalize(s.requiredWithdrawalRate, minWR, maxWR);
+
+        // SECURITY: higher SS income = better
+        const securityScore = normalize(s.ssAtClaimAge, minSS, maxSS);
+
+        const totalScore =
+            (riskScore * riskWeight) +
+            (safetyScore * safetyWeight) +
+            (securityScore * securityWeight);
+
+        s.recommendationScore = totalScore;
+
+        if (totalScore > bestScore) {
+            bestScore = totalScore;
+            bestScenario = s;
+        }
+    });
+
+    return bestScenario ? bestScenario.claimAge : null;
+}
+
+function renderRecommendedClaimAge(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const recommendedAge = computeRecommendedClaimAge(runs);
+    if (!recommendedAge) return;
+
+    const box = document.createElement("div");
+    box.className = "recommended-claim-age-box";
+
+    box.innerHTML = `
+        <h2>Recommended Social Security Claim Age</h2>
+        <p class="recommended-age">${recommendedAge}</p>
+
+        <p>This recommendation balances three factors:</p>
+        <ul>
+            <li><strong>Early-Retirement Risk:</strong> How much strain your portfolio absorbs before Social Security begins.</li>
+            <li><strong>Long-Term Sustainability:</strong> Your withdrawal rate after Social Security starts.</li>
+            <li><strong>Guaranteed Income:</strong> The size of your Social Security benefit.</li>
+        </ul>
+
+        <p>
+            The recommended age reflects the scenario with the strongest overall balance of 
+            <strong>risk reduction</strong>, <strong>portfolio safety</strong>, and 
+            <strong>lifetime income security</strong>.
+        </p>
+    `;
+
+    container.appendChild(box);
+}
 
 
 
@@ -2452,6 +2642,9 @@ function computeProInsights(result) {
     }
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
+    const yearsWithoutSS = Math.max(result.claimAge - result.retirementAge, 0);
+    const earlyRetirementBurden = yearsWithoutSS * result.spendingNeedAtRetirement;
+
 
 
     return {
@@ -2500,6 +2693,8 @@ function computeProInsights(result) {
         rothFirstWithdrawalAge,
         taxContext: result.taxContext,
         bufferScore,
+        yearsWithoutSS,
+        earlyRetirementBurden,
 
     };
 }
@@ -2725,7 +2920,6 @@ function renderYellowSustainability({
     }
 
 }
-
 
 function renderNegativeSustainability({
     depletionAge,
@@ -3440,9 +3634,6 @@ function renderSummary(data) {
     // ⭐ FIXED: insights must be based on data
     const insights = computeProInsights(data);
 
-    // const snapshot = buildScenarioSnapshot(data, insights);
-    // saveScenarioRun(snapshot);
-
 
     console.log("ZONE AT SUMMARY:", insights.zone);
 
@@ -3712,78 +3903,69 @@ function renderSummary(data) {
     attachChartExplanation();
     attachTooltipHandlers();
 }
-
 function renderScenarioComparison(runs) {
     const container = document.getElementById("comparison-section");
     if (!container) return;
 
-    // Baseline = first run
     const base = runs[0];
 
-    // Helper to compute portfolio at retirement
     const getPortfolioAtRetirement = run =>
         (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
 
+    // 1. Build grid HTML
     let html = `
         <h2>Saved Scenario Comparison</h2>
         <div class="comparison-grid">
     `;
 
-    // One column per scenario
     runs.forEach((run, idx) => {
         const portfolioAtRetirement = getPortfolioAtRetirement(run);
 
         html += `
             <div class="comparison-column">
                 <h3>${run.label || `Scenario ${idx + 1}`}</h3>
+
                 <p><strong>Current Age:</strong> ${run.currentAge ?? "N/A"}</p>
                 <p><strong>Retirement Age:</strong> ${run.retirementAge ?? "N/A"}</p>
+                <p><strong>Claim Age:</strong> ${run.claimAge ?? "N/A"}</p>
+
                 <p><strong>Stress Age:</strong> ${run.stressAge ?? "N/A"}</p>
                 <p><strong>Depletion Age:</strong> ${run.portfolioDepletionAge ?? "N/A"}</p>
                 <p><strong>Withdrawal Rate:</strong> ${formatPercent(run.requiredWithdrawalRate ?? 0)}</p>
+
                 <p><strong>SS Income (at claim age):</strong> ${formatCurrency(run.ssAtClaimAge ?? 0)}</p>
                 <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioAtRetirement)}</p>
+
                 <p><strong>Spending Need at Retirement:</strong> ${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</p>
                 <p><strong>Portfolio Withdrawal Need (after SS):</strong> ${formatCurrency(run.spendingGap ?? 0)}</p>
+
                 <p><strong>Retirement Readiness:</strong> ${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</p>
                 <p><strong>Longevity Buffer Score:</strong> ${run.bufferScore ?? "N/A"}</p>
                 <p><strong>Zone:</strong> ${run.zone ?? "N/A"}</p>
+
+                <hr>
+
+                <h4>Early-Retirement Pressure</h4>
+                <p><strong>Years Without SS:</strong> ${run.yearsWithoutSS}</p>
+                <p><strong>Early-Retirement Burden:</strong> ${formatCurrency(run.earlyRetirementBurden)}</p>
             </div>
         `;
     });
 
     html += `</div>`; // close comparison-grid
 
-    // Differences vs baseline (only if 2+ runs)
+    // 2. Insert grid
+    container.innerHTML = "";
+    container.innerHTML = html;
+
+    // 3. Recommended claim age
+    renderRecommendedClaimAge(runs);
+
+    // 4. Differences
     if (runs.length >= 2) {
-        html += `<div class="comparison-diff"><h3>Differences vs ${base.label || "Scenario 1"}</h3>`;
-
-        runs.slice(1).forEach((run, idx) => {
-            const label = run.label || `Scenario ${idx + 2}`;
-            const basePortfolio = getPortfolioAtRetirement(base);
-            const runPortfolio = getPortfolioAtRetirement(run);
-
-            const stressDiff = (run.stressAge ?? 0) - (base.stressAge ?? 0);
-            const depletionDiff = (run.portfolioDepletionAge ?? 0) - (base.portfolioDepletionAge ?? 0);
-            const withdrawalRateDiff = (run.requiredWithdrawalRate ?? 0) - (base.requiredWithdrawalRate ?? 0);
-            const ssDiff = (run.ssAtClaimAge ?? 0) - (base.ssAtClaimAge ?? 0);
-            const portfolioDiff = runPortfolio - basePortfolio;
-
-            html += `
-                <div class="comparison-column">
-                    <h4>${label} vs ${base.label || "Scenario 1"}</h4>
-                    <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
-                    <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
-                    <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
-                    <p><strong>SS Income:</strong> ${formatCurrency(ssDiff)}</p>
-                    <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioDiff)}</p>
-                    <p><strong>Portfolio Withdrawal Need:</strong> ${formatCurrency((run.spendingGap ?? 0) - (base.spendingGap ?? 0))}</p>
-                </div>
-            `;
-        });
-
-        html += `</div>`; // close comparison-diff
+        renderScenarioDifferences(runs);
     }
 
-    container.innerHTML = html;
+    // 5. Narrative
+    renderEarlyRetirementNarrative(runs);
 }
