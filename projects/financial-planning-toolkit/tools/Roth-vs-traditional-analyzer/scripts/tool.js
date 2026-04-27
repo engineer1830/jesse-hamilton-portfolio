@@ -2133,7 +2133,8 @@ function computeProInsights(result) {
     let tradRmdAt73 = null;
     let tradRmdAt80 = null;
     let tradRmdAt90 = null;
-    let rothAtRetirement = result.rothAtRetirement ?? 0;
+    // let rothAtRetirement = result.rothAtRetirement ?? 0;
+    let rothAtRetirement = result.rothAtRetirement ?? result.currentRoth ?? 0;
     let rothFirstWithdrawalAge = tradDepletionAge;
 
     let sustainabilityFailureAge = null;
@@ -2148,7 +2149,8 @@ function computeProInsights(result) {
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
-    let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    // let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? result.currentTrad ?? 0;
     let tradBalance = tradAtRetirement;
     let rothBalance = rothAtRetirement;
 
@@ -2642,8 +2644,22 @@ function computeProInsights(result) {
     }
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
-    const yearsWithoutSS = Math.max(result.claimAge - result.retirementAge, 0);
-    const earlyRetirementBurden = yearsWithoutSS * result.spendingNeedAtRetirement;
+    // const yearsWithoutSS = Math.max(result.claimAge - result.retirementAge, 0);
+    // const earlyRetirementBurden = yearsWithoutSS * result.spendingNeedAtRetirement;
+
+    // ⭐ Correct early-retirement metrics
+    const claimAge = result.taxContext?.claimAge ?? null;
+    const retirementAge = result.taxContext?.retirementAge ?? null;
+
+    const yearsWithoutSS =
+        claimAge != null && retirementAge != null
+            ? Math.max(claimAge - retirementAge, 0)
+            : 0;
+
+    const earlyRetirementBurden =
+        spendingNeedAtRetirement != null
+            ? yearsWithoutSS * spendingNeedAtRetirement
+            : 0;
 
 
 
