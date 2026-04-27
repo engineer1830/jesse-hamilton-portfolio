@@ -1,4 +1,82 @@
 /* ---------------------------------------------------
+   COMPARISON SCENARIOS
+--------------------------------------------------- */
+
+// Stores up to 3 scenario results from the FULL engine
+let scenarioRuns = [null, null, null];
+let scenarioLabels = [null, null, null];
+
+function buildScenarioSnapshot(data, insights) {
+    return {
+        // Identity
+        label: `Claim at ${data.taxContext?.claimAge}, retire at ${data.taxContext?.retirementAge}`,
+
+        // User inputs
+        currentAge: data.taxContext?.currentAge ?? null,
+        retirementAge: data.taxContext?.retirementAge ?? null,
+        currentRoth: data.currentRoth ?? 0,
+        currentTrad: data.currentTrad ?? 0,
+        contribution: data.contribution ?? null, // if present
+        ssAtClaimAge: data.retirementTaxDetails?.ssAtClaimAge ?? 0,
+        spendingNeedAtRetirement: insights.spendingNeedAtRetirement ?? 0,
+
+        // Engine outputs
+        portfolioDepletionAge: insights.portfolioDepletionAge,
+        stressAge: Math.min(
+            insights.tradDepletionAge ?? Infinity,
+            insights.rothDepletionAge ?? Infinity
+        ),
+        rothAtRetirement: insights.rothAtRetirement,
+        tradAtRetirement: insights.tradAtRetirement,
+        requiredWithdrawalRate: insights.requiredWithdrawalRate,
+        spendingGap: insights.spendingGap,
+        retirementReadiness: insights.retirementReadiness,
+        bufferScore: insights.bufferScore,
+        zone: insights.zone
+    };
+}
+
+function saveScenarioRun(snapshot) {
+    for (let i = 0; i < 3; i++) {
+        if (!scenarioRuns[i]) {
+            scenarioRuns[i] = snapshot;
+            scenarioLabels[i] = snapshot.label;
+            console.log(`Saved scenario in slot ${i + 1}`, snapshot);
+            return;
+        }
+    }
+    alert("All 3 scenario slots are full. Clear them before saving new runs.");
+}
+
+function clearScenarios() {
+    scenarioRuns = [null, null, null];
+    scenarioLabels = [null, null, null];
+
+    const container = document.getElementById("comparison-section");
+    if (container) container.innerHTML = "";
+
+    console.log("Scenario comparison data cleared.");
+}
+
+function compareScenarios() {
+    const runs = scenarioRuns.filter(r => r !== null);
+
+    if (runs.length < 2) {
+        alert("Run at least two scenarios before comparing.");
+        return;
+    }
+
+    renderScenarioComparison(runs);
+}
+
+document.getElementById("compare-scenarios-btn")
+    .addEventListener("click", compareScenarios);
+
+document.getElementById("clear-scenarios-btn")
+    .addEventListener("click", clearScenarios);
+
+
+/* ---------------------------------------------------
    CHART SHADING SET UP
 --------------------------------------------------- */
 
@@ -3353,6 +3431,10 @@ function renderSummary(data) {
     // ⭐ FIXED: insights must be based on data
     const insights = computeProInsights(data);
 
+    const snapshot = buildScenarioSnapshot(data, insights);
+    saveScenarioRun(snapshot);
+
+
     console.log("ZONE AT SUMMARY:", insights.zone);
 
     document.getElementById("sustain-positive").style.display = "none";
@@ -3620,4 +3702,79 @@ function renderSummary(data) {
 
     attachChartExplanation();
     attachTooltipHandlers();
+}
+
+function renderScenarioComparison(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container) return;
+
+    // Baseline = first run
+    const base = runs[0];
+
+    // Helper to compute portfolio at retirement
+    const getPortfolioAtRetirement = run =>
+        (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
+
+    let html = `
+        <h2>Saved Scenario Comparison</h2>
+        <div class="comparison-grid">
+    `;
+
+    // One column per scenario
+    runs.forEach((run, idx) => {
+        const portfolioAtRetirement = getPortfolioAtRetirement(run);
+
+        html += `
+            <div class="comparison-column">
+                <h3>${run.label || `Scenario ${idx + 1}`}</h3>
+                <p><strong>Current Age:</strong> ${run.currentAge ?? "N/A"}</p>
+                <p><strong>Retirement Age:</strong> ${run.retirementAge ?? "N/A"}</p>
+                <p><strong>Stress Age:</strong> ${run.stressAge ?? "N/A"}</p>
+                <p><strong>Depletion Age:</strong> ${run.portfolioDepletionAge ?? "N/A"}</p>
+                <p><strong>Withdrawal Rate:</strong> ${formatPercent(run.requiredWithdrawalRate ?? 0)}</p>
+                <p><strong>SS Income (at claim age):</strong> ${formatCurrency(run.ssAtClaimAge ?? 0)}</p>
+                <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioAtRetirement)}</p>
+                <p><strong>Spending Need at Retirement:</strong> ${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</p>
+                <p><strong>Portfolio Withdrawal Need (after SS):</strong> ${formatCurrency(run.spendingGap ?? 0)}</p>
+                <p><strong>Retirement Readiness:</strong> ${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</p>
+                <p><strong>Longevity Buffer Score:</strong> ${run.bufferScore ?? "N/A"}</p>
+                <p><strong>Zone:</strong> ${run.zone ?? "N/A"}</p>
+            </div>
+        `;
+    });
+
+    html += `</div>`; // close comparison-grid
+
+    // Differences vs baseline (only if 2+ runs)
+    if (runs.length >= 2) {
+        html += `<div class="comparison-diff"><h3>Differences vs ${base.label || "Scenario 1"}</h3>`;
+
+        runs.slice(1).forEach((run, idx) => {
+            const label = run.label || `Scenario ${idx + 2}`;
+            const basePortfolio = getPortfolioAtRetirement(base);
+            const runPortfolio = getPortfolioAtRetirement(run);
+
+            const stressDiff = (run.stressAge ?? 0) - (base.stressAge ?? 0);
+            const depletionDiff = (run.portfolioDepletionAge ?? 0) - (base.portfolioDepletionAge ?? 0);
+            const withdrawalRateDiff = (run.requiredWithdrawalRate ?? 0) - (base.requiredWithdrawalRate ?? 0);
+            const ssDiff = (run.ssAtClaimAge ?? 0) - (base.ssAtClaimAge ?? 0);
+            const portfolioDiff = runPortfolio - basePortfolio;
+
+            html += `
+                <div class="comparison-column">
+                    <h4>${label} vs ${base.label || "Scenario 1"}</h4>
+                    <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
+                    <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
+                    <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
+                    <p><strong>SS Income:</strong> ${formatCurrency(ssDiff)}</p>
+                    <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioDiff)}</p>
+                    <p><strong>Portfolio Withdrawal Need:</strong> ${formatCurrency((run.spendingGap ?? 0) - (base.spendingGap ?? 0))}</p>
+                </div>
+            `;
+        });
+
+        html += `</div>`; // close comparison-diff
+    }
+
+    container.innerHTML = html;
 }
