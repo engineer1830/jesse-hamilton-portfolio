@@ -975,6 +975,7 @@ function runEngine(inputs) {
         }
     }
     
+    console.log("retirementGrowthRate:", retirementGrowthRate);
 
 
     // 6️⃣ NOW compute depletion ages using balances AT retirement
