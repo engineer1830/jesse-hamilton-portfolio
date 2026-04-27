@@ -913,6 +913,9 @@ function runEngine(inputs) {
         glidepath
     } = inputs;
 
+    console.log("runEngine glidepath check:", glidepath);
+
+
     const lifeExpectancy = 120;
 
     // 1️⃣ Compute SS benefit FIRST
