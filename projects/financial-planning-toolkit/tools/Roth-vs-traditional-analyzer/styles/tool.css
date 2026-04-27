@@ -308,6 +308,39 @@ body
     font-weight: 500;
 }
 
+/* adds for the summary array built on successive runs */
+
+.comparison-section
+{
+    margin-top: 30px;
+    padding: 20px;
+}
+
+.comparison-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.comparison-column
+{
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.comparison-diff
+{
+    margin-top: 20px;
+    padding: 16px;
+    background: #eef6ff;
+    border-radius: 8px;
+    border: 1px solid #cce0ff;
+}
+
 
 /* --- SUSTAINABILITY CARD ------------------------------------------------- */
 
