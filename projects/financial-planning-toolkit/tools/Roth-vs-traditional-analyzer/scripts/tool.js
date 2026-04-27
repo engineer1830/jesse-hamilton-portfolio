@@ -3440,8 +3440,8 @@ function renderSummary(data) {
     // ⭐ FIXED: insights must be based on data
     const insights = computeProInsights(data);
 
-    const snapshot = buildScenarioSnapshot(data, insights);
-    saveScenarioRun(snapshot);
+    // const snapshot = buildScenarioSnapshot(data, insights);
+    // saveScenarioRun(snapshot);
 
 
     console.log("ZONE AT SUMMARY:", insights.zone);
