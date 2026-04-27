@@ -644,8 +644,8 @@ function computeSocialSecurityBenefit(ssAnnualStatement, claimAge) {
     return ssAnnualStatement;
 }
 
-// 6. Deterministic engine (shared)
-function buildDeterministicChart({
+// ✅ Full engine version – used by main analysis
+function buildDeterministicChartFull({
     currentAge,
     currentRoth,
     currentTrad,
@@ -662,8 +662,7 @@ function buildDeterministicChart({
     retireTax,
     lifeExpectancy,
     filingStatus,
-    inflationRate = 0.03,
-    spendingGap
+    inflationRate = 0.03
 }) {
     const engineYears = [];
     const totalYears = lifeExpectancy - currentAge;
@@ -679,7 +678,8 @@ function buildDeterministicChart({
         let mu;
 
         if (useGlidepath && yearlyExpectedReturns) {
-            const nominal = yearlyExpectedReturns[i] ??
+            const nominal =
+                yearlyExpectedReturns[i] ??
                 yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
             mu = (1 + nominal) / (1 + inflation) - 1;
         } else {
@@ -701,12 +701,9 @@ function buildDeterministicChart({
         let rmdGross = 0;
         let tradGrossActual = 0;
 
-        // changed ssIncome in this line
         if (age >= retirementAge) {
-            // const needBasedNet = Math.max(spendingNeed - ssIncomeForYear, 0);
-
-            // NEW: fixed spending gap, same every year
-            const needBasedNet = Math.max(spendingGap, 0);
+            // 🔁 ORIGINAL BEHAVIOR: need based on spendingNeed – SS
+            const needBasedNet = Math.max(spendingNeed - ssIncomeForYear, 0);
 
             if (age >= 73 && trad > 0) {
                 const divisor = getRmdDivisor(age);
@@ -753,8 +750,10 @@ function buildDeterministicChart({
         trad *= 1 + mu;
 
         const combinedBalance = roth + trad;
-// changed this ssincome line (2 instances)
-        const taxableSS = ssIncomeForYear > 0 ? computeTaxableSS(ssIncomeForYear, filingStatus) : 0;
+        const taxableSS =
+            ssIncomeForYear > 0
+                ? computeTaxableSS(ssIncomeForYear, filingStatus)
+                : 0;
 
         const taxableIncome =
             (rmdGross || 0) +
@@ -778,6 +777,45 @@ function buildDeterministicChart({
     }
 
     return engineYears;
+}
+
+// ✅ Comparison version – used ONLY by 62 vs 67 tool
+function buildDeterministicChartComparison({
+    currentAge,
+    currentRoth,
+    currentTrad,
+    contribution,
+    rothContribution,
+    expectedReturn,
+    retirementAge,
+    claimAge,
+    ssAnnualStatement: ssIncome,
+    spendingNeed,      // kept for symmetry, not used
+    retireTax,
+    lifeExpectancy,
+    filingStatus,
+    inflationRate = 0.03,
+    spendingGap        // 👈 fixed gap
+}) {
+    return buildDeterministicChartFull({
+        currentAge,
+        currentRoth,
+        currentTrad,
+        contribution,
+        rothContribution,
+        expectedReturn,
+        yearlyExpectedReturns: null,
+        yearlyVols: null,
+        useGlidepath: false,
+        retirementAge,
+        claimAge,
+        ssAnnualStatement: ssIncome,
+        spendingNeed: spendingGap, // 👈 reuse full engine logic by passing gap as “need”
+        retireTax,
+        lifeExpectancy,
+        filingStatus,
+        inflationRate
+    });
 }
 
 /* -------------------------------------------------------
@@ -826,7 +864,7 @@ function runEngine(inputs) {
     const spendingGap = spendingNeedAtRetirement - ssIncomeAtClaimAge;
 
     // 3️⃣ Now it's safe to call the deterministic engine
-    const engineYears = buildDeterministicChart({
+    const engineYears = buildDeterministicChartComparison({
         currentAge,
         currentRoth,
         currentTrad,
@@ -1360,166 +1398,13 @@ $("runBtn").addEventListener("click", async () => {
     const rothFinal = rothStartingFuture + rothFuture;
     const tradFinal = tradStartingFutureAfterTax + tradFutureAfterTax;
 
-    // /* ---------------------------------------------------
-    //    DETERMINISTIC CHART (EXTENDED TO LIFE EXPECTANCY)
-    // --------------------------------------------------- */
-
-    // function buildDeterministicChart({
-    //     currentAge,
-    //     currentRoth,
-    //     currentTrad,
-    //     contribution,
-    //     rothContribution,
-    //     expectedReturn,
-    //     yearlyExpectedReturns,
-    //     yearlyVols,
-    //     useGlidepath,
-    //     retirementAge,
-    //     claimAge,
-    //     ssAnnualStatement,
-    //     spendingNeed,
-    //     retireTax,
-    //     lifeExpectancy,
-    //     filingStatus,
-    //     inflationRate = 0.03
-
-    // }) {
-    //     const engineYears = [];
-
-    //     const totalYears = lifeExpectancy - currentAge;
-
-    //     let roth = currentRoth;
-    //     let trad = currentTrad;
-
-    //     for (let i = 0; i < totalYears; i++) {
-    //         const age = currentAge + i;
-
-    //         // Determine REAL return for this year
-    //         const inflation = inflationRate; // user‑set or default inflation
-    //         let mu;
-
-    //         // If using glidepath, convert nominal → real
-    //         if (useGlidepath && yearlyExpectedReturns) {
-    //             const nominal = yearlyExpectedReturns[i] ??
-    //                 yearlyExpectedReturns[yearlyExpectedReturns.length - 1];
-
-    //             mu = (1 + nominal) / (1 + inflation) - 1;
-    //         }
-    //         // Otherwise convert expectedReturn → real
-    //         else {
-    //             mu = (1 + expectedReturn) / (1 + inflation) - 1;
-    //         }
-
-
-    //         // Contributions BEFORE retirement
-    //         if (age < retirementAge) {
-    //             roth += rothContribution;
-    //             trad += contribution;
-    //         }
-
-    //         // Withdrawals AFTER retirement (Traditional-first)
-    //         let withdrawal = undefined;
-    //         let taxDrag = undefined;
-    //         let rmdComponent = 0;
-    //         let ssIncome = age >= claimAge ? ssAnnualStatement : 0;
-
-    //         let rmdGross = 0;
-    //         let tradGrossActual = 0;
-
-    //         if (age >= retirementAge) {
-    //             const needBasedNet = Math.max(spendingNeed - ssIncome, 0);
-
-    //             // Compute RMD
-    //             if (age >= 73 && trad > 0) {
-    //                 const divisor = getRmdDivisor(age);
-    //                 rmdGross = trad / divisor;
-    //             }
-
-    //             const rmdNet = rmdGross * (1 - retireTax);
-    //             const extraNeedNet = Math.max(needBasedNet - rmdNet, 0);
-
-    //             // Always withdraw RMD gross from Traditional
-    //             tradGrossActual = Math.min(trad, rmdGross);
-    //             let tradNet = tradGrossActual * (1 - retireTax);
-
-    //             rmdComponent = Math.round(tradNet);
-
-    //             if (extraNeedNet > 0) {
-    //                 const extraTradGrossNeeded = extraNeedNet / (1 - retireTax);
-
-    //                 const extraTradGrossActual = Math.min(
-    //                     trad - tradGrossActual,
-    //                     extraTradGrossNeeded
-    //                 );
-
-    //                 const extraTradNet = extraTradGrossActual * (1 - retireTax);
-
-    //                 tradGrossActual += extraTradGrossActual;
-    //                 tradNet += extraTradNet;
-
-    //                 const remainingNet = extraNeedNet - extraTradNet;
-    //                 const rothActual = Math.min(roth, remainingNet);
-
-    //                 roth -= rothActual;
-    //                 trad -= extraTradGrossActual;
-
-    //                 withdrawal = Math.round(tradNet + rothActual);
-    //                 taxDrag = Math.round(tradGrossActual * retireTax);
-    //             } else {
-    //                 trad -= tradGrossActual;
-    //                 withdrawal = Math.round(tradNet);
-    //                 taxDrag = Math.round(tradGrossActual * retireTax);
-    //             }
-    //         }
-
-    //         // ⭐ Apply growth AFTER withdrawals
-    //         roth *= 1 + mu;
-    //         trad *= 1 + mu;
-
-    //         // Combined after-tax balance
-    //         const combinedBalance = roth + trad;
-
-    //         // Compute taxable SS
-    //         const taxableSS = ssIncome > 0 ? computeTaxableSS(ssIncome, filingStatus) : 0;
-
-    //         // Compute taxable income
-    //         const taxableIncome =
-    //             (rmdGross || 0) +
-    //             ((tradGrossActual || 0) - (rmdGross || 0)) +
-    //             taxableSS;
-
-    //         engineYears.push({
-    //             age,
-    //             rothBalance: roth,
-    //             tradBalance: trad,
-    //             combinedBalance,
-    //             mu,
-    //             vol: yearlyVols ? yearlyVols[i] : undefined,
-    //             stockWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).stockWeight : undefined,
-    //             bondWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).bondWeight : undefined,
-    //             contribution: age < retirementAge ? contribution : undefined,
-    //             withdrawal,
-    //             taxableSS,
-    //             ssIncome,
-    //             taxableIncome,
-    //             taxDrag,
-    //             rmdComponent
-    //         });
-
-    //         // ⭐ Stop early if depleted
-    //         if (combinedBalance <= 0) break;
-    //     }
-
-    //     return engineYears;
-    // }
-
     /* ---------------------------------------------------
    BUILD & RENDER GROWTH CHART
 --------------------------------------------------- */
 
     
     // 1. Run deterministic engine (full year-by-year output)
-    const engineYears = buildDeterministicChart({
+    const engineYears = buildDeterministicChartFull({
         currentAge,
         currentRoth,
         currentTrad,
