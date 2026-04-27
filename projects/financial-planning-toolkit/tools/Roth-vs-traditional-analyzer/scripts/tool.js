@@ -324,12 +324,20 @@ function computeFirstYearWithdrawals(engineYears, retirementAge) {
     };
 }
 
-function computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed) {
+// function computeRequiredWithdrawalRate(engineYears, retirementAge, spendingNeed) {
+//     const yr = engineYears.find(y => y.age === retirementAge);
+//     const balance = yr?.combinedBalance ?? 0;
+
+//     return balance > 0 ? spendingNeed / balance : 0;
+// }
+
+function computeRequiredWithdrawalRate(engineYears, retirementAge, spendingGap) {
     const yr = engineYears.find(y => y.age === retirementAge);
     const balance = yr?.combinedBalance ?? 0;
 
-    return balance > 0 ? spendingNeed / balance : 0;
+    return balance > 0 ? spendingGap / balance : 0;
 }
+
 // This is the withdrawalreport that has been running and looks different from the new one down around line 561
 function buildWithdrawalReport(engineYears, {
     currentAge,
@@ -876,7 +884,7 @@ function runEngine(inputs) {
         useGlidepath: false,
         retirementAge,
         claimAge,
-        ssAnnualStatement,
+        ssAnnualStatement: ssIncome,
         spendingNeed,
         retireTax,
         lifeExpectancy,
