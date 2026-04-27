@@ -662,7 +662,8 @@ function buildDeterministicChart({
     retireTax,
     lifeExpectancy,
     filingStatus,
-    inflationRate = 0.03
+    inflationRate = 0.03,
+    spendingGap
 }) {
     const engineYears = [];
     const totalYears = lifeExpectancy - currentAge;
@@ -702,7 +703,10 @@ function buildDeterministicChart({
 
         // changed ssIncome in this line
         if (age >= retirementAge) {
-            const needBasedNet = Math.max(spendingNeed - ssIncomeForYear, 0);
+            // const needBasedNet = Math.max(spendingNeed - ssIncomeForYear, 0);
+
+            // NEW: fixed spending gap, same every year
+            const needBasedNet = Math.max(spendingGap, 0);
 
             if (age >= 73 && trad > 0) {
                 const divisor = getRmdDivisor(age);
@@ -833,7 +837,8 @@ function runEngine(inputs) {
         spendingNeed,
         retireTax,
         lifeExpectancy,
-        filingStatus
+        filingStatus,
+        spendingGap
     });
 
     // Retirement snapshot
