@@ -676,22 +676,38 @@ function renderScenarioDifferences(runs) {
         const col = document.createElement("div");
         col.className = "comparison-column";
 
-        col.innerHTML = `
-            <h4>${label} vs ${base.label || "Scenario 1"}</h4>
+        let diffHtml = `<h4>${label} vs ${base.label || "Scenario 1"}</h4>`;
+        diffHtml += `<div class="comparison-section-header">Retirement Metrics</div>`;
 
-            <p><strong>Stress Age:</strong> ${stressDiff > 0 ? "+" + stressDiff : stressDiff}</p>
-            <p><strong>Depletion Age:</strong> ${depletionDiff > 0 ? "+" + depletionDiff : depletionDiff}</p>
-            <p><strong>Withdrawal Rate:</strong> ${formatPercent(withdrawalRateDiff)}</p>
-            <p><strong>SS Income:</strong> ${formatCurrency(ssDiff)}</p>
-            <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioDiff)}</p>
-            <p><strong>Portfolio Withdrawal Need:</strong> ${formatCurrency(spendingGapDiff)}</p>
+        let pressureHtml = "";
 
-            <hr>
+        // Helper to add rows only when diff ≠ 0
+        function addRow(target, label, value, formatter = v => v) {
+            if (value !== 0 && value !== null && value !== undefined) {
+                target += `<p><strong>${label}:</strong> ${formatter(value)}</p>`;
+            }
+            return target;
+        }
 
-            <h4>Early-Retirement Pressure</h4>
-            <p><strong>Years Without SS:</strong> ${yearsNoSSDiff > 0 ? "+" + yearsNoSSDiff : yearsNoSSDiff}</p>
-            <p><strong>Early-Retirement Burden:</strong> ${formatCurrency(burdenDiff)}</p>
-        `;
+        // Add only meaningful differences
+        diffHtml = addRow(diffHtml, "Stress Age", stressDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Depletion Age", depletionDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Withdrawal Rate", withdrawalRateDiff, v => formatPercent(v));
+        diffHtml = addRow(diffHtml, "SS Income", ssDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio at Retirement", portfolioDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need", spendingGapDiff, v => formatCurrency(v));
+
+        // Early‑retirement pressure section
+        pressureHtml = addRow(pressureHtml, "Years Without SS", yearsNoSSDiff, v => (v > 0 ? "+" + v : v));
+        pressureHtml = addRow(pressureHtml, "Early-Retirement Burden", burdenDiff, v => formatCurrency(v));
+
+        if (pressureHtml.trim() !== "") {
+            diffHtml += `<hr><h4>Early-Retirement Pressure</h4>${pressureHtml}`;
+        }
+
+        col.innerHTML = diffHtml;
+
+
 
         wrapper.appendChild(col);
     });

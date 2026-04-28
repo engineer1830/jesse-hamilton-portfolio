@@ -1,5 +1,3 @@
-/* Body Layout Look */
-
 body
 {
     /* background: #f5f7fa; */
@@ -306,6 +304,101 @@ body
 {
     width: 40%;
     font-weight: 500;
+}
+
+/* adds for the summary array built on successive runs */
+
+.comparison-section
+{
+    margin-top: 30px;
+    padding: 20px;
+}
+
+.comparison-grid
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.comparison-column
+{
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.comparison-diff
+{
+    margin-top: 20px;
+    padding: 16px;
+    background: #eef6ff;
+    border-radius: 8px;
+    border: 1px solid #cce0ff;
+}
+
+.diff-positive
+{
+    color: #0a7a0a;
+    /* subtle green */
+    font-weight: 600;
+}
+
+.diff-negative
+{
+    color: #b30000;
+    /* subtle red */
+    font-weight: 600;
+}
+
+.diff-neutral
+{
+    color: #666;
+}
+
+.comparison-grid
+{
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.comparison-column
+{
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    flex: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.comparison-column h3
+{
+    margin-top: 0;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.comparison-column:not(:last-child)
+{
+    border-right: 2px solid #e6e6e6;
+    padding-right: 24px;
+    margin-right: 24px;
+}
+
+.comparison-section-header
+{
+    margin-top: 18px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
 }
 
 
