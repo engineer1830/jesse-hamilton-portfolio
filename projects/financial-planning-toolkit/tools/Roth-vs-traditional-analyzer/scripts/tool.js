@@ -1,4 +1,55 @@
 /* ---------------------------------------------------
+   FORMAT HELPER
+--------------------------------------------------- */
+
+function formatCurrencyInput(input) {
+    // Remove everything except digits
+    let raw = input.value.replace(/[^\d]/g, "");
+
+    // Prevent leading zeros from causing weird formatting
+    if (raw === "") {
+        input.value = "";
+        input.dataset.raw = "0";
+        return;
+    }
+
+    // Convert to number
+    const num = parseInt(raw, 10);
+
+    // Store raw value for your engine
+    input.dataset.raw = num;
+
+    // Format with commas and $
+    input.value = "$" + num.toLocaleString();
+}
+
+const currencyInputs = [
+    "currentRoth",
+    "currentTrad",
+    "contribution",
+    "ssAnnual",
+    "spendingNeed"
+];
+
+currencyInputs.forEach(id => {
+    const el = document.getElementById(id);
+
+    // Format on load
+    formatCurrencyInput(el);
+
+    // Format as user types
+    el.addEventListener("input", () => formatCurrencyInput(el));
+
+    // Optional: remove $ and commas when focusing
+    el.addEventListener("focus", () => {
+        el.value = el.dataset.raw || "";
+    });
+
+    // Reformat on blur
+    el.addEventListener("blur", () => formatCurrencyInput(el));
+});
+
+/* ---------------------------------------------------
    COMPARISON SCENARIOS
 --------------------------------------------------- */
 
@@ -822,15 +873,20 @@ $("runBtn").addEventListener("click", async () => {
     summary.innerHTML = "";
     loading.style.display = "block";
 
-
+    
 
     /* ---------------------------------------------------
        INPUTS
     --------------------------------------------------- */
-    const currentRoth = parseFloat($("currentRoth").value) || 0;
-    const currentTrad = parseFloat($("currentTrad").value) || 0;
+    // const currentRoth = parseFloat($("currentRoth").value) || 0;
+    // const currentTrad = parseFloat($("currentTrad").value) || 0;
 
-    const contribution = parseFloat($("contribution").value) || 0;
+    // const contribution = parseFloat($("contribution").value) || 0;
+
+    const currentRoth = parseFloat($("currentRoth").dataset.raw || 0);
+    const currentTrad = parseFloat($("currentTrad").dataset.raw || 0);
+
+    const contribution = parseFloat($("contribution").dataset.raw || 0);
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
@@ -861,17 +917,24 @@ $("runBtn").addEventListener("click", async () => {
     const workStopAge = $("workStopAge")
         ? parseInt($("workStopAge").value) || retirementAge
         : retirementAge;
+    // const ssAnnualStatement = $("ssAnnual")
+    //     ? parseFloat($("ssAnnual").value) || 0
+    //     : 0;
     const ssAnnualStatement = $("ssAnnual")
-        ? parseFloat($("ssAnnual").value) || 0
+        ? parseFloat($("ssAnnual").dataset.raw || 0)
         : 0;
+
     const claimAge = $("claimAge")
         ? parseInt($("claimAge").value) || 67
         : 67;
     const filingStatus = $("filingStatus")
         ? $("filingStatus").value || "married"
         : "married";
+    // const spendingNeed = $("spendingNeed")
+    //     ? parseFloat($("spendingNeed").value) || 0
+    //     : 0;
     const spendingNeed = $("spendingNeed")
-        ? parseFloat($("spendingNeed").value) || 0
+        ? parseFloat($("spendingNeed").dataset.raw || 0)
         : 0;
 
     const useGlidepath = $("useGlidepath")
