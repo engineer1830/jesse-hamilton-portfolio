@@ -797,7 +797,10 @@ function renderRecommendedClaimAge(runs) {
         <p>
             The recommended age reflects the scenario with the strongest overall balance of 
             <strong>risk reduction</strong>, <strong>portfolio safety</strong>, and 
-            <strong>lifetime income security</strong>.
+            <strong>lifetime income security</strong>.  It is a purely mathematical calculation and one should factor in <strong>ALL</strong> 
+            factors.  Refer to the 
+            <a href="https://engineer1830.github.io/jesse-hamilton-portfolio/projects/financial-planning-toolkit/tools/Roth-vs-traditional-analyzer/guide.html">Help/Service Guide's</a> 
+            3‑Step Recipe for Choosing the Best Social Security Claim Age section for additional insights.
         </p>
     `;
 
