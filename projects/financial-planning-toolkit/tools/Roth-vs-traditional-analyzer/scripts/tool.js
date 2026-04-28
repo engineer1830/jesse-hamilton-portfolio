@@ -6,41 +6,6 @@
 let scenarioRuns = [null, null, null];
 let scenarioLabels = [null, null, null];
 
-// function buildScenarioSnapshot(data, insights) {
-//     return {
-//         // Identity
-//         label: `Claim at ${data.taxContext?.claimAge}, retire at ${data.taxContext?.retirementAge}`,
-
-//         // User inputs
-//         currentAge: data.taxContext?.currentAge ?? null,
-//         retirementAge: data.taxContext?.retirementAge ?? null,
-//         claimAge: data.taxContext?.claimAge ?? null,
-//         currentRoth: data.currentRoth ?? 0,
-//         currentTrad: data.currentTrad ?? 0,
-//         contribution: data.contribution ?? null,
-//         ssAtClaimAge: data.retirementTaxDetails?.ssAtClaimAge ?? 0,
-//         spendingNeedAtRetirement: insights.spendingNeedAtRetirement ?? 0,
-
-//         // Engine outputs
-//         portfolioDepletionAge: insights.portfolioDepletionAge,
-//         stressAge: Math.min(
-//             insights.tradDepletionAge ?? Infinity,
-//             insights.rothDepletionAge ?? Infinity
-//         ),
-//         rothAtRetirement: insights.rothAtRetirement,
-//         tradAtRetirement: insights.tradAtRetirement,
-//         requiredWithdrawalRate: insights.requiredWithdrawalRate,
-//         spendingGap: insights.spendingGap,
-//         retirementReadiness: insights.retirementReadiness,
-//         bufferScore: insights.bufferScore,
-//         zone: insights.zone,
-
-//         // ⭐ New Early-Retirement Pressure Metrics
-//         yearsWithoutSS: insights.yearsWithoutSS,
-//         earlyRetirementBurden: insights.earlyRetirementBurden
-//     };
-// }
-
 
 // updated buildScenarioSnapshot troubleshooting stressage
 

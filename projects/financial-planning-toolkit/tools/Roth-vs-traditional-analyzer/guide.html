@@ -2392,9 +2392,206 @@
         
             </div>
         </section>
-
         <!-- ========================= -->
-        <!--        SECTION 14        -->
+        <!--        SECTION 14         -->
+        <!--   SCENARIO COMPARISON    -->
+        <!-- ========================= -->
+        <section class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="card-title-pill">14 · Scenario Comparison</span>
+                    Compare Social Security and retirement strategies
+                </div>
+            </div>
+        
+            <div class="card-body">
+        
+                <!-- Purpose -->
+                <div>
+                    <div class="section-label">Purpose</div>
+                    <div>
+                        The Scenario Comparison Engine allows users to save multiple projection runs and evaluate them
+                        side‑by‑side. This feature is designed to answer questions such as:
+                        <ul class="list" style="margin-top: 8px;">
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>“Should I claim Social Security at 62, 67, or 70?”</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>“How does delaying Social Security change my withdrawal rate?”</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>“What is the early‑retirement burden if I retire before claiming?”</div>
+                            </li>
+                            <li class="list-item">
+                                <div class="list-bullet"></div>
+                                <div>“How do Stress Age and Depletion Age differ across scenarios?”</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- How it works -->
+                <div>
+                    <div class="section-label">How it works</div>
+                    <div>
+                        Each time the user clicks <strong>Run Projection</strong>, the tool saves a snapshot of the scenario.
+                        These snapshots appear in the Scenario Comparison section as individual cards. Each card contains:
+                    </div>
+        
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Claim age:</span> The Social Security age being evaluated.
+                                    </div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Stress Age:</span> When the first account depletes under the
+                                        deterministic engine.</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Portfolio depletion age:</span> When all accounts reach zero.
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+        
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Withdrawal rate:</span> Required withdrawal rate at
+                                        retirement.</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Social Security income:</span> Benefit at the selected claim
+                                        age.</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet list-bullet-accent"></div>
+                                    <div><span class="list-label">Early‑retirement burden:</span> Years without SS × spending
+                                        need.</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+        
+                    <div class="callout callout-accent" style="margin-top: 12px;">
+                        All comparison metrics are based on the <strong>deterministic projection engine</strong>, ensuring
+                        consistency with the main sustainability analysis.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Differences Panel -->
+                <div>
+                    <div class="section-label">Differences panel</div>
+                    <div>
+                        Below the scenario cards, the tool automatically computes differences versus the first saved scenario.
+                        Only meaningful (non‑zero) differences are shown to keep the view clean and focused.
+                    </div>
+        
+                    <div class="two-col" style="margin-top: 6px;">
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Stress Age difference</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Depletion Age difference</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Withdrawal rate change</div>
+                                </li>
+                            </ul>
+                        </div>
+        
+                        <div>
+                            <ul class="list">
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Change in Social Security income</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Change in portfolio withdrawal need</div>
+                                </li>
+                                <li class="list-item">
+                                    <div class="list-bullet"></div>
+                                    <div>Early‑retirement pressure differences</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+        
+                    <div class="callout callout-warning" style="margin-top: 12px;">
+                        <div class="callout-title">Color coding</div>
+                        Positive differences appear in <strong>green</strong>, negative differences in <strong>red</strong>,
+                        making it easy to see which scenario improves or worsens key metrics.
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Early Retirement Pressure -->
+                <div>
+                    <div class="section-label">Early‑retirement pressure</div>
+                    <div>
+                        When users retire <em>before</em> claiming Social Security, the portfolio must fully fund spending
+                        for several years. The comparison engine quantifies this pressure using:
+                    </div>
+        
+                    <ul class="list" style="margin-top: 6px;">
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div><span class="list-label">Years without SS:</span> Number of years between retirement and claim
+                                age.</div>
+                        </li>
+                        <li class="list-item">
+                            <div class="list-bullet"></div>
+                            <div><span class="list-label">Early‑retirement burden:</span> Spending need × years without SS.
+                            </div>
+                        </li>
+                    </ul>
+        
+                    <div class="callout callout-accent" style="margin-top: 12px;">
+                        This metric highlights the trade‑off between claiming early (lower benefit, lower burden) and claiming
+                        late (higher benefit, higher burden).
+                    </div>
+                </div>
+        
+                <div class="divider"></div>
+        
+                <!-- Why it matters -->
+                <div>
+                    <div class="section-label">Why this feature matters</div>
+                    <div class="callout callout-accent">
+                        The Scenario Comparison Engine transforms the tool from a single‑run calculator into a
+                        <strong>decision‑support system</strong>. It helps users visualize trade‑offs, understand
+                        early‑retirement
+                        strain, and identify the most resilient long‑term strategy — mirroring how real advisors evaluate
+                        Social Security timing and retirement readiness.
+                    </div>
+                </div>
+        
+            </div>
+        </section>
+        
+        <!-- ========================= -->
+        <!--        SECTION 15        -->
         <!--    SYSTEM GUARDRAILS      -->
         <!-- ========================= -->
         <section class="card" style="margin-top: 20px;">
