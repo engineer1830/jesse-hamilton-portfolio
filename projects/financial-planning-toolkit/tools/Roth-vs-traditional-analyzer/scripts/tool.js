@@ -3749,14 +3749,15 @@ function renderSummary(data) {
 
 
     let html = `
-    <h3>Portfolio Depletion Age</h3>
-    <div class="depletion-component">
-        <p>Your total retirement portfolio is projected to be fully depleted around 
-        <strong>age ${combinedAge}</strong>.</p>
+    <div class="summary-narrative">
+        <h3>Portfolio Depletion Age</h3>
+        <div class="depletion-component">
+            <p>Your total retirement portfolio is projected to be fully depleted around 
+            <strong>age ${combinedAge}</strong>.</p>
 
-        <p>This reflects the point at which <em>all</em> retirement accounts are exhausted, 
-        assuming your current spending pattern.</p>
-    </div>
+            <p>This reflects the point at which <em>all</em> retirement accounts are exhausted, 
+            assuming your current spending pattern.</p>
+        </div>
 `;
 
     const stressAge = Math.min(
@@ -3776,6 +3777,8 @@ function renderSummary(data) {
         </div>
     `;
     }
+
+    html += `</div>`; // closes summary-narrative
 
 
 
@@ -3821,6 +3824,7 @@ function renderSummary(data) {
     if (retirementTaxDetails) {
         const t = retirementTaxDetails;
         html += `
+        <div class="tax-estimate-section">
             <h3>Retirement Tax Estimate</h3>
             <table class="summary-table">
                 <tr><td>Estimated RMD at 73</td><td>${formatCurrency(t.rmd)}</td></tr>
@@ -3829,6 +3833,7 @@ function renderSummary(data) {
                 <tr><td>Estimated Taxable Income</td><td>${formatCurrency(t.taxableIncome)}</td></tr>
                 <tr><td>Estimated Retirement Tax Rate</td><td>${formatPercent(t.estimatedRate)}</td></tr>
             </table>
+        </div>    
         `;
     }
 

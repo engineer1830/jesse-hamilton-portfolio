@@ -4,8 +4,9 @@
 
 body
 {
-    background: #cad0c4;
+    /* background: #cad0c4; */
     /* soft sage tint */
+    background: #efdfd8;
     font-family: system-ui, sans-serif;
     margin: 0;
     padding: 0;
@@ -29,8 +30,9 @@ body
     right: 16px;
     z-index: 9999;
     padding: 8px 14px;
-    background: #0ea5e9;
-    color: white;
+    background: #ffd700;
+    /* background: #0ea5e9; */
+    color: black;
     border: none;
     border-radius: 8px;
     font-size: 14px;
@@ -41,7 +43,7 @@ body
 
 .guide-btn:hover
 {
-    background: #0284c7;
+    background: #cbaf12;
 }
 
 .guide-btn:active
@@ -129,9 +131,17 @@ body
     max-width: 320px;
 }
 
-#runBtn:hover
+#runBtn:hover,
+#compare-scenarios-btn:hover,
+#clear-scenarios-btn:hover
 {
-    background-color: #005fa3;
+    /* background-color: #005fa3; */
+    /* background-color: #355E3B; */
+    background-color: #576267;
+}
+
+.btn-primary {
+    background: #102027;
 }
 
 /* ============================================================
@@ -203,7 +213,9 @@ body
 .summary-table th
 {
     font-weight: 600;
-    background: #f1f5f9;
+    background: #e8efe3;
+    /* background: #edf2f7; */
+    /* background: #f1f5f9; */
 }
 
 .summary-table tr td:first-child
@@ -265,6 +277,78 @@ body
     padding-bottom: 4px;
 }
 
+.summary-narrative
+{
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+}
+
+.summary-table th
+{
+    background: #e9f2ff;
+    font-weight: 600;
+    color: #333;
+}
+
+.tax-estimate-section
+{
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 2px solid #d9d9d9;
+}
+
+.tax-estimate-section .summary-table td,
+.tax-estimate-section .summary-table th
+{
+    background: #f7faff;
+}
+
+.enhanced-block
+{
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+}
+
+.enhanced-block h3
+{
+    background: #e9f2ff;
+    padding: 10px 14px;
+    margin: -18px -22px 16px -22px;
+    /* pulls header to edges */
+    border-radius: 10px 10px 0 0;
+    font-weight: 600;
+    color: #1a2b4c;
+}
+
+.safe-spending-value
+{
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #1a3a6d;
+    margin-bottom: 6px;
+}
+
+.withdrawal-summary p
+{
+    margin: 10px 0;
+}
+
+.withdrawal-summary ul.rmd-list
+{
+    margin: 6px 0 14px 0;
+    padding-left: 20px;
+}
+
+.withdrawal-summary ul.rmd-list li
+{
+    margin: 4px 0;
+}
 /* ============================================================
    DIFFERENCES BLOCK
    ============================================================ */
