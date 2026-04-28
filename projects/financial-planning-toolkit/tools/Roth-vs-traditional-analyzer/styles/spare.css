@@ -11,9 +11,7 @@ body
     padding: 0;
 }
 
-/* ============================================================
-   GUIDE BUTTON
-   ============================================================ */
+/* GUIDE BUTTON */
 
 .guide-btn-wrapper
 {
@@ -48,6 +46,7 @@ body
 {
     transform: scale(0.97);
 }
+
 
 /* ============================================================
    INPUT PANEL
@@ -111,12 +110,14 @@ body
     box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
 }
 
+/* Footer section */
 .inputs-footer
 {
     margin-top: 40px;
     text-align: center;
 }
 
+/* Analyze button */
 #runBtn,
 #compare-scenarios-btn,
 #clear-scenarios-btn
@@ -175,6 +176,7 @@ body
 {
     font-size: 0.85rem;
     color: #666;
+    margin-bottom: 4px;
 }
 
 .summary-value
@@ -189,6 +191,7 @@ body
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 8px;
+    /* <-- row spacing */
     margin-bottom: 20px;
 }
 
@@ -196,6 +199,7 @@ body
 .summary-table td
 {
     padding: 10px 14px;
+    /* <-- cell padding */
     background: #f8fafc;
     border-radius: 6px;
 }
@@ -253,6 +257,7 @@ body
     margin-right: 24px;
 }
 
+/* Section headers inside comparison cards */
 .comparison-section-header
 {
     margin-top: 18px;
@@ -278,6 +283,7 @@ body
     border: 1px solid #cce0ff;
 }
 
+/* Subtle green/red diff styling */
 .diff-positive
 {
     color: #0a7a0a;
@@ -335,7 +341,6 @@ body
     color: #b30000;
 }
 
-
 /* ============================================================
    MISC COMPONENTS
    ============================================================ */
@@ -350,6 +355,21 @@ body
     border-radius: 12px;
     background: #e0e0e0;
     color: #333;
+}
+
+.buffer-safe
+{
+    background-color: #2ecc71;
+    color: white;
+}
+
+
+/* Supported (60–79) */
+.buffer-supported
+{
+    background: #0b6fa4;
+    /* advisor blue */
+    color: white;
 }
 
 .buffer-strong
@@ -375,6 +395,3 @@ body
     background: #e74c3c;
     color: white;
 }
-
-
-
