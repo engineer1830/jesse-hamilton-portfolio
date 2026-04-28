@@ -49,6 +49,24 @@ currencyInputs.forEach(id => {
     el.addEventListener("blur", () => formatCurrencyInput(el));
 });
 
+function enforceAgeLimits() {
+    const currentAge = parseInt($("currentAge").value) || 0;
+
+    const retirementAgeEl = $("retirementAge");
+    const workStopAgeEl = $("workStopAge");
+
+    // Retirement age cannot be < current age
+    if (retirementAgeEl && parseInt(retirementAgeEl.value) < currentAge) {
+        retirementAgeEl.value = currentAge;
+    }
+
+    // Work stop age cannot be < current age
+    if (workStopAgeEl && parseInt(workStopAgeEl.value) < currentAge) {
+        workStopAgeEl.value = currentAge;
+    }
+}
+
+
 /* ---------------------------------------------------
    COMPARISON SCENARIOS
 --------------------------------------------------- */
