@@ -4078,96 +4078,85 @@ function renderScenarioComparison(runs) {
     const getPortfolioAtRetirement = run =>
         (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
 
+    // Badge color helpers (outside the loop)
+    function getBufferBadgeClass(score) {
+        if (score == null || isNaN(score)) return "badge-gray";
+        if (score >= 80) return "badge-green";
+        if (score >= 40) return "badge-yellow";
+        return "badge-red";
+    }
+
+    function getZoneBadgeClass(zone) {
+        if (!zone) return "badge-gray";
+        return `badge-${zone.toLowerCase()}`;
+    }
+
     // 1. Build grid HTML
     let html = `
         <h2>Saved Scenario Comparison</h2>
         <div class="comparison-grid">
     `;
 
+    // -------------------------
+    // LOOP STARTS
+    // -------------------------
     runs.forEach((run, idx) => {
         const portfolioAtRetirement = getPortfolioAtRetirement(run);
 
+        const bufferClass = getBufferBadgeClass(run.bufferScore);
+        const zoneClass = getZoneBadgeClass(run.zone);
+
         html += `
-            <div class="comparison-column ssa-compare-card">
+<div class="comparison-column ssa-compare-card">
 
-                <!-- Header -->
-                <h3 class="card-header">${run.label || `Scenario ${idx + 1}`}</h3>
+    <h3 class="card-header">${run.label || `Scenario ${idx + 1}`}</h3>
 
-                <!-- Optional: Key Differences Highlight -->
-                <div class="key-diff">
-                    <div>Withdrawal Rate: <strong>${formatPercent(run.requiredWithdrawalRate ?? 0)}</strong></div>
-                    <div>SS Income: <strong>${formatCurrency(run.ssAtClaimAge ?? 0)}</strong></div>
-                    <div>Years w/out SS: <strong>${run.yearsWithoutSS}</strong></div>
-                </div>
+    <div class="key-diff">
+        <div>Withdrawal Rate: <strong>${formatPercent(run.requiredWithdrawalRate ?? 0)}</strong></div>
+        <div>SS Income: <strong>${formatCurrency(run.ssAtClaimAge ?? 0)}</strong></div>
+        <div>Years w/out SS: <strong>${run.yearsWithoutSS}</strong></div>
+    </div>
 
-                <!-- Group 1: Ages -->
-                <div class="metric-group">
-                    <div class="metric"><span>Current Age: </span><span>${run.currentAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Retirement Age: </span><span>${run.retirementAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Claim Age: </span><span>${run.claimAge ?? "N/A"}</span></div>
-                </div>
+    <div class="metric-group">
+        <div class="metric"><span>Current Age:</span><span>${run.currentAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Retirement Age:</span><span>${run.retirementAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Claim Age:</span><span>${run.claimAge ?? "N/A"}</span></div>
+    </div>
 
-                <!-- Group 2: Longevity -->
-                <div class="metric-group">
-                    <div class="metric"><span>Stress Age: </span><span>${run.stressAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Depletion Age: </span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
-                </div>
+    <div class="metric-group">
+        <div class="metric"><span>Stress Age:</span><span>${run.stressAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Depletion Age:</span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
+    </div>
 
-                <!-- Group 3: Income & Spending -->
-                <div class="metric-group">
-                    <div class="metric"><span>SS Income: </span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
-                    <div class="metric"><span>Portfolio at Retirement: </span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
-                    <div class="metric"><span>Spending Need: </span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
-                    <div class="metric"><span>Withdrawal Need: </span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
-                </div>
+    <div class="metric-group">
+        <div class="metric"><span>SS Income:</span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
+        <div class="metric"><span>Portfolio at Retirement:</span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
+        <div class="metric"><span>Spending Need:</span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
+        <div class="metric"><span>Withdrawal Need:</span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
+    </div>
 
-                <!-- Group 4: Readiness -->
-                <div class="metric-group">
-                    <div class="metric">
-                        <span>Retirement Readiness: </span>
-                        <span>${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</span>
-                    </div>
+    <div class="metric-group">
+        <div class="metric">
+            <span>Longevity Buffer:</span>
+            <span class="badge ${bufferClass}">${run.bufferScore ?? "N/A"}</span>
+        </div>
 
-                    <div class="metric">
-                        <span>Longevity Buffer: </span>
-                        <span class="badge badge-green">${run.bufferScore ?? "N/A"}</span>
-                    </div>
+        <div class="metric">
+            <span>Zone:</span>
+            <span class="badge ${zoneClass}">${run.zone ?? "N/A"}</span>
+        </div>
+    </div>
 
-                    <div class="metric">
-                        <span>Zone</span>
-                        <span class="badge badge-green">${run.zone ?? "N/A"}</span>
-                    </div>
-                </div>
-
-                <!-- Group 5: Early Retirement Pressure -->
-                <div class="metric-group">
-                    <h4>Early-Retirement Pressure</h4>
-
-                    ${
-                            run.yearsWithoutSS > 0
-                                ? `
-                                <div class="metric"><span>Years Without SS: </span><span>${run.yearsWithoutSS}</span></div>
-                                <div class="metric"><span>Burden: </span><span>${formatCurrency(run.earlyRetirementBurden)}</span></div>
-                            `
-                                : `
-                                <div class="metric no-pressure">
-                                    <span>No early-retirement pressure</span>
-                                    <span class="badge badge-green">None</span>
-                                </div>
-                            `
-                    }
-                </div>
-
-
-            </div>
-            `;
-
+</div>
+`;
     });
+    // -------------------------
+    // LOOP ENDS
+    // -------------------------
 
     html += `</div>`; // close comparison-grid
 
     // 2. Insert grid
-    container.innerHTML = "";
     container.innerHTML = html;
 
     // 3. Recommended claim age
@@ -4181,3 +4170,4 @@ function renderScenarioComparison(runs) {
     // 5. Narrative
     renderEarlyRetirementNarrative(runs);
 }
+
