@@ -2075,8 +2075,9 @@ function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothF
         <p>
             This chart shows how sensitive your Traditional account is to future tax rates.
             As tax rates rise, the after‑tax value of a Traditional account falls, while Roth
-            values remain constant. The steeper the red line, the more exposed your retirement
-            plan is to future tax increases.
+            values remain constant. The steeper the red line, the more your retirement plan is 
+            exposed to future tax increases - and the more valuable Roth becomes as a source
+            of tax‑free stability.
         </p>
     `;
 
