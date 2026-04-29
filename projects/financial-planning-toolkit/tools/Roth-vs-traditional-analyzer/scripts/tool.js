@@ -791,7 +791,8 @@ function renderScenarioDifferences(runs) {
         diffHtml = addRow(diffHtml, "Withdrawal Rate: ", withdrawalRateDiff, v => formatPercent(v));
         diffHtml = addRow(diffHtml, "SS Income: ", ssDiff, v => formatCurrency(v));
         diffHtml = addRow(diffHtml, "Portfolio at Retirement: ", portfolioDiff, v => formatCurrency(v));
-        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need: ", spendingGapDiff, v => formatCurrency(v));
+        // diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need: ", spendingGapDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need: ", spendingGap, v => formatCurrency(v));
 
         // Early‑retirement pressure section
         pressureHtml = addRow(pressureHtml, "Years Without SS: ", yearsNoSSDiff, v => (v > 0 ? "+" + v : v));
