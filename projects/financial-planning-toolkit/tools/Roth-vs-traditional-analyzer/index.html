@@ -41,20 +41,35 @@
                         <input id="currentRoth" type="text" value="0" autocomplete="off">
                         <small class="note">After‑tax Roth IRA / 401(k) balance today.</small>
                     </label>
-        
+            
                     <label>
                         Current Traditional Balance
                         <input id="currentTrad" type="text" value="0" autocomplete="off">
                         <small class="note">Pre‑tax IRA / 401(k) balance today.</small>
                     </label>
-        
+            
                     <label>
                         Annual Contribution
                         <input id="contribution" type="text" value="0" autocomplete="off">
                         <small class="note">Total annual contributions across retirement accounts.</small>
                     </label>
+            
+                    <!-- New: Contribution split control -->
+                    <label>
+                        Roth vs Traditional Split
+                        <div class="split-row">
+                            <span class="split-label">More Traditional</span>
+                            <input id="rothSplit" type="range" min="0" max="100" value="50">
+                            <span class="split-label">More Roth</span>
+                        </div>
+                        <small class="note">
+                            Currently directing <span id="rothSplitValue">50%</span> of new contributions to Roth
+                            and <span id="tradSplitValue">50%</span> to Traditional.
+                        </small>
+                    </label>
                 </div>
             </div>
+            
         
             <!-- 2. Tax Assumptions -->
             <div class="inputs-section">

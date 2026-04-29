@@ -113,6 +113,20 @@ body
     box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
 }
 
+.split-row
+{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.split-label
+{
+    font-size: 0.8rem;
+    color: #4a5568;
+    white-space: nowrap;
+}
+
 .inputs-footer
 {
     margin-top: 40px;

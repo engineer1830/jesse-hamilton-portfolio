@@ -914,6 +914,18 @@ function renderRecommendedClaimAge(runs) {
 
 
 
+// --- Contribution Split Slider ---
+const rothSplitSlider = document.getElementById("rothSplit");
+const rothSplitValue = document.getElementById("rothSplitValue");
+const tradSplitValue = document.getElementById("tradSplitValue");
+
+rothSplitSlider.addEventListener("input", () => {
+    const rothPct = Number(rothSplitSlider.value);
+    const tradPct = 100 - rothPct;
+
+    rothSplitValue.textContent = rothPct + "%";
+    tradSplitValue.textContent = tradPct + "%";
+});
 
 /* -------------------------------------------------------
    MAIN RUN HANDLER
@@ -929,7 +941,6 @@ $("runBtn").addEventListener("click", async () => {
     loading.style.display = "block";
 
     
-
     /* ---------------------------------------------------
        INPUTS
     --------------------------------------------------- */
@@ -942,6 +953,10 @@ $("runBtn").addEventListener("click", async () => {
     const currentTrad = parseFloat($("currentTrad").dataset.raw || 0);
 
     const contribution = parseFloat($("contribution").dataset.raw || 0);
+
+    const rothPct = rothSplitSlider ? Number(rothSplitSlider.value) / 100 : 0.5;
+    const tradPct = 1 - rothPct;
+
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
@@ -1363,9 +1378,14 @@ $("runBtn").addEventListener("click", async () => {
 
             // Contributions BEFORE retirement
             if (age < retirementAge) {
+                // Apply contribution split
+                const rothContribution = contribution * rothPct * (1 - currentTax); // after-tax
+                const tradContribution = contribution * tradPct;                    // pre-tax
+
                 roth += rothContribution;
-                trad += contribution;
+                trad += tradContribution;
             }
+            
 
             // Withdrawals AFTER retirement (Traditional-first)
             let withdrawal = undefined;
@@ -1442,12 +1462,14 @@ $("runBtn").addEventListener("click", async () => {
                 age,
                 rothBalance: roth,
                 tradBalance: trad,
+                contributionRoth: rothContribution,
+                contributionTrad: tradContribution,
                 combinedBalance,
                 mu,
                 vol: yearlyVols ? yearlyVols[i] : undefined,
                 stockWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).stockWeight : undefined,
                 bondWeight: useGlidepath ? getGlidepathAllocation(age, retirementAge).bondWeight : undefined,
-                contribution: age < retirementAge ? contribution : undefined,
+                contribution: age < retirementAge ? (rothContribution + tradContribution) : undefined,
                 withdrawal,
                 taxableSS,
                 ssIncome,
@@ -1982,7 +2004,6 @@ function renderGrowthChart(engineYears, retirementAge, currentAge) {
         plugins: [phaseShadingPlugin]
     });
 }
-
 
 
 function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
