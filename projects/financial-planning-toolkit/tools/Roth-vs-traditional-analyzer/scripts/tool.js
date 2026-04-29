@@ -430,31 +430,31 @@ function findDepletionAge(engineYears) {
     return lastPositive ? lastPositive.age : null;
 }
 
-function buildTaxChartData(engineYears, retireTax) {
-    return {
-        labels: engineYears.map(y => y.age),
+// function buildTaxChartData(engineYears, retireTax) {
+//     return {
+//         labels: engineYears.map(y => y.age),
 
-        // Total taxable income (RMD + extra Trad + taxable SS)
-        taxableIncome: engineYears.map(y => ({
-            x: y.age,
-            y: y.taxableIncome || 0
-        })),
+//         // Total taxable income (RMD + extra Trad + taxable SS)
+//         taxableIncome: engineYears.map(y => ({
+//             x: y.age,
+//             y: y.taxableIncome || 0
+//         })),
 
-        // RMD taxable income (gross RMD)
-        rmdIncome: engineYears.map(y => ({
-            x: y.age,
-            y: y.rmdComponent
-                ? Math.round(y.rmdComponent / (1 - retireTax)) // convert net RMD back to gross
-                : 0
-        })),
+//         // RMD taxable income (gross RMD)
+//         rmdIncome: engineYears.map(y => ({
+//             x: y.age,
+//             y: y.rmdComponent
+//                 ? Math.round(y.rmdComponent / (1 - retireTax)) // convert net RMD back to gross
+//                 : 0
+//         })),
 
-        // Taxable Social Security
-        taxableSS: engineYears.map(y => ({
-            x: y.age,
-            y: y.taxableSS || 0
-        }))
-    };
-}
+//         // Taxable Social Security
+//         taxableSS: engineYears.map(y => ({
+//             x: y.age,
+//             y: y.taxableSS || 0
+//         }))
+//     };
+// }
 
 /* -------------------------------------------------------
    WITHDRAWAL REPORT (DERIVED FROM engineYears)
@@ -1598,14 +1598,23 @@ $("runBtn").addEventListener("click", async () => {
     /* ---------------------------------------------------
    BUILD & RENDER TAX CHART
 --------------------------------------------------- */
-    const taxData = buildTaxChartData(engineYears, retireTax);
+    // const taxData = buildTaxChartData(engineYears, retireTax);
 
-    renderTaxChart(
-        taxData,
-        phases,
-        currentAge,
-        lifeExpectancy
-    );
+    // renderTaxChart(
+    //     taxData,
+    //     phases,
+    //     currentAge,
+    //     lifeExpectancy
+    // );
+
+    renderTaxChart({
+        contribution,
+        expectedReturn,
+        years,
+        currentTax,
+        rothFinal
+    });
+    
 
     /* ---------------------------------------------------
        BUILD WITHDRAWAL REPORT (NEW MODERNIZED VERSION)
@@ -1976,19 +1985,17 @@ function renderGrowthChart(engineYears, retirementAge, currentAge) {
 
 
 
-function renderTaxChart({
-    contribution,
-    expectedReturn,
-    years,
-    currentTax,
-    rothFinal
-}) {
+function renderTaxChart({ contribution, expectedReturn, years, currentTax, rothFinal }) {
     const ctx = $("taxChart").getContext("2d");
 
+    // Destroy old chart if needed
+    if (taxChart) taxChart.destroy();
+
+    // Build labels + values
     const labels = [];
     const tradValues = [];
 
-    for (let t = 0; t <= 50; t += 1) {
+    for (let t = 0; t <= 50; t++) {
         const retireTax = t / 100;
         let tradBal = 0;
 
@@ -1996,27 +2003,25 @@ function renderTaxChart({
             tradBal = tradBal * (1 + expectedReturn) + contribution;
         }
 
-        const afterTax = tradBal * (1 - retireTax);
+        tradValues.push(tradBal * (1 - retireTax));
         labels.push(`${t}%`);
-        tradValues.push(afterTax);
     }
 
-    if (taxChart) taxChart.destroy();
-
+    // Render chart
     taxChart = new Chart(ctx, {
         type: "line",
         data: {
             labels,
             datasets: [
                 {
-                    label: "Traditional After-Tax Final Value",
+                    label: "Traditional Value at Different Future Tax Rates",
                     data: tradValues,
                     borderColor: "#e53e3e",
                     backgroundColor: "rgba(229,62,62,0.1)",
                     tension: 0.2
                 },
                 {
-                    label: "Roth Final (Flat Line)",
+                    label: "Roth Value (Unaffected by Tax Rates)",
                     data: tradValues.map(() => rothFinal),
                     borderColor: "#2b6cb0",
                     borderDash: [5, 5],
@@ -2027,18 +2032,58 @@ function renderTaxChart({
         options: {
             responsive: true,
             plugins: {
-                legend: { position: "bottom" }
+                legend: { position: "bottom" },
+                title: {
+                    display: true,
+                    text: "Sensitivity to Future Retirement Tax Rates"
+                }
             },
             scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: "Retirement Tax Rate"
+                    }
+                },
                 y: {
                     ticks: {
                         callback: v => formatCurrency(v)
+                    },
+                    title: {
+                        display: true,
+                        text: "After‑Tax Value"
                     }
                 }
             }
         }
     });
+
+    // -------------------------------
+    // CARD + NARRATIVE INSERTION
+    // -------------------------------
+
+    const card = document.getElementById("tax-chart-card");
+
+    // Remove old narrative if re-rendering
+    const oldNarrative = card.querySelector(".tax-chart-narrative");
+    if (oldNarrative) oldNarrative.remove();
+
+    // Build narrative block
+    const narrative = document.createElement("div");
+    narrative.className = "tax-chart-narrative";
+    narrative.innerHTML = `
+        <p>
+            This chart shows how sensitive your Traditional account is to future tax rates.
+            As tax rates rise, the after‑tax value of a Traditional account falls, while Roth
+            values remain constant. The steeper the red line, the more exposed your retirement
+            plan is to future tax increases.
+        </p>
+    `;
+
+    // Append narrative inside the card
+    card.appendChild(narrative);
 }
+
 
 /* -------------------------------------------------------
    MONTE CARLO SIMULATION (Volatility-Driven)
