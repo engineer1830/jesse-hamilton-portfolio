@@ -1846,6 +1846,16 @@ function renderGrowthChart(engineYears, retirementAge, currentAge) {
     const trad = engineYears.map(y => ({ x: y.age, y: y.tradBalance }));
     const combined = engineYears.map(y => ({ x: y.age, y: y.combinedBalance }));
 
+    const rothContribs = engineYears.map(y => ({
+        x: y.age,
+        y: y.contributionRoth ?? 0
+    }));
+
+    const tradContribs = engineYears.map(y => ({
+        x: y.age,
+        y: y.contributionTrad ?? 0
+    }));
+    
     // Identify depletion ages
     const tradDepletionAge = engineYears.find(y => y.tradBalance <= 0)?.age ?? null;
     const rothDepletionAge = engineYears.find(y => y.rothBalance <= 0)?.age ?? null;
@@ -1939,6 +1949,29 @@ function renderGrowthChart(engineYears, retirementAge, currentAge) {
         data: {
             labels,
             datasets: [
+                {
+                    type: "bar",
+                    label: "Roth Contributions",
+                    data: rothContribs,
+                    backgroundColor: "rgba(26, 127, 55, 0.25)",
+                    borderWidth: 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.6,
+                    yAxisID: "y",
+                    order: 1
+                },
+                {
+                    type: "bar",
+                    label: "Traditional Contributions",
+                    data: tradContribs,
+                    backgroundColor: "rgba(179, 107, 0, 0.25)",
+                    borderWidth: 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.6,
+                    yAxisID: "y",
+                    order: 1
+                },
+                
                 {
                     label: "Combined (after-tax)",
                     data: combined,
