@@ -593,6 +593,22 @@ a:visited
     line-height: 1.45;
 }
 
+.growth-chart-card
+{
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 32px;
+}
+
+#growthChart
+{
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
 .tax-chart-narrative
 {
     margin-top: 16px;
