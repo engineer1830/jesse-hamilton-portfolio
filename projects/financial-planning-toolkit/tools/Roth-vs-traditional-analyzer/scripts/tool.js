@@ -4102,34 +4102,34 @@ function renderScenarioComparison(runs) {
 
                 <!-- Group 1: Ages -->
                 <div class="metric-group">
-                    <div class="metric"><span>Current Age</span><span>${run.currentAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Retirement Age</span><span>${run.retirementAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Claim Age</span><span>${run.claimAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Current Age: </span><span>${run.currentAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Retirement Age: </span><span>${run.retirementAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Claim Age: </span><span>${run.claimAge ?? "N/A"}</span></div>
                 </div>
 
                 <!-- Group 2: Longevity -->
                 <div class="metric-group">
-                    <div class="metric"><span>Stress Age</span><span>${run.stressAge ?? "N/A"}</span></div>
-                    <div class="metric"><span>Depletion Age</span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Stress Age: </span><span>${run.stressAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Depletion Age: </span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
                 </div>
 
                 <!-- Group 3: Income & Spending -->
                 <div class="metric-group">
-                    <div class="metric"><span>SS Income</span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
-                    <div class="metric"><span>Portfolio at Retirement</span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
-                    <div class="metric"><span>Spending Need</span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
-                    <div class="metric"><span>Withdrawal Need</span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
+                    <div class="metric"><span>SS Income: </span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
+                    <div class="metric"><span>Portfolio at Retirement: </span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
+                    <div class="metric"><span>Spending Need: </span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
+                    <div class="metric"><span>Withdrawal Need: </span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
                 </div>
 
                 <!-- Group 4: Readiness -->
                 <div class="metric-group">
                     <div class="metric">
-                        <span>Retirement Readiness</span>
+                        <span>Retirement Readiness: </span>
                         <span>${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</span>
                     </div>
 
                     <div class="metric">
-                        <span>Longevity Buffer</span>
+                        <span>Longevity Buffer: </span>
                         <span class="badge badge-green">${run.bufferScore ?? "N/A"}</span>
                     </div>
 
@@ -4146,8 +4146,8 @@ function renderScenarioComparison(runs) {
                     ${
                             run.yearsWithoutSS > 0
                                 ? `
-                                <div class="metric"><span>Years Without SS</span><span>${run.yearsWithoutSS}</span></div>
-                                <div class="metric"><span>Burden</span><span>${formatCurrency(run.earlyRetirementBurden)}</span></div>
+                                <div class="metric"><span>Years Without SS: </span><span>${run.yearsWithoutSS}</span></div>
+                                <div class="metric"><span>Burden: </span><span>${formatCurrency(run.earlyRetirementBurden)}</span></div>
                             `
                                 : `
                                 <div class="metric no-pressure">
