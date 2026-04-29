@@ -38,19 +38,19 @@
                 <div class="input-grid">
                     <label>
                         Current Roth Balance
-                        <input id="currentRoth" type="number" value="0" min="0" autocomplete="off">
+                        <input id="currentRoth" type="text" value="0" autocomplete="off">
                         <small class="note">After‑tax Roth IRA / 401(k) balance today.</small>
                     </label>
         
                     <label>
                         Current Traditional Balance
-                        <input id="currentTrad" type="number" value="0" min="0" autocomplete="off">
+                        <input id="currentTrad" type="text" value="0" autocomplete="off">
                         <small class="note">Pre‑tax IRA / 401(k) balance today.</small>
                     </label>
         
                     <label>
                         Annual Contribution
-                        <input id="contribution" type="number" value="6000" min="0" autocomplete="off">
+                        <input id="contribution" type="text" value="0" autocomplete="off">
                         <small class="note">Total annual contributions across retirement accounts.</small>
                     </label>
                 </div>
@@ -155,7 +155,7 @@
         
                     <label>
                         Social Security Annual Benefit (statement estimate)
-                        <input id="ssAnnual" type="number" value="40000" min="0">
+                        <input id="ssAnnual" type="text" value="0" autocomplete="off">
                         <small class="note">Enter full retirement amount (FRA). Choosing 62 or 70 will automatically adjust this amount.</small>
                     </label>
         
@@ -170,7 +170,7 @@
         
                     <label>
                         Annual Spending Need at Retirement (optional)
-                        <input id="spendingNeed" type="number" value="0" min="0">
+                        <input id="spendingNeed" type="text" value="0" autocomplete="off">
                         <small class="note">Required for sustainability and depletion analysis.</small>
                     </label>
         
@@ -189,6 +189,9 @@
                     </span>
                 </div>
                 <button id="runBtn" class="btn btn-primary">Analyze</button>
+                <button id="compare-scenarios-btn" class="btn btn-primary">Compare Saved Scenarios</button>
+                <button id="clear-scenarios-btn" class="btn btn-primary">Clear Comparison Data</button>
+
             </div>
         </section>
         <!-- ========================= -->
@@ -201,7 +204,11 @@
             <div id="summary" class="summary-card">
                 <!-- JS will populate this -->
             </div>
+        
+            <!-- Scenario Comparison Output -->
+            <div id="comparison-section" class="comparison-section"></div>
         </section>
+        
         
         
         <!-- ================================================== -->
@@ -405,7 +412,7 @@
         <!-- ========================= -->
         <!--   Safe Spending Range     -->
         <!-- ========================= -->
-        <section class="safe-spending-block">
+        <section class="safe-spending-block enhanced-block">
             <h3>Safe Spending Range</h3>
         
             <p id="safe-spending-range" class="safe-spending-value"></p>
@@ -418,7 +425,7 @@
         <!-- ========================= -->
         <!--   Withdrawal Strategy     -->
         <!-- ========================= -->
-        <section class="withdrawal-strategy-block">
+        <section class="withdrawal-strategy-block enhanced-block">
             <h3>Withdrawal Strategy</h3>
         
             <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
@@ -467,66 +474,6 @@
             </div>
         </section>
         
-
-        <!-- Old withdrawal panel . . . changed on 4/25/26 -->
-        <!-- ========================= -->
-        <!--   Withdrawal Strategy     -->
-        <!-- ========================= -->
-        <!-- <section class="withdrawal-strategy-block">
-            <h3>Withdrawal Strategy</h3>
-        
-            <p id="withdrawal-strategy-label" class="withdrawal-strategy-label"></p>
-        
-            <div class="withdrawal-metrics"> -->
-        
-                <!-- Traditional Column -->
-                <!-- <div class="withdrawal-column">
-                    <h4>Traditional IRA</h4>
-        
-                    <p>
-                        Withdrawals:
-                        <strong id="trad-first-year-withdrawal"></strong>
-                    </p>
-        
-                    <p>RMDs (estimated):</p>
-                    <ul class="rmd-list">
-                        <li>Age 73: <strong id="trad-rmd-73"></strong></li>
-                        <li>Age 80: <strong id="trad-rmd-80"></strong></li>
-                        <li>Age 90: <strong id="trad-rmd-90"></strong></li>
-                    </ul>
-                </div> -->
-        
-                <!-- Roth Column -->
-                <!-- <div class="withdrawal-column">
-                    <h4>Roth IRA</h4>
-        
-                    <p>
-                        Withdrawals:
-                        <strong id="roth-first-year-withdrawal"></strong>
-                    </p>
-        
-                    <p class="withdrawal-note">
-                        Roth is used later to preserve tax‑free growth and flexibility.
-                    </p>
-        
-                    <p>
-                        Required withdrawal rate:
-                        <strong id="required-withdrawal-rate"></strong>
-                    </p>
-                </div>
-            </div> -->
-        
-            <!-- Combined Depletion Age (NEW, styled outside columns) -->
-            <!-- <div class="withdrawal-combined">
-                <p>
-                    <strong>Projected depletion age:</strong>
-                    <span id="combined-depletion-age"></span>
-                </p>
-            </div>
-        </section> -->
-    
-        
-
         <section>
             <h2>Guidance</h2>
             <div id="guidance" class="card guidance-card"></div>

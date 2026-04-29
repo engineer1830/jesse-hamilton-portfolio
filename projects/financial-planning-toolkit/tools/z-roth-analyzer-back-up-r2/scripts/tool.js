@@ -1,4 +1,164 @@
 /* ---------------------------------------------------
+   FORMAT HELPER
+--------------------------------------------------- */
+
+function formatCurrencyInput(input) {
+    // Remove everything except digits
+    let raw = input.value.replace(/[^\d]/g, "");
+
+    // Prevent leading zeros from causing weird formatting
+    if (raw === "") {
+        input.value = "";
+        input.dataset.raw = "0";
+        return;
+    }
+
+    // Convert to number
+    const num = parseInt(raw, 10);
+
+    // Store raw value for your engine
+    input.dataset.raw = num;
+
+    // Format with commas and $
+    input.value = "$" + num.toLocaleString();
+}
+
+const currencyInputs = [
+    "currentRoth",
+    "currentTrad",
+    "contribution",
+    "ssAnnual",
+    "spendingNeed"
+];
+
+currencyInputs.forEach(id => {
+    const el = document.getElementById(id);
+
+    // Format on load
+    formatCurrencyInput(el);
+
+    // Format as user types
+    el.addEventListener("input", () => formatCurrencyInput(el));
+
+    // Optional: remove $ and commas when focusing
+    el.addEventListener("focus", () => {
+        el.value = el.dataset.raw || "";
+    });
+
+    // Reformat on blur
+    el.addEventListener("blur", () => formatCurrencyInput(el));
+});
+
+function enforceAgeLimits() {
+    const currentAge = parseInt($("currentAge").value) || 0;
+
+    const retirementAgeEl = $("retirementAge");
+    const workStopAgeEl = $("workStopAge");
+
+    // Retirement age cannot be < current age
+    if (retirementAgeEl && parseInt(retirementAgeEl.value) < currentAge) {
+        retirementAgeEl.value = currentAge;
+    }
+
+    // Work stop age cannot be < current age
+    if (workStopAgeEl && parseInt(workStopAgeEl.value) < currentAge) {
+        workStopAgeEl.value = currentAge;
+    }
+}
+
+
+/* ---------------------------------------------------
+   COMPARISON SCENARIOS
+--------------------------------------------------- */
+
+// Stores up to 3 scenario results from the FULL engine
+let scenarioRuns = [null, null, null];
+let scenarioLabels = [null, null, null];
+
+
+// updated buildScenarioSnapshot troubleshooting stressage
+
+function buildScenarioSnapshot(data, insights) {
+    return {
+        // Identity
+        label: `Claim at ${data.taxContext?.claimAge}, retire at ${data.taxContext?.retirementAge}`,
+
+        // User inputs
+        currentAge: data.taxContext?.currentAge ?? null,
+        retirementAge: data.taxContext?.retirementAge ?? null,
+        claimAge: data.taxContext?.claimAge ?? null,
+        currentRoth: data.currentRoth ?? 0,
+        currentTrad: data.currentTrad ?? 0,
+        contribution: data.contribution ?? null,
+        ssAtClaimAge: data.retirementTaxDetails?.ssAtClaimAge ?? 0,
+        spendingNeedAtRetirement: insights.spendingNeedAtRetirement ?? 0,
+
+        // Engine outputs (keep portfolio depletion from insights, which already
+        // reads from withdrawalReport / result.depletionAge)
+        portfolioDepletionAge: insights.portfolioDepletionAge,
+
+        // 🔁 STRESS AGE: use deterministic engine, same as renderSummary
+        stressAge: Math.min(
+            data.withdrawalReport?.tradDepletionAge ?? Infinity,
+            data.withdrawalReport?.rothDepletionAge ?? Infinity
+        ),
+
+        rothAtRetirement: insights.rothAtRetirement,
+        tradAtRetirement: insights.tradAtRetirement,
+        requiredWithdrawalRate: insights.requiredWithdrawalRate,
+        spendingGap: insights.spendingGap,
+        retirementReadiness: insights.retirementReadiness,
+        bufferScore: insights.bufferScore,
+        zone: insights.zone,
+
+        // Early‑retirement pressure metrics
+        yearsWithoutSS: insights.yearsWithoutSS,
+        earlyRetirementBurden: insights.earlyRetirementBurden
+    };
+}
+
+
+function saveScenarioRun(snapshot) {
+    for (let i = 0; i < 3; i++) {
+        if (!scenarioRuns[i]) {
+            scenarioRuns[i] = snapshot;
+            scenarioLabels[i] = snapshot.label;
+            console.log(`Saved scenario in slot ${i + 1}`, snapshot);
+            return;
+        }
+    }
+    alert("All 3 scenario slots are full. Clear them before saving new runs.");
+}
+
+function clearScenarios() {
+    scenarioRuns = [null, null, null];
+    scenarioLabels = [null, null, null];
+
+    const container = document.getElementById("comparison-section");
+    if (container) container.innerHTML = "";
+
+    console.log("Scenario comparison data cleared.");
+}
+
+function compareScenarios() {
+    const runs = scenarioRuns.filter(r => r !== null);
+
+    if (runs.length < 2) {
+        alert("Run at least two scenarios before comparing.");
+        return;
+    }
+
+    renderScenarioComparison(runs);
+}
+
+document.getElementById("compare-scenarios-btn")
+    .addEventListener("click", compareScenarios);
+
+document.getElementById("clear-scenarios-btn")
+    .addEventListener("click", clearScenarios);
+
+
+/* ---------------------------------------------------
    CHART SHADING SET UP
 --------------------------------------------------- */
 
@@ -512,6 +672,246 @@ function getWhyMessages(zone) {
     ];
 }
 
+function renderEarlyRetirementNarrative(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const base = runs[0];
+    const others = runs.slice(1);
+
+    let html = `
+    <div class="comparison-narrative-card">
+
+        <h3 class="narrative-header">Interpretation & Key Insights</h3>
+
+        <p class="narrative-intro">
+            Your retirement plan is strong in all scenarios, but the timing of Social Security creates
+            very different levels of early‑retirement pressure on your portfolio.
+        </p>
+
+        <div class="narrative-differences">
+`;
+
+
+    others.forEach((snap) => {
+        html += `
+        <div class="narrative-diff-row">
+            <div class="narrative-diff-age">
+                Delaying Social Security to <strong>age ${snap.claimAge}</strong>
+            </div>
+            <div class="narrative-diff-details">
+                increases the years your portfolio must fully fund retirement from 
+                <strong>${base.yearsWithoutSS}</strong> to <strong>${snap.yearsWithoutSS}</strong> years,
+                raising the early‑retirement burden from 
+                <strong>${formatCurrency(base.earlyRetirementBurden)}</strong> to 
+                <strong>${formatCurrency(snap.earlyRetirementBurden)}</strong>.
+            </div>
+        </div>
+    `;
+    });
+
+
+    html += `
+        </div>
+
+        <p class="narrative-body">
+            Even though your long‑term stress age and depletion age remain unchanged, the
+            <strong>front‑loaded withdrawal pressure</strong> increases significantly when delaying Social Security.
+            This is the period most vulnerable to market downturns — known as
+            <strong>sequence‑of‑returns risk</strong>.
+        </p>
+
+        <div class="narrative-summary">
+            <strong>In short:</strong> Delaying Social Security improves long‑term income and reduces withdrawal
+            rates, but increases early‑retirement portfolio strain. Claiming earlier reduces that strain but
+            provides a lower guaranteed benefit.
+        </div>
+
+    </div>
+`;
+
+
+    container.innerHTML += html;
+}
+
+function normalize(value, min, max) {
+    if (max === min) return 50; // avoid divide-by-zero
+    return ((value - min) / (max - min)) * 100;
+}
+
+function renderScenarioDifferences(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const base = runs[0];
+
+    const getPortfolioAtRetirement = run =>
+        (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "comparison-diff";
+
+    const title = document.createElement("h3");
+    title.textContent = `Differences vs ${base.label || "Scenario 1"}`;
+    wrapper.appendChild(title);
+
+    runs.slice(1).forEach((run, idx) => {
+        const label = run.label || `Scenario ${idx + 2}`;
+        const basePortfolio = getPortfolioAtRetirement(base);
+        const runPortfolio = getPortfolioAtRetirement(run);
+
+        const stressDiff = (run.stressAge ?? 0) - (base.stressAge ?? 0);
+        const depletionDiff = (run.portfolioDepletionAge ?? 0) - (base.portfolioDepletionAge ?? 0);
+        const withdrawalRateDiff = (run.requiredWithdrawalRate ?? 0) - (base.requiredWithdrawalRate ?? 0);
+        const ssDiff = (run.ssAtClaimAge ?? 0) - (base.ssAtClaimAge ?? 0);
+        const portfolioDiff = runPortfolio - basePortfolio;
+        const spendingGapDiff = (run.spendingGap ?? 0) - (base.spendingGap ?? 0);
+        const yearsNoSSDiff = (run.yearsWithoutSS ?? 0) - (base.yearsWithoutSS ?? 0);
+        const burdenDiff = (run.earlyRetirementBurden ?? 0) - (base.earlyRetirementBurden ?? 0);
+
+        const col = document.createElement("div");
+        col.className = "comparison-column";
+
+        let diffHtml = `<h4>${label} vs ${base.label || "Scenario 1"}</h4>`;
+        diffHtml += `<div class="comparison-section-header">Retirement Metrics</div>`;
+
+        let pressureHtml = "";
+
+        // Helper to add rows only when diff ≠ 0
+        function addRow(target, label, value, formatter = v => v) {
+            if (value !== 0 && value !== null && value !== undefined) {
+                target += `<p><strong>${label}:</strong> ${formatter(value)}</p>`;
+            }
+            return target;
+        }
+
+        // Add only meaningful differences
+        diffHtml = addRow(diffHtml, "Stress Age: ", stressDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Depletion Age: ", depletionDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Withdrawal Rate: ", withdrawalRateDiff, v => formatPercent(v));
+        diffHtml = addRow(diffHtml, "SS Income: ", ssDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio at Retirement: ", portfolioDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need: ", spendingGap, v => formatCurrency(v));
+
+        // Early‑retirement pressure section
+        pressureHtml = addRow(pressureHtml, "Years Without SS: ", yearsNoSSDiff, v => (v > 0 ? "+" + v : v));
+        pressureHtml = addRow(pressureHtml, "Early-Retirement Burden: ", burdenDiff, v => formatCurrency(v));
+
+        if (pressureHtml.trim() !== "") {
+            diffHtml += `<hr><h4>Early-Retirement Pressure: </h4>${pressureHtml}`;
+        }
+
+        col.innerHTML = diffHtml;
+
+
+
+        wrapper.appendChild(col);
+    });
+
+    container.appendChild(wrapper);
+}
+
+function computeRecommendedClaimAge(scenarios) {
+    if (!scenarios || scenarios.length === 0) return null;
+
+    // Extract arrays for normalization
+    const burdens = scenarios.map(s => s.earlyRetirementBurden);
+    const withdrawalRates = scenarios.map(s => s.requiredWithdrawalRate);
+    const ssIncomes = scenarios.map(s => s.ssAtClaimAge);
+
+    const minBurden = Math.min(...burdens);
+    const maxBurden = Math.max(...burdens);
+
+    const minWR = Math.min(...withdrawalRates);
+    const maxWR = Math.max(...withdrawalRates);
+
+    const minSS = Math.min(...ssIncomes);
+    const maxSS = Math.max(...ssIncomes);
+
+    // Weights (advisor-grade)
+    const riskWeight = 0.45;     // early-retirement burden
+    const safetyWeight = 0.35;   // withdrawal rate
+    const securityWeight = 0.20; // SS income
+
+    let bestScenario = null;
+    let bestScore = -Infinity;
+
+    scenarios.forEach(s => {
+        // RISK: lower burden = better → invert scale
+        const riskScore = 100 - normalize(s.earlyRetirementBurden, minBurden, maxBurden);
+
+        // SAFETY: lower withdrawal rate = better → invert scale
+        const safetyScore = 100 - normalize(s.requiredWithdrawalRate, minWR, maxWR);
+
+        // SECURITY: higher SS income = better
+        const securityScore = normalize(s.ssAtClaimAge, minSS, maxSS);
+
+        const totalScore =
+            (riskScore * riskWeight) +
+            (safetyScore * safetyWeight) +
+            (securityScore * securityWeight);
+
+        s.recommendationScore = totalScore;
+
+        if (totalScore > bestScore) {
+            bestScore = totalScore;
+            bestScenario = s;
+        }
+    });
+
+    return bestScenario ? bestScenario.claimAge : null;
+}
+
+function renderRecommendedClaimAge(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container || runs.length < 2) return;
+
+    const recommendedAge = computeRecommendedClaimAge(runs);
+    if (!recommendedAge) return;
+
+    const box = document.createElement("div");
+    box.className = "recommended-claim-age-box";
+
+    box.innerHTML = `
+        <div class="recommended-claim-age-card">
+
+            <h2 class="recommended-header">Recommended Social Security Claim Age</h2>
+
+            <div class="recommended-age-display">
+                <span class="recommended-age-value">${recommendedAge}</span>
+            </div>
+
+            <p class="intro-text">This recommendation balances three factors:</p>
+
+            <ul class="factor-list">
+                <li><strong>Early-Retirement Risk:</strong> How much strain your portfolio absorbs before Social Security begins.</li>
+                <li><strong>Long-Term Sustainability:</strong> Your withdrawal rate after Social Security starts.</li>
+                <li><strong>Guaranteed Income:</strong> The size of your Social Security benefit.</li>
+            </ul>
+
+            <div class="callout-block">
+                <p>
+                    The recommended age reflects the scenario with the strongest overall balance of 
+                    <strong>risk reduction</strong>, <strong>portfolio safety</strong>, and 
+                    <strong>lifetime income security</strong>. It is a purely mathematical calculation and one should factor in 
+                    <strong>ALL</strong> considerations.
+                </p>
+
+                <p>
+                    Refer to the 
+                    <a href="https://financial-planning-toolkit.vercel.app/tools/Roth-vs-traditional-analyzer/guide.html">
+                        Help/Service Guide's
+                    </a> 
+                    3‑Step Recipe for Choosing the Best Social Security Claim Age for additional insights.
+                </p>
+            </div>
+
+        </div>
+    `;
+
+    container.appendChild(box);
+}
+
 
 
 
@@ -528,13 +928,20 @@ $("runBtn").addEventListener("click", async () => {
     summary.innerHTML = "";
     loading.style.display = "block";
 
+    
+
     /* ---------------------------------------------------
        INPUTS
     --------------------------------------------------- */
-    const currentRoth = parseFloat($("currentRoth").value) || 0;
-    const currentTrad = parseFloat($("currentTrad").value) || 0;
+    // const currentRoth = parseFloat($("currentRoth").value) || 0;
+    // const currentTrad = parseFloat($("currentTrad").value) || 0;
 
-    const contribution = parseFloat($("contribution").value) || 0;
+    // const contribution = parseFloat($("contribution").value) || 0;
+
+    const currentRoth = parseFloat($("currentRoth").dataset.raw || 0);
+    const currentTrad = parseFloat($("currentTrad").dataset.raw || 0);
+
+    const contribution = parseFloat($("contribution").dataset.raw || 0);
 
     const currentTax = (parseFloat($("currentTax").value) || 0) / 100;
     let retireTax = (parseFloat($("retireTax").value) || 0) / 100;
@@ -565,17 +972,24 @@ $("runBtn").addEventListener("click", async () => {
     const workStopAge = $("workStopAge")
         ? parseInt($("workStopAge").value) || retirementAge
         : retirementAge;
+    // const ssAnnualStatement = $("ssAnnual")
+    //     ? parseFloat($("ssAnnual").value) || 0
+    //     : 0;
     const ssAnnualStatement = $("ssAnnual")
-        ? parseFloat($("ssAnnual").value) || 0
+        ? parseFloat($("ssAnnual").dataset.raw || 0)
         : 0;
+
     const claimAge = $("claimAge")
         ? parseInt($("claimAge").value) || 67
         : 67;
     const filingStatus = $("filingStatus")
         ? $("filingStatus").value || "married"
         : "married";
+    // const spendingNeed = $("spendingNeed")
+    //     ? parseFloat($("spendingNeed").value) || 0
+    //     : 0;
     const spendingNeed = $("spendingNeed")
-        ? parseFloat($("spendingNeed").value) || 0
+        ? parseFloat($("spendingNeed").dataset.raw || 0)
         : 0;
 
     const useGlidepath = $("useGlidepath")
@@ -1113,11 +1527,20 @@ $("runBtn").addEventListener("click", async () => {
             filingStatus,
             currentAge,
             retirementAge,
+            claimAge,
             rmd: retirementTaxDetails.rmd,
             taxableIncome: retirementTaxDetails.taxableIncome,
             grossIncome: retirementTaxDetails.grossIncome
         }
-        : null;
+        : {
+            currentTax,
+            retireTax,
+            filingStatus,
+            currentAge,
+            retirementAge,
+            claimAge
+        };
+        
 
     const result = {
         mode,
@@ -1139,6 +1562,7 @@ $("runBtn").addEventListener("click", async () => {
         tradDepletionAge,
         rothDepletionAge,
         depletionAge: Math.max(tradDepletionAge || 0, rothDepletionAge || 0),
+        claimAge,
         glidepath: useGlidepath
             ? {
                 yearlyExpectedReturns,
@@ -1230,15 +1654,6 @@ $("runBtn").addEventListener("click", async () => {
     // 3) compute insights
     const insights = computeProInsights(result);
 
-    result.chartDiagnostic = buildChartDepletionDiagnostic({
-        tradDepletionAge: insights.tradDepletionAge,
-        rothDepletionAge: insights.rothDepletionAge,
-        combinedDepletionAge: insights.portfolioDepletionAge,
-        lifeExpectancy: result.lifeExpectancy ?? 95,
-        currentAge: currentAge,
-        engineYears: result.engineYears
-    });
-
     // 4) merge everything into a single object
     const full = {
         ...result,
@@ -1248,9 +1663,15 @@ $("runBtn").addEventListener("click", async () => {
     // 5) render summary with the merged object
     renderSummary(full);
 
-    loading.style.display = "none";
+    // 6) save snapshot
+    const snapshot = buildScenarioSnapshot(full, insights);
+    saveScenarioRun(snapshot);
+
+    // 7) show raw output
     output.textContent = JSON.stringify(full, null, 2);
 
+    // 8) hide loading spinner
+    loading.style.display = "none";
 });
 
 /* -------------------------------------------------------
@@ -1856,7 +2277,8 @@ function computeProInsights(result) {
     let tradRmdAt73 = null;
     let tradRmdAt80 = null;
     let tradRmdAt90 = null;
-    let rothAtRetirement = result.rothAtRetirement ?? 0;
+    // let rothAtRetirement = result.rothAtRetirement ?? 0;
+    let rothAtRetirement = result.rothAtRetirement ?? result.currentRoth ?? 0;
     let rothFirstWithdrawalAge = tradDepletionAge;
 
     let sustainabilityFailureAge = null;
@@ -1871,7 +2293,8 @@ function computeProInsights(result) {
     const growthRate = result.expectedReturn ?? 0.05;
     const startAge = result.taxContext?.retirementAge ?? 65;
 
-    let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    // let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? 0;
+    let tradAtRetirement = result.retirementTaxDetails?.tradAtRetirement ?? result.currentTrad ?? 0;
     let tradBalance = tradAtRetirement;
     let rothBalance = rothAtRetirement;
 
@@ -2365,6 +2788,23 @@ function computeProInsights(result) {
     }
 
     const bufferScore = computeLongevityBufferScore(yearsUntilDepletion);
+    // const yearsWithoutSS = Math.max(result.claimAge - result.retirementAge, 0);
+    // const earlyRetirementBurden = yearsWithoutSS * result.spendingNeedAtRetirement;
+
+    // ⭐ Correct early-retirement metrics
+    const claimAge = result.taxContext?.claimAge ?? null;
+    const retirementAge = result.taxContext?.retirementAge ?? null;
+
+    const yearsWithoutSS =
+        claimAge != null && retirementAge != null
+            ? Math.max(claimAge - retirementAge, 0)
+            : 0;
+
+    const earlyRetirementBurden =
+        spendingNeedAtRetirement != null
+            ? yearsWithoutSS * spendingNeedAtRetirement
+            : 0;
+
 
 
     return {
@@ -2413,6 +2853,8 @@ function computeProInsights(result) {
         rothFirstWithdrawalAge,
         taxContext: result.taxContext,
         bufferScore,
+        yearsWithoutSS,
+        earlyRetirementBurden,
 
     };
 }
@@ -2638,7 +3080,6 @@ function renderYellowSustainability({
     }
 
 }
-
 
 function renderNegativeSustainability({
     depletionAge,
@@ -3353,6 +3794,7 @@ function renderSummary(data) {
     // ⭐ FIXED: insights must be based on data
     const insights = computeProInsights(data);
 
+
     console.log("ZONE AT SUMMARY:", insights.zone);
 
     document.getElementById("sustain-positive").style.display = "none";
@@ -3428,14 +3870,15 @@ function renderSummary(data) {
 
 
     let html = `
-    <h3>Portfolio Depletion Age</h3>
-    <div class="depletion-component">
-        <p>Your total retirement portfolio is projected to be fully depleted around 
-        <strong>age ${combinedAge}</strong>.</p>
+    <div class="summary-narrative">
+        <h3>Portfolio Depletion Age</h3>
+        <div class="depletion-component">
+            <p>Your total retirement portfolio is projected to be fully depleted around 
+            <strong>age ${combinedAge}</strong>.</p>
 
-        <p>This reflects the point at which <em>all</em> retirement accounts are exhausted, 
-        assuming your current spending pattern.</p>
-    </div>
+            <p>This reflects the point at which <em>all</em> retirement accounts are exhausted, 
+            assuming your current spending pattern.</p>
+        </div>
 `;
 
     const stressAge = Math.min(
@@ -3455,6 +3898,8 @@ function renderSummary(data) {
         </div>
     `;
     }
+
+    html += `</div>`; // closes summary-narrative
 
 
 
@@ -3500,6 +3945,7 @@ function renderSummary(data) {
     if (retirementTaxDetails) {
         const t = retirementTaxDetails;
         html += `
+        <div class="tax-estimate-section">
             <h3>Retirement Tax Estimate</h3>
             <table class="summary-table">
                 <tr><td>Estimated RMD at 73</td><td>${formatCurrency(t.rmd)}</td></tr>
@@ -3508,6 +3954,7 @@ function renderSummary(data) {
                 <tr><td>Estimated Taxable Income</td><td>${formatCurrency(t.taxableIncome)}</td></tr>
                 <tr><td>Estimated Retirement Tax Rate</td><td>${formatPercent(t.estimatedRate)}</td></tr>
             </table>
+        </div>    
         `;
     }
 
@@ -3621,3 +4068,106 @@ function renderSummary(data) {
     attachChartExplanation();
     attachTooltipHandlers();
 }
+
+function renderScenarioComparison(runs) {
+    const container = document.getElementById("comparison-section");
+    if (!container) return;
+
+    const base = runs[0];
+
+    const getPortfolioAtRetirement = run =>
+        (run.rothAtRetirement ?? 0) + (run.tradAtRetirement ?? 0);
+
+    // Badge color helpers (outside the loop)
+    function getBufferBadgeClass(score) {
+        if (score == null || isNaN(score)) return "badge-gray";
+        if (score >= 80) return "badge-green";
+        if (score >= 40) return "badge-yellow";
+        return "badge-red";
+    }
+
+    function getZoneBadgeClass(zone) {
+        if (!zone) return "badge-gray";
+        return `badge-${zone.toLowerCase()}`;
+    }
+
+    // 1. Build grid HTML
+    let html = `
+        <h2>Saved Scenario Comparison</h2>
+        <div class="comparison-grid">
+    `;
+
+    // -------------------------
+    // LOOP STARTS
+    // -------------------------
+    runs.forEach((run, idx) => {
+        const portfolioAtRetirement = getPortfolioAtRetirement(run);
+
+        const bufferClass = getBufferBadgeClass(run.bufferScore);
+        const zoneClass = getZoneBadgeClass(run.zone);
+
+        html += `
+<div class="comparison-column ssa-compare-card">
+
+    <h3 class="card-header">${run.label || `Scenario ${idx + 1}`}</h3>
+
+    <div class="key-diff">
+        <div>Withdrawal Rate: <strong>${formatPercent(run.requiredWithdrawalRate ?? 0)}</strong></div>
+        <div>SS Income: <strong>${formatCurrency(run.ssAtClaimAge ?? 0)}</strong></div>
+        <div>Years w/out SS: <strong>${run.yearsWithoutSS}</strong></div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric"><span>Current Age:</span><span>${run.currentAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Retirement Age:</span><span>${run.retirementAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Claim Age:</span><span>${run.claimAge ?? "N/A"}</span></div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric"><span>Stress Age:</span><span>${run.stressAge ?? "N/A"}</span></div>
+        <div class="metric"><span>Depletion Age:</span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric"><span>SS Income:</span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
+        <div class="metric"><span>Portfolio at Retirement:</span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
+        <div class="metric"><span>Spending Need:</span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
+        <div class="metric"><span>Withdrawal Need:</span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric">
+            <span>Longevity Buffer:</span>
+            <span class="badge ${bufferClass}">${run.bufferScore ?? "N/A"}</span>
+        </div>
+
+        <div class="metric">
+            <span>Zone:</span>
+            <span class="badge ${zoneClass}">${run.zone ?? "N/A"}</span>
+        </div>
+    </div>
+
+</div>
+`;
+    });
+    // -------------------------
+    // LOOP ENDS
+    // -------------------------
+
+    html += `</div>`; // close comparison-grid
+
+    // 2. Insert grid
+    container.innerHTML = html;
+
+    // 3. Recommended claim age
+    renderRecommendedClaimAge(runs);
+
+    // 4. Differences
+    if (runs.length >= 2) {
+        renderScenarioDifferences(runs);
+    }
+
+    // 5. Narrative
+    renderEarlyRetirementNarrative(runs);
+}
+

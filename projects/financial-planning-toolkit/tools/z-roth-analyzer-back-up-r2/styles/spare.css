@@ -6,15 +6,12 @@ body
 {
     background: #cad0c4;
     /* soft sage tint */
-    /* background: #efdfd8; */
     font-family: system-ui, sans-serif;
     margin: 0;
     padding: 0;
 }
 
-/* ============================================================
-   GUIDE BUTTON
-   ============================================================ */
+/* GUIDE BUTTON */
 
 .guide-btn-wrapper
 {
@@ -30,9 +27,8 @@ body
     right: 16px;
     z-index: 9999;
     padding: 8px 14px;
-    background: #ffd700;
-    /* background: #0ea5e9; */
-    color: black;
+    background: #0ea5e9;
+    color: white;
     border: none;
     border-radius: 8px;
     font-size: 14px;
@@ -43,13 +39,14 @@ body
 
 .guide-btn:hover
 {
-    background: #cbaf12;
+    background: #0284c7;
 }
 
 .guide-btn:active
 {
     transform: scale(0.97);
 }
+
 
 /* ============================================================
    INPUT PANEL
@@ -113,12 +110,14 @@ body
     box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
 }
 
+/* Footer section */
 .inputs-footer
 {
     margin-top: 40px;
     text-align: center;
 }
 
+/* Analyze button */
 #runBtn,
 #compare-scenarios-btn,
 #clear-scenarios-btn
@@ -131,17 +130,9 @@ body
     max-width: 320px;
 }
 
-#runBtn:hover,
-#compare-scenarios-btn:hover,
-#clear-scenarios-btn:hover
+#runBtn:hover
 {
-    /* background-color: #005fa3; */
-    /* background-color: #355E3B; */
-    background-color: #576267;
-}
-
-.btn-primary {
-    background: #102027;
+    background-color: #005fa3;
 }
 
 /* ============================================================
@@ -185,6 +176,7 @@ body
 {
     font-size: 0.85rem;
     color: #666;
+    margin-bottom: 4px;
 }
 
 .summary-value
@@ -199,6 +191,7 @@ body
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 8px;
+    /* <-- row spacing */
     margin-bottom: 20px;
 }
 
@@ -206,6 +199,7 @@ body
 .summary-table td
 {
     padding: 10px 14px;
+    /* <-- cell padding */
     background: #f8fafc;
     border-radius: 6px;
 }
@@ -213,9 +207,7 @@ body
 .summary-table th
 {
     font-weight: 600;
-    background: #e8efe3;
-    /* background: #edf2f7; */
-    /* background: #f1f5f9; */
+    background: #f1f5f9;
 }
 
 .summary-table tr td:first-child
@@ -265,6 +257,7 @@ body
     margin-right: 24px;
 }
 
+/* Section headers inside comparison cards */
 .comparison-section-header
 {
     margin-top: 18px;
@@ -277,88 +270,6 @@ body
     padding-bottom: 4px;
 }
 
-.summary-narrative
-{
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 18px 22px;
-    border-radius: 10px;
-    margin-bottom: 28px;
-}
-
-.summary-table th
-{
-    background: #e9f2ff;
-    font-weight: 600;
-    color: #333;
-}
-
-.tax-estimate-section
-{
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 2px solid #d9d9d9;
-}
-
-.tax-estimate-section .summary-table td,
-.tax-estimate-section .summary-table th
-{
-    background: #f7faff;
-}
-
-.enhanced-block
-{
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    padding: 18px 22px;
-    border-radius: 10px;
-    margin-bottom: 28px;
-}
-
-.enhanced-block h3
-{
-    background: #e9f2ff;
-    padding: 10px 14px;
-    margin: -18px -22px 16px -22px;
-    /* pulls header to edges */
-    border-radius: 10px 10px 0 0;
-    font-weight: 600;
-    color: #1a2b4c;
-}
-
-.safe-spending-value
-{
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #1a3a6d;
-    margin-bottom: 6px;
-}
-
-.withdrawal-summary p
-{
-    margin: 10px 0;
-}
-
-.withdrawal-summary ul.rmd-list
-{
-    margin: 6px 0 14px 0;
-    padding-left: 20px;
-}
-
-.withdrawal-summary ul.rmd-list li
-{
-    margin: 4px 0;
-}
-
-a
-{
-    color: blue;
-}
-
-a:visited
-{
-    color: blue;
-}
 /* ============================================================
    DIFFERENCES BLOCK
    ============================================================ */
@@ -372,6 +283,7 @@ a:visited
     border: 1px solid #cce0ff;
 }
 
+/* Subtle green/red diff styling */
 .diff-positive
 {
     color: #0a7a0a;
@@ -388,211 +300,6 @@ a:visited
 {
     color: #666;
 }
-
-.ssa-compare-card
-{
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 18px 20px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.ssa-compare-card h3
-{
-    background: #edf2f7;
-    padding: 10px 14px;
-    margin: -18px -20px 16px -20px;
-    border-radius: 10px 10px 0 0;
-    font-weight: 600;
-    color: #1a2b4c;
-}
-
-.metric-group
-{
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e2e8f0;
-}
-
-.metric-group:first-of-type
-{
-    border-top: none;
-    padding-top: 0;
-}
-
-.badge
-{
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.badge-green
-{
-    background: #e6f4ea;
-    color: #1e7b34;
-}
-
-.badge-yellow
-{
-    background: #fff7d6;
-    color: #8a6d00;
-}
-
-.badge-red
-{
-    background: #fde8e8;
-    color: #b91c1c;
-}
-
-.ssa-compare-card p
-{
-    margin: 4px 0;
-    line-height: 1.35;
-}
-
-.ssa-compare-card strong
-{
-    font-weight: 600;
-    color: #1a2b4c;
-}
-
-.key-diff
-{
-    background: #f1f5f9;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    font-size: 0.85rem;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.ssa-compare-grid
-{
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-}
-
-.metric.no-pressure
-{
-    font-style: italic;
-    color: #2f5d50;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.recommended-claim-age-card
-{
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 22px 26px;
-    margin-top: 20px;
-}
-
-.recommended-header
-{
-    background: #e9f2ff;
-    margin: -22px -26px 20px -26px;
-    padding: 14px 20px;
-    border-radius: 12px 12px 0 0;
-    color: #1a2b4c;
-    font-weight: 600;
-}
-
-.recommended-age-display
-{
-    text-align: center;
-    margin-bottom: 18px;
-}
-
-.recommended-age-value
-{
-    font-size: 3rem;
-    font-weight: 700;
-    color: #1a3a6d;
-}
-
-.factor-list
-{
-    margin: 12px 0 20px 20px;
-    line-height: 1.45;
-}
-
-.callout-block
-{
-    background: #f1f5f9;
-    border-left: 4px solid #2f5d50;
-    padding: 14px 18px;
-    border-radius: 6px;
-    margin-top: 20px;
-}
-
-.comparison-narrative-card
-{
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 22px 26px;
-    margin-top: 24px;
-}
-
-.narrative-header
-{
-    background: #e9f2ff;
-    margin: -22px -26px 20px -26px;
-    padding: 14px 20px;
-    border-radius: 12px 12px 0 0;
-    color: #1a2b4c;
-    font-weight: 600;
-}
-
-.narrative-intro
-{
-    margin-bottom: 16px;
-    line-height: 1.45;
-}
-
-.narrative-differences
-{
-    margin: 16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.narrative-diff-row
-{
-    background: #f1f5f9;
-    padding: 12px 14px;
-    border-radius: 8px;
-    border-left: 4px solid #2f5d50;
-    line-height: 1.45;
-}
-
-.narrative-body
-{
-    margin-top: 18px;
-    line-height: 1.45;
-}
-
-.narrative-summary
-{
-    margin-top: 20px;
-    background: #fff7d6;
-    border-left: 4px solid #b08900;
-    padding: 14px 16px;
-    border-radius: 8px;
-    line-height: 1.45;
-}
-
 
 /* ============================================================
    SUSTAINABILITY CARD
@@ -634,7 +341,6 @@ a:visited
     color: #b30000;
 }
 
-
 /* ============================================================
    MISC COMPONENTS
    ============================================================ */
@@ -649,6 +355,21 @@ a:visited
     border-radius: 12px;
     background: #e0e0e0;
     color: #333;
+}
+
+.buffer-safe
+{
+    background-color: #2ecc71;
+    color: white;
+}
+
+
+/* Supported (60–79) */
+.buffer-supported
+{
+    background: #0b6fa4;
+    /* advisor blue */
+    color: white;
 }
 
 .buffer-strong
@@ -674,6 +395,3 @@ a:visited
     background: #e74c3c;
     color: white;
 }
-
-
-
