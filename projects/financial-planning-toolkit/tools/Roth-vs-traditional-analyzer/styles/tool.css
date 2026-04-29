@@ -389,6 +389,211 @@ a:visited
     color: #666;
 }
 
+.ssa-compare-card
+{
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ssa-compare-card h3
+{
+    background: #edf2f7;
+    padding: 10px 14px;
+    margin: -18px -20px 16px -20px;
+    border-radius: 10px 10px 0 0;
+    font-weight: 600;
+    color: #1a2b4c;
+}
+
+.metric-group
+{
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.metric-group:first-of-type
+{
+    border-top: none;
+    padding-top: 0;
+}
+
+.badge
+{
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-green
+{
+    background: #e6f4ea;
+    color: #1e7b34;
+}
+
+.badge-yellow
+{
+    background: #fff7d6;
+    color: #8a6d00;
+}
+
+.badge-red
+{
+    background: #fde8e8;
+    color: #b91c1c;
+}
+
+.ssa-compare-card p
+{
+    margin: 4px 0;
+    line-height: 1.35;
+}
+
+.ssa-compare-card strong
+{
+    font-weight: 600;
+    color: #1a2b4c;
+}
+
+.key-diff
+{
+    background: #f1f5f9;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ssa-compare-grid
+{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.metric.no-pressure
+{
+    font-style: italic;
+    color: #2f5d50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recommended-claim-age-card
+{
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-top: 20px;
+}
+
+.recommended-header
+{
+    background: #e9f2ff;
+    margin: -22px -26px 20px -26px;
+    padding: 14px 20px;
+    border-radius: 12px 12px 0 0;
+    color: #1a2b4c;
+    font-weight: 600;
+}
+
+.recommended-age-display
+{
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.recommended-age-value
+{
+    font-size: 3rem;
+    font-weight: 700;
+    color: #1a3a6d;
+}
+
+.factor-list
+{
+    margin: 12px 0 20px 20px;
+    line-height: 1.45;
+}
+
+.callout-block
+{
+    background: #f1f5f9;
+    border-left: 4px solid #2f5d50;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.comparison-narrative-card
+{
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-top: 24px;
+}
+
+.narrative-header
+{
+    background: #e9f2ff;
+    margin: -22px -26px 20px -26px;
+    padding: 14px 20px;
+    border-radius: 12px 12px 0 0;
+    color: #1a2b4c;
+    font-weight: 600;
+}
+
+.narrative-intro
+{
+    margin-bottom: 16px;
+    line-height: 1.45;
+}
+
+.narrative-differences
+{
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.narrative-diff-row
+{
+    background: #f1f5f9;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 4px solid #2f5d50;
+    line-height: 1.45;
+}
+
+.narrative-body
+{
+    margin-top: 18px;
+    line-height: 1.45;
+}
+
+.narrative-summary
+{
+    margin-top: 20px;
+    background: #fff7d6;
+    border-left: 4px solid #b08900;
+    padding: 14px 16px;
+    border-radius: 8px;
+    line-height: 1.45;
+}
+
+
 /* ============================================================
    SUSTAINABILITY CARD
    ============================================================ */

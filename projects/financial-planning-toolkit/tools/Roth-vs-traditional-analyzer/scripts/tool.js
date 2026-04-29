@@ -680,36 +680,56 @@ function renderEarlyRetirementNarrative(runs) {
     const others = runs.slice(1);
 
     let html = `
-        <div class="comparison-narrative">
-            <h3>Interpretation & Key Insights</h3>
-            <p>Your retirement plan is strong in all scenarios, but the timing of Social Security creates very different levels of early‑retirement pressure on your portfolio.</p>
-    `;
+    <div class="comparison-narrative-card">
+
+        <h3 class="narrative-header">Interpretation & Key Insights</h3>
+
+        <p class="narrative-intro">
+            Your retirement plan is strong in all scenarios, but the timing of Social Security creates
+            very different levels of early‑retirement pressure on your portfolio.
+        </p>
+
+        <div class="narrative-differences">
+`;
+
 
     others.forEach((snap) => {
         html += `
-            <p>
-                Delaying Social Security to <strong>age ${snap.claimAge}</strong> increases the years your portfolio must fully fund retirement from 
-                <strong>${base.yearsWithoutSS}</strong> to <strong>${snap.yearsWithoutSS}</strong> years.  
-                This raises the early‑retirement burden from 
+        <div class="narrative-diff-row">
+            <div class="narrative-diff-age">
+                Delaying Social Security to <strong>age ${snap.claimAge}</strong>
+            </div>
+            <div class="narrative-diff-details">
+                increases the years your portfolio must fully fund retirement from 
+                <strong>${base.yearsWithoutSS}</strong> to <strong>${snap.yearsWithoutSS}</strong> years,
+                raising the early‑retirement burden from 
                 <strong>${formatCurrency(base.earlyRetirementBurden)}</strong> to 
                 <strong>${formatCurrency(snap.earlyRetirementBurden)}</strong>.
-            </p>
-        `;
-    });
-
-    html += `
-        <p>
-            Even though your long‑term stress age and depletion age remain unchanged, the <strong>front‑loaded withdrawal pressure</strong> increases significantly when delaying Social Security.  
-            This is the period most vulnerable to market downturns — known as <strong>sequence‑of‑returns risk</strong>.
-        </p>
-
-        <p>
-            In short:  
-            <strong>Delaying Social Security improves long‑term income and reduces withdrawal rates, but increases early‑retirement portfolio strain.</strong>  
-            Claiming earlier reduces that strain but provides a lower guaranteed benefit.
-        </p>
+            </div>
         </div>
     `;
+    });
+
+
+    html += `
+        </div>
+
+        <p class="narrative-body">
+            Even though your long‑term stress age and depletion age remain unchanged, the
+            <strong>front‑loaded withdrawal pressure</strong> increases significantly when delaying Social Security.
+            This is the period most vulnerable to market downturns — known as
+            <strong>sequence‑of‑returns risk</strong>.
+        </p>
+
+        <div class="narrative-summary">
+            <strong>In short:</strong> Delaying Social Security improves long‑term income and reduces withdrawal
+            rates, but increases early‑retirement portfolio strain. Claiming earlier reduces that strain but
+            provides a lower guaranteed benefit.
+        </div>
+
+    </div>
+`;
+
 
     container.innerHTML += html;
 }
@@ -766,19 +786,19 @@ function renderScenarioDifferences(runs) {
         }
 
         // Add only meaningful differences
-        diffHtml = addRow(diffHtml, "Stress Age", stressDiff, v => (v > 0 ? "+" + v : v));
-        diffHtml = addRow(diffHtml, "Depletion Age", depletionDiff, v => (v > 0 ? "+" + v : v));
-        diffHtml = addRow(diffHtml, "Withdrawal Rate", withdrawalRateDiff, v => formatPercent(v));
-        diffHtml = addRow(diffHtml, "SS Income", ssDiff, v => formatCurrency(v));
-        diffHtml = addRow(diffHtml, "Portfolio at Retirement", portfolioDiff, v => formatCurrency(v));
-        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need", spendingGapDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Stress Age: ", stressDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Depletion Age: ", depletionDiff, v => (v > 0 ? "+" + v : v));
+        diffHtml = addRow(diffHtml, "Withdrawal Rate: ", withdrawalRateDiff, v => formatPercent(v));
+        diffHtml = addRow(diffHtml, "SS Income: ", ssDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio at Retirement: ", portfolioDiff, v => formatCurrency(v));
+        diffHtml = addRow(diffHtml, "Portfolio Withdrawal Need: ", spendingGapDiff, v => formatCurrency(v));
 
         // Early‑retirement pressure section
-        pressureHtml = addRow(pressureHtml, "Years Without SS", yearsNoSSDiff, v => (v > 0 ? "+" + v : v));
-        pressureHtml = addRow(pressureHtml, "Early-Retirement Burden", burdenDiff, v => formatCurrency(v));
+        pressureHtml = addRow(pressureHtml, "Years Without SS: ", yearsNoSSDiff, v => (v > 0 ? "+" + v : v));
+        pressureHtml = addRow(pressureHtml, "Early-Retirement Burden: ", burdenDiff, v => formatCurrency(v));
 
         if (pressureHtml.trim() !== "") {
-            diffHtml += `<hr><h4>Early-Retirement Pressure</h4>${pressureHtml}`;
+            diffHtml += `<hr><h4>Early-Retirement Pressure: </h4>${pressureHtml}`;
         }
 
         col.innerHTML = diffHtml;
@@ -853,28 +873,45 @@ function renderRecommendedClaimAge(runs) {
     box.className = "recommended-claim-age-box";
 
     box.innerHTML = `
-        <h2>Recommended Social Security Claim Age</h2>
-        <p class="recommended-age">${recommendedAge}</p>
+        <div class="recommended-claim-age-card">
 
-        <p>This recommendation balances three factors:</p>
-        <ul>
-            <li><strong>Early-Retirement Risk:</strong> How much strain your portfolio absorbs before Social Security begins.</li>
-            <li><strong>Long-Term Sustainability:</strong> Your withdrawal rate after Social Security starts.</li>
-            <li><strong>Guaranteed Income:</strong> The size of your Social Security benefit.</li>
-        </ul>
+            <h2 class="recommended-header">Recommended Social Security Claim Age</h2>
 
-        <p>
-            The recommended age reflects the scenario with the strongest overall balance of 
-            <strong>risk reduction</strong>, <strong>portfolio safety</strong>, and 
-            <strong>lifetime income security</strong>.  It is a purely mathematical calculation and one should factor in <strong>ALL</strong> 
-            factors.  Refer to the 
-            <a href="https://engineer1830.github.io/jesse-hamilton-portfolio/projects/financial-planning-toolkit/tools/Roth-vs-traditional-analyzer/guide.html">Help/Service Guide's</a> 
-            3‑Step Recipe for Choosing the Best Social Security Claim Age section for additional insights.
-        </p>
+            <div class="recommended-age-display">
+                <span class="recommended-age-value">${recommendedAge}</span>
+            </div>
+
+            <p class="intro-text">This recommendation balances three factors:</p>
+
+            <ul class="factor-list">
+                <li><strong>Early-Retirement Risk:</strong> How much strain your portfolio absorbs before Social Security begins.</li>
+                <li><strong>Long-Term Sustainability:</strong> Your withdrawal rate after Social Security starts.</li>
+                <li><strong>Guaranteed Income:</strong> The size of your Social Security benefit.</li>
+            </ul>
+
+            <div class="callout-block">
+                <p>
+                    The recommended age reflects the scenario with the strongest overall balance of 
+                    <strong>risk reduction</strong>, <strong>portfolio safety</strong>, and 
+                    <strong>lifetime income security</strong>. It is a purely mathematical calculation and one should factor in 
+                    <strong>ALL</strong> considerations.
+                </p>
+
+                <p>
+                    Refer to the 
+                    <a href="https://financial-planning-toolkit.vercel.app/tools/Roth-vs-traditional-analyzer/guide.html">
+                        Help/Service Guide's
+                    </a> 
+                    3‑Step Recipe for Choosing the Best Social Security Claim Age for additional insights.
+                </p>
+            </div>
+
+        </div>
     `;
 
     container.appendChild(box);
 }
+
 
 
 
@@ -4051,34 +4088,80 @@ function renderScenarioComparison(runs) {
         const portfolioAtRetirement = getPortfolioAtRetirement(run);
 
         html += `
-            <div class="comparison-column">
-                <h3>${run.label || `Scenario ${idx + 1}`}</h3>
+            <div class="comparison-column ssa-compare-card">
 
-                <p><strong>Current Age:</strong> ${run.currentAge ?? "N/A"}</p>
-                <p><strong>Retirement Age:</strong> ${run.retirementAge ?? "N/A"}</p>
-                <p><strong>Claim Age:</strong> ${run.claimAge ?? "N/A"}</p>
+                <!-- Header -->
+                <h3 class="card-header">${run.label || `Scenario ${idx + 1}`}</h3>
 
-                <p><strong>Stress Age:</strong> ${run.stressAge ?? "N/A"}</p>
-                <p><strong>Depletion Age:</strong> ${run.portfolioDepletionAge ?? "N/A"}</p>
-                <p><strong>Withdrawal Rate:</strong> ${formatPercent(run.requiredWithdrawalRate ?? 0)}</p>
+                <!-- Optional: Key Differences Highlight -->
+                <div class="key-diff">
+                    <div>Withdrawal Rate: <strong>${formatPercent(run.requiredWithdrawalRate ?? 0)}</strong></div>
+                    <div>SS Income: <strong>${formatCurrency(run.ssAtClaimAge ?? 0)}</strong></div>
+                    <div>Years w/out SS: <strong>${run.yearsWithoutSS}</strong></div>
+                </div>
 
-                <p><strong>SS Income (at claim age):</strong> ${formatCurrency(run.ssAtClaimAge ?? 0)}</p>
-                <p><strong>Portfolio at Retirement:</strong> ${formatCurrency(portfolioAtRetirement)}</p>
+                <!-- Group 1: Ages -->
+                <div class="metric-group">
+                    <div class="metric"><span>Current Age</span><span>${run.currentAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Retirement Age</span><span>${run.retirementAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Claim Age</span><span>${run.claimAge ?? "N/A"}</span></div>
+                </div>
 
-                <p><strong>Spending Need at Retirement:</strong> ${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</p>
-                <p><strong>Portfolio Withdrawal Need (after SS):</strong> ${formatCurrency(run.spendingGap ?? 0)}</p>
+                <!-- Group 2: Longevity -->
+                <div class="metric-group">
+                    <div class="metric"><span>Stress Age</span><span>${run.stressAge ?? "N/A"}</span></div>
+                    <div class="metric"><span>Depletion Age</span><span>${run.portfolioDepletionAge ?? "N/A"}</span></div>
+                </div>
 
-                <p><strong>Retirement Readiness:</strong> ${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</p>
-                <p><strong>Longevity Buffer Score:</strong> ${run.bufferScore ?? "N/A"}</p>
-                <p><strong>Zone:</strong> ${run.zone ?? "N/A"}</p>
+                <!-- Group 3: Income & Spending -->
+                <div class="metric-group">
+                    <div class="metric"><span>SS Income</span><span>${formatCurrency(run.ssAtClaimAge ?? 0)}</span></div>
+                    <div class="metric"><span>Portfolio at Retirement</span><span>${formatCurrency(portfolioAtRetirement)}</span></div>
+                    <div class="metric"><span>Spending Need</span><span>${formatCurrency(run.spendingNeedAtRetirement ?? 0)}</span></div>
+                    <div class="metric"><span>Withdrawal Need</span><span>${formatCurrency(run.spendingGap ?? 0)}</span></div>
+                </div>
 
-                <hr>
+                <!-- Group 4: Readiness -->
+                <div class="metric-group">
+                    <div class="metric">
+                        <span>Retirement Readiness</span>
+                        <span>${run.retirementReadiness != null ? formatPercent(run.retirementReadiness / 100) : "N/A"}</span>
+                    </div>
 
-                <h4>Early-Retirement Pressure</h4>
-                <p><strong>Years Without SS:</strong> ${run.yearsWithoutSS}</p>
-                <p><strong>Early-Retirement Burden:</strong> ${formatCurrency(run.earlyRetirementBurden)}</p>
+                    <div class="metric">
+                        <span>Longevity Buffer</span>
+                        <span class="badge badge-green">${run.bufferScore ?? "N/A"}</span>
+                    </div>
+
+                    <div class="metric">
+                        <span>Zone</span>
+                        <span class="badge badge-green">${run.zone ?? "N/A"}</span>
+                    </div>
+                </div>
+
+                <!-- Group 5: Early Retirement Pressure -->
+                <div class="metric-group">
+                    <h4>Early-Retirement Pressure</h4>
+
+                    ${
+                            run.yearsWithoutSS > 0
+                                ? `
+                                <div class="metric"><span>Years Without SS</span><span>${run.yearsWithoutSS}</span></div>
+                                <div class="metric"><span>Burden</span><span>${formatCurrency(run.earlyRetirementBurden)}</span></div>
+                            `
+                                : `
+                                <div class="metric no-pressure">
+                                    <span>No early-retirement pressure</span>
+                                    <span class="badge badge-green">None</span>
+                                </div>
+                            `
+                    }
+                </div>
+
+
             </div>
-        `;
+            `;
+
     });
 
     html += `</div>`; // close comparison-grid
