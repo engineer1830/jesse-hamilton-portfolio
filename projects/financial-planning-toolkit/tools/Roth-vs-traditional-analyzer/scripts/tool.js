@@ -1346,7 +1346,10 @@ $("runBtn").addEventListener("click", async () => {
         retireTax,
         lifeExpectancy,
         filingStatus,
-        inflationRate = 0.03
+        inflationRate = 0.03,
+        rothPct,
+        tradPct,
+        currentTax
 
     }) {
         const engineYears = [];
@@ -1496,7 +1499,6 @@ $("runBtn").addEventListener("click", async () => {
         currentRoth,
         currentTrad,
         contribution,
-        rothContribution,
         expectedReturn,
         yearlyExpectedReturns,
         yearlyVols,
@@ -1506,7 +1508,11 @@ $("runBtn").addEventListener("click", async () => {
         ssAnnualStatement,
         spendingNeed,
         retireTax,
-        lifeExpectancy
+        lifeExpectancy,
+        filingStatus,
+        rothPct,
+        tradPct,
+        currentTax
     });
 
     // ⭐ Unified depletion ages (deterministic engine = source of truth)
