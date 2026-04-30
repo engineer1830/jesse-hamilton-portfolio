@@ -1362,6 +1362,9 @@ $("runBtn").addEventListener("click", async () => {
         for (let i = 0; i < totalYears; i++) {
             const age = currentAge + i;
 
+            let rothContribution = 0;
+            let tradContribution = 0;
+
             // Determine REAL return for this year
             const inflation = inflationRate; // user‑set or default inflation
             let mu;
@@ -1382,8 +1385,8 @@ $("runBtn").addEventListener("click", async () => {
             // Contributions BEFORE retirement
             if (age < retirementAge) {
                 // Apply contribution split
-                const rothContribution = contribution * rothPct * (1 - currentTax); // after-tax
-                const tradContribution = contribution * tradPct;                    // pre-tax
+                rothContribution = contribution * rothPct * (1 - currentTax); // after-tax
+                tradContribution = contribution * tradPct;                    // pre-tax
 
                 roth += rothContribution;
                 trad += tradContribution;
