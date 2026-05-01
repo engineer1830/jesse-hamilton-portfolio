@@ -196,42 +196,74 @@ function renderSummary({ baseline, forecast, actual }) {
     $("mtgSummary").innerHTML = html;
 }
 
+// $("mtgRunBtn").addEventListener("click", () => {
+//     $("mtgLoading").style.display = "inline";
+
+//     setTimeout(() => {
+//         const scenarios = buildScenarios();
+//         renderSummary(scenarios);
+//         renderMortgageChart(scenarios);
+
+//         console.log("Baseline:", scenarios.baseline);
+//         console.log("Forecast:", scenarios.forecast);
+//         console.log("Actual:", scenarios.actual);
+
+//         // Show the actual trajectory by default
+//         const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
+
+//         // Always show actual extra payments + forecast extra if applicable
+//         const showSchedule = scenarios.actual.map((row, i) => {
+//             const f = scenarios.forecast[i];
+//             return {
+//                 ...row,
+//                 extraPrincipal: row.extraPrincipal + (f?.extraPrincipal || 0),
+//                 principal: row.principal, // already correct
+//                 balance: f ? f.balance : row.balance
+//             };
+//         });
+
+    
+
+//         renderAmortizationTable(showSchedule);
+
+
+
+
+//         $("mtgLoading").style.display = "none";
+//     }, 50);
+// });
+
 $("mtgRunBtn").addEventListener("click", () => {
     $("mtgLoading").style.display = "inline";
 
     setTimeout(() => {
         const scenarios = buildScenarios();
-        renderSummary(scenarios);
         renderMortgageChart(scenarios);
 
-        console.log("Baseline:", scenarios.baseline);
-        console.log("Forecast:", scenarios.forecast);
-        console.log("Actual:", scenarios.actual);
-
-        // Show the actual trajectory by default
-        const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
-
-        // Always show actual extra payments + forecast extra if applicable
-        const showSchedule = scenarios.actual.map((row, i) => {
+        // Build hybrid schedule (actual + forecast)
+        const hybrid = scenarios.actual.map((row, i) => {
             const f = scenarios.forecast[i];
             return {
                 ...row,
                 extraPrincipal: row.extraPrincipal + (f?.extraPrincipal || 0),
-                principal: row.principal, // already correct
                 balance: f ? f.balance : row.balance
             };
         });
 
-    
+        // Render summary using hybrid payoff
+        renderSummary({
+            baseline: scenarios.baseline,
+            forecast: scenarios.forecast,
+            actual: hybrid   // <-- THIS IS THE FIX
+        });
 
-        renderAmortizationTable(showSchedule);
-
-
-
+        // Render table using hybrid
+        renderAmortizationTable(hybrid);
 
         $("mtgLoading").style.display = "none";
     }, 50);
 });
+
 
 let mortgageChart = null;
 
