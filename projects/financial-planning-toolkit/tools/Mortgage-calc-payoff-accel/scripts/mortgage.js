@@ -211,9 +211,17 @@ $("mtgRunBtn").addEventListener("click", () => {
         // Show the actual trajectory by default
         const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
 
-        const showSchedule = forecastExtra > 0
-            ? scenarios.forecast
-            : scenarios.actual;
+        // Always show actual extra payments + forecast extra if applicable
+        const showSchedule = scenarios.actual.map((row, i) => {
+            const f = scenarios.forecast[i];
+            return {
+                ...row,
+                extraPrincipal: row.extraPrincipal + (f?.extraPrincipal || 0),
+                principal: row.principal, // already correct
+                balance: f ? f.balance : row.balance
+            };
+        });
+
     
 
         renderAmortizationTable(showSchedule);
