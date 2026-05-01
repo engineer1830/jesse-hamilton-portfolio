@@ -106,3 +106,9 @@
     font-size: 0.85rem;
     color: #64748b;
 }
+
+.mtg-chart-wrapper
+{
+    height: 350px;
+    position: relative;
+}
