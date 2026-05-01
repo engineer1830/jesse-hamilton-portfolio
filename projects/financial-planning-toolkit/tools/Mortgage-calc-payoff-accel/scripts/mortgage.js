@@ -126,7 +126,7 @@ function buildScenarios() {
         $("mtgMonthlyPayment").value = formatCurrency(monthlyPayment);
     }
 
-    const forecastExtra = parseCurrency($("mtgForecastExtra").value);
+    const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
     const forecastStart = $("mtgForecastStart").value; 
     const actualExtraMap = getActualExtraPayments();
 
@@ -187,8 +187,10 @@ $("mtgRunBtn").addEventListener("click", () => {
         // Show the actual trajectory by default
         const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
 
-        const showSchedule =
-            forecastExtra > 0 ? scenarios.forecast : scenarios.actual;
+        const showSchedule = forecastExtra > 0
+            ? scenarios.forecast
+            : scenarios.actual;
+    
 
         renderAmortizationTable(showSchedule);
 
@@ -305,7 +307,7 @@ function renderAmortizationTable(schedule) {
 
         tr.innerHTML = `
             <td>${row.date.toLocaleDateString()}</td>
-            <td>${row.totalPayment.toFixed(2)}</td>
+            <td>${(row.interest + row.principal + (row.extraPrincipal || 0)).toFixed(2)}</td>
             <td>${row.interest.toFixed(2)}</td>
             <td>${row.principal.toFixed(2)}</td>
             <td>${(row.extraPrincipal || 0).toFixed(2)}</td>
