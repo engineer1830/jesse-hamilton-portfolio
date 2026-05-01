@@ -112,3 +112,19 @@
     height: 350px;
     position: relative;
 }
+
+@media (max-width: 900px)
+{
+    .mtg-chart-wrapper
+    {
+        height: 300px;
+    }
+}
+
+@media (max-width: 600px)
+{
+    .mtg-chart-wrapper
+    {
+        height: 250px;
+    }
+}
