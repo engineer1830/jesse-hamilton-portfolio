@@ -37,7 +37,8 @@ function getActualExtraPayments() {
         const amt = parseCurrency(row.querySelector(".mtg-actual-amount").value);
 
         if (date && amt > 0) {
-            map[date] = (map[date] || 0) + amt;
+            const monthKey = date.slice(0, 7); // YYYY-MM
+            map[monthKey] = (map[monthKey] || 0) + amt;
         }
     });
 
@@ -70,9 +71,9 @@ function buildAmortizationSchedule({
     let date = new Date(startDate);
 
     for (let i = 0; i < maxMonths && balance > 0; i++) {
-        const dateKey = date.toISOString().slice(0, 10);
-        // Actual extra payments (only on specific dates)
-        const actualExtra = extraSchedule[dateKey] || 0;
+        const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+        const actualExtra = extraSchedule[monthKey] || 0;
+
 
         // Forecast extra (only after forecastStartDate)
         let forecastExtra = 0;
