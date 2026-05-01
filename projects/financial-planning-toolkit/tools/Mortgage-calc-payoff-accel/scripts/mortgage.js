@@ -107,7 +107,14 @@ function buildAmortizationSchedule({
 }
 
 function buildScenarios() {
+
     const startDate = $("mtgStartDate").value;
+
+    if (!startDate || isNaN(new Date(startDate).getTime())) {
+        alert("Please enter a valid start date.");
+        return { baseline: [], forecast: [], actual: [] };
+    }
+
     const principal = parseCurrency($("mtgPrincipal").value);
     const annualRate = Number($("mtgRate").value) / 100;
     const termYears = Number($("mtgTermYears").value);
@@ -127,10 +134,9 @@ function buildScenarios() {
     }
 
     const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
-    const forecastStart = $("mtgForecastStart").value; 
+    const forecastStart = $("mtgForecastStart").value;
     const actualExtraMap = getActualExtraPayments();
 
-    // 1) Baseline
     const baseline = buildAmortizationSchedule({
         startDate,
         principal,
@@ -138,17 +144,15 @@ function buildScenarios() {
         monthlyPayment
     });
 
-    // 2) Forecast
     const forecast = buildAmortizationSchedule({
         startDate,
         principal,
         annualRate,
         monthlyPayment,
         fixedExtraPerMonth: forecastExtra,
-        forecastStartDate: forecastStart 
+        forecastStartDate: forecastStart
     });
 
-    // 3) Actual
     const actual = buildAmortizationSchedule({
         startDate,
         principal,
@@ -160,8 +164,18 @@ function buildScenarios() {
     return { baseline, forecast, actual };
 }
 
+
 function renderSummary({ baseline, forecast, actual }) {
-    const payoff = s => s[s.length - 1];
+    const payoff = s => s.length ? s[s.length - 1] : null;
+
+    const b = payoff(baseline);
+    const f = payoff(forecast);
+    const a = payoff(actual);
+
+    if (!b || !f || !a) {
+        $("mtgSummary").innerHTML = "<div>Please enter all loan inputs.</div>";
+        return;
+    }
 
     const html = `
         <div><strong>No Extra:</strong> payoff ${payoff(baseline).date.toISOString().slice(0, 10)}</div>
