@@ -1,4 +1,6 @@
-const $ = id => document.getElementById(id);
+// const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
+
 
 function parseCurrency(str) {
     if (!str) return 0;
@@ -117,7 +119,7 @@ function buildScenarios() {
         termYears,
         monthlyPaymentField: $("mtgMonthlyPayment").value
     });
-    
+
     let monthlyPayment = parseCurrency($("mtgMonthlyPayment").value);
     if (!monthlyPayment) {
         monthlyPayment = computeMonthlyPayment(principal, annualRate, termYears);
