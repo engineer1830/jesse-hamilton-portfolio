@@ -63,7 +63,7 @@ function buildAmortizationSchedule({
     extraSchedule = {},
     fixedExtraPerMonth = 0,
     forecastStartDate = null,
-    maxMonths = 360 * 2 // safety cap
+    maxMonths = 360 * 2
 }) {
     const schedule = [];
     const monthlyRate = annualRate / 12;
@@ -71,19 +71,23 @@ function buildAmortizationSchedule({
     let date = new Date(startDate);
 
     for (let i = 0; i < maxMonths && balance > 0; i++) {
-        const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+
+        // YYYY-MM key for matching actual extra payments
+        const monthKey = date.toISOString().slice(0, 7);
+
+        // One-off extra payments
         const actualExtra = extraSchedule[monthKey] || 0;
 
-
-        // Forecast extra (only after forecastStartDate)
+        // Forecast extra (monthly, but only after forecastStartDate)
         let forecastExtra = 0;
-        if (forecastStartDate && dateKey >= forecastStartDate) {
-            forecastExtra = fixedExtraPerMonth;
+        if (forecastStartDate) {
+            const forecastKey = forecastStartDate.slice(0, 7);
+            if (monthKey >= forecastKey) {
+                forecastExtra = fixedExtraPerMonth;
+            }
         }
 
-        // Total extra applied this month
         const extra = actualExtra + forecastExtra;
-
 
         const interest = balance * monthlyRate;
         let principalPaid = monthlyPayment - interest + extra;
@@ -106,6 +110,7 @@ function buildAmortizationSchedule({
 
     return schedule;
 }
+
 
 function buildScenarios() {
 
