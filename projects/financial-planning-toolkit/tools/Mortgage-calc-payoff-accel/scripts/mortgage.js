@@ -110,15 +110,14 @@ function buildAmortizationSchedule({
 function buildScenarios() {
 
     const startDate = $("mtgStartDate").value;
+    const principal = parseCurrency($("mtgPrincipal").value);
+    const annualRate = Number($("mtgRate").value) / 100;
+    const termYears = Number($("mtgTermYears").value);
 
     if (!startDate || isNaN(new Date(startDate).getTime())) {
         alert("Please enter a valid start date.");
         return { baseline: [], forecast: [], actual: [] };
     }
-
-    const principal = parseCurrency($("mtgPrincipal").value);
-    const annualRate = Number($("mtgRate").value) / 100;
-    const termYears = Number($("mtgTermYears").value);
 
     console.log("DEBUG INPUTS:", {
         principal,
