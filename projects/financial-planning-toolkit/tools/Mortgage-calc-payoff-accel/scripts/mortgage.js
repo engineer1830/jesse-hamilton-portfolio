@@ -185,8 +185,13 @@ $("mtgRunBtn").addEventListener("click", () => {
         console.log("Actual:", scenarios.actual);
 
         // Show the actual trajectory by default
-        const showSchedule = forecastExtra > 0 ? forecast : actual;
+        const forecastExtra = parseCurrency($("mtgForecastExtra").value) || 0;
+
+        const showSchedule =
+            forecastExtra > 0 ? scenarios.forecast : scenarios.actual;
+
         renderAmortizationTable(showSchedule);
+
 
 
 
