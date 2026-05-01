@@ -128,3 +128,31 @@
         height: 250px;
     }
 }
+
+.mtg-table-wrapper
+{
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.mtg-table-wrapper table
+{
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mtg-table-wrapper th,
+.mtg-table-wrapper td
+{
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #eee;
+}
+
+.mtg-table-wrapper th:first-child,
+.mtg-table-wrapper td:first-child
+{
+    text-align: left;
+}

@@ -284,3 +284,24 @@ function renderMortgageChart({ baseline, forecast, actual }) {
         }
     });
 }
+
+function renderAmortizationTable(schedule) {
+    const body = document.getElementById("mtgAmortBody");
+    body.innerHTML = "";
+
+    schedule.forEach(row => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${row.date.toLocaleDateString()}</td>
+            <td>${row.totalPayment.toFixed(2)}</td>
+            <td>${row.interest.toFixed(2)}</td>
+            <td>${row.principal.toFixed(2)}</td>
+            <td>${(row.extraPrincipal || 0).toFixed(2)}</td>
+            <td>${row.balance.toFixed(2)}</td>
+        `;
+
+        body.appendChild(tr);
+    });
+}
+
