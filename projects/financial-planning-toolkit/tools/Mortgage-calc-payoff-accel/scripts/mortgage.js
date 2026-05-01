@@ -42,15 +42,6 @@ function getActualExtraPayments() {
     return map;
 }
 
-console.log("DEBUG INPUTS:", {
-    principal,
-    rawRate: $("mtgRate").value,
-    annualRate,
-    termYears,
-    monthlyPaymentField: $("mtgMonthlyPayment").value
-});
-
-
 function computeMonthlyPayment(principal, annualRate, termYears) {
     const r = annualRate / 12;
     const n = termYears * 12;
@@ -58,12 +49,6 @@ function computeMonthlyPayment(principal, annualRate, termYears) {
     if (r === 0) return principal / n;
 
     return principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-}
-
-if (!monthlyPayment) {
-    monthlyPayment = computeMonthlyPayment(principal, annualRate, termYears);
-    console.log("DEBUG COMPUTED PAYMENT:", monthlyPayment);
-    $("mtgMonthlyPayment").value = formatCurrency(monthlyPayment);
 }
 
 
@@ -125,6 +110,14 @@ function buildScenarios() {
     const annualRate = Number($("mtgRate").value) / 100;
     const termYears = Number($("mtgTermYears").value);
 
+    console.log("DEBUG INPUTS:", {
+        principal,
+        rawRate: $("mtgRate").value,
+        annualRate,
+        termYears,
+        monthlyPaymentField: $("mtgMonthlyPayment").value
+    });
+    
     let monthlyPayment = parseCurrency($("mtgMonthlyPayment").value);
     if (!monthlyPayment) {
         monthlyPayment = computeMonthlyPayment(principal, annualRate, termYears);
