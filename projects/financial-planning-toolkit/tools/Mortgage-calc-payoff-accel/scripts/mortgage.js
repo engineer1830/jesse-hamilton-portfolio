@@ -42,6 +42,15 @@ function getActualExtraPayments() {
     return map;
 }
 
+console.log("DEBUG INPUTS:", {
+    principal,
+    rawRate: $("mtgRate").value,
+    annualRate,
+    termYears,
+    monthlyPaymentField: $("mtgMonthlyPayment").value
+});
+
+
 function computeMonthlyPayment(principal, annualRate, termYears) {
     const r = annualRate / 12;
     const n = termYears * 12;
@@ -50,6 +59,13 @@ function computeMonthlyPayment(principal, annualRate, termYears) {
 
     return principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
 }
+
+if (!monthlyPayment) {
+    monthlyPayment = computeMonthlyPayment(principal, annualRate, termYears);
+    console.log("DEBUG COMPUTED PAYMENT:", monthlyPayment);
+    $("mtgMonthlyPayment").value = formatCurrency(monthlyPayment);
+}
+
 
 function buildAmortizationSchedule({
     startDate,
