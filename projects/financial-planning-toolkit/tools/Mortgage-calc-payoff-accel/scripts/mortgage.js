@@ -1,4 +1,3 @@
-// const $ = id => document.getElementById(id);
 const $ = (id) => document.getElementById(id);
 
 
@@ -60,9 +59,9 @@ function buildAmortizationSchedule({
     principal,
     annualRate,
     monthlyPayment,
-    extraSchedule = {},
-    fixedExtraPerMonth = 0,
-    forecastStartDate = null,
+    extraSchedule = {},          // { "YYYY-MM": amount }
+    fixedExtraPerMonth = 0,      // forecast extra
+    forecastStartDate = null,    // "YYYY-MM-DD"
     maxMonths = 360 * 2
 }) {
     const schedule = [];
@@ -70,29 +69,34 @@ function buildAmortizationSchedule({
     let balance = principal;
     let date = new Date(startDate);
 
+    // Normalize forecast start to YYYY-MM (or null)
+    const forecastStartMonth = forecastStartDate
+        ? forecastStartDate.slice(0, 7)
+        : null;
+
     for (let i = 0; i < maxMonths && balance > 0; i++) {
 
-        // YYYY-MM key for matching actual extra payments
+        // YYYY-MM for matching actual extra payments
         const monthKey = date.toISOString().slice(0, 7);
 
-        // One-off extra payments
+        // One-time extra payments (actual)
         const actualExtra = extraSchedule[monthKey] || 0;
 
-        // Forecast extra (monthly, but only after forecastStartDate)
+        // Forecast extra (monthly, starting at forecastStartMonth)
         let forecastExtra = 0;
-        if (forecastStartDate) {
-            const forecastKey = forecastStartDate.slice(0, 7);
-            if (monthKey >= forecastKey) {
-                forecastExtra = fixedExtraPerMonth;
-            }
+        if (forecastStartMonth && monthKey >= forecastStartMonth) {
+            forecastExtra = fixedExtraPerMonth;
         }
 
         const extra = actualExtra + forecastExtra;
 
+        // Standard amortization math
         const interest = balance * monthlyRate;
         let principalPaid = monthlyPayment - interest + extra;
 
-        if (principalPaid > balance) principalPaid = balance;
+        if (principalPaid > balance) {
+            principalPaid = balance;
+        }
 
         balance -= principalPaid;
 
@@ -105,6 +109,7 @@ function buildAmortizationSchedule({
             extraPrincipal: extra
         });
 
+        // Move to next month
         date.setMonth(date.getMonth() + 1);
     }
 
