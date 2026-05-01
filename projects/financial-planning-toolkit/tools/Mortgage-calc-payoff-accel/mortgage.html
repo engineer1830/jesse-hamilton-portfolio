@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retirement Intelligence Engine</title>
+
+    <!-- <link rel="stylesheet" href="../../styles/shared.css"> -->
+    <link rel="stylesheet" href="./styles/mortgage.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="mortgage-tool">
+    
+        <!-- Header -->
+        <header class="mtg-header">
+            <h2>Mortgage Payoff Planner</h2>
+            <p>Compare your baseline payoff, a consistent extra principal strategy, and your current trajectory.</p>
+        </header>
+    
+        <div class="mtg-layout">
+            <!-- LEFT: Inputs -->
+            <section class="mtg-inputs">
+    
+                <!-- Loan basics -->
+                <div class="mtg-card">
+                    <h3>Loan Details</h3>
+    
+                    <div class="mtg-field">
+                        <label for="mtgStartDate">Start date</label>
+                        <input type="date" id="mtgStartDate">
+                    </div>
+    
+                    <div class="mtg-field">
+                        <label for="mtgPrincipal">Starting principal</label>
+                        <input type="text" id="mtgPrincipal" placeholder="$300,000">
+                    </div>
+    
+                    <div class="mtg-field">
+                        <label for="mtgRate">Interest rate (annual)</label>
+                        <input type="number" id="mtgRate" step="0.01" placeholder="6.50">
+                    </div>
+    
+                    <div class="mtg-field">
+                        <label for="mtgTermYears">Term (years)</label>
+                        <input type="number" id="mtgTermYears" placeholder="30">
+                    </div>
+    
+                    <div class="mtg-field">
+                        <label for="mtgMonthlyPayment">Monthly payment</label>
+                        <input type="text" id="mtgMonthlyPayment" placeholder="Auto-calc from term & rate">
+                        <small id="mtgMonthlyPaymentHint">Leave blank to calculate from principal, rate, and term.</small>
+                    </div>
+                </div>
+    
+                <!-- Forecast extra principal -->
+                <div class="mtg-card">
+                    <h3>Forecast Extra Principal</h3>
+    
+                    <div class="mtg-field">
+                        <label for="mtgForecastExtra">Consistent extra principal per month</label>
+                        <input type="text" id="mtgForecastExtra" placeholder="$200">
+                        <small>Applied every month from now until payoff.</small>
+                    </div>
+                </div>
+    
+                <!-- Actual extra payments -->
+                <div class="mtg-card">
+                    <h3>Actual Extra Principal Payments</h3>
+                    <p class="mtg-help">
+                        Record extra principal payments you’ve already made. These shape your current trajectory.
+                    </p>
+    
+                    <table class="mtg-table" id="mtgActualsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Extra principal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="mtgActualsBody">
+                            <!-- Rows added dynamically -->
+                        </tbody>
+                    </table>
+    
+                    <button type="button" id="mtgAddActualRow" class="mtg-btn-secondary">
+                        + Add extra payment
+                    </button>
+                </div>
+    
+                <!-- Run button -->
+                <div class="mtg-actions">
+                    <button type="button" id="mtgRunBtn" class="mtg-btn-primary">
+                        Run mortgage analysis
+                    </button>
+                    <span id="mtgLoading" class="mtg-loading" style="display:none;">Calculating…</span>
+                </div>
+    
+            </section>
+    
+            <!-- RIGHT: Summary + Chart -->
+            <section class="mtg-output">
+    
+                <div class="mtg-card">
+                    <h3>Payoff Summary</h3>
+                    <div id="mtgSummary">
+                        <!-- We’ll inject payoff dates, total interest, and savings here -->
+                    </div>
+                </div>
+    
+                <div class="mtg-card">
+                    <h3>Balance Trajectory</h3>
+                    <canvas id="mortgageChart" height="260"></canvas>
+                </div>
+    
+            </section>
+        </div>
+    </div>
+      
+</body>
