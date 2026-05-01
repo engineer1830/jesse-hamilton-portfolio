@@ -184,6 +184,12 @@ $("mtgRunBtn").addEventListener("click", () => {
         console.log("Forecast:", scenarios.forecast);
         console.log("Actual:", scenarios.actual);
 
+        // Show the actual trajectory by default
+        const showSchedule = forecastExtra > 0 ? forecast : actual;
+        renderAmortizationTable(showSchedule);
+
+
+
         $("mtgLoading").style.display = "none";
     }, 50);
 });
