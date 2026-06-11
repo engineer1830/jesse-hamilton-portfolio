@@ -1,0 +1,381 @@
+/* ===============================
+   Debt Tool — Layout & Structure
+   =============================== */
+
+.debt-tool
+{
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.tool-grid
+{
+    display: grid;
+    gap: 2rem;
+}
+
+@media (min-width: 768px)
+{
+    .tool-grid
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.tool-card
+{
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.card-title
+{
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-strong);
+    margin-bottom: 0.5rem;
+}
+
+.tool-intro
+{
+    color: var(--text-muted);
+    max-width: 60ch;
+}
+
+
+
+/* ===============================
+   Debt Table
+   =============================== */
+
+.debt-table-wrapper
+{
+    overflow-x: auto;
+}
+
+.debt-table
+{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.debt-table th,
+.debt-table td
+{
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.debt-table th
+{
+    font-weight: 600;
+    color: var(--text-strong);
+    background: var(--surface-alt);
+}
+
+.debt-table input
+{
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.debt-actions-col
+{
+    width: 60px;
+}
+
+.remove-debt-btn
+{
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border: none;
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.remove-debt-btn:hover
+{
+    background: var(--danger-bg-hover);
+}
+
+
+
+/* ===============================
+   Form Controls
+   =============================== */
+
+.debt-settings-form
+{
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-row
+{
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.input-with-prefix
+{
+    display: flex;
+    align-items: center;
+}
+
+.input-prefix
+{
+    background: var(--surface-alt);
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    color: var(--text-muted);
+}
+
+.input-with-prefix input
+{
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.radio-group
+{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.radio-option
+{
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-error
+{
+    color: var(--danger-text);
+    font-size: 0.9rem;
+}
+
+
+
+/* ===============================
+   Results Section
+   =============================== */
+
+.tool-results
+{
+    display: none;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.results-grid
+{
+    display: grid;
+    gap: 2rem;
+}
+
+@media (min-width: 900px)
+{
+    .results-grid
+    {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.results-summary-list
+{
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.results-row
+{
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 0.4rem;
+}
+
+.results-row dt
+{
+    color: var(--text-muted);
+}
+
+.results-row dd
+{
+    font-weight: 600;
+    color: var(--text-strong);
+}
+
+.payoff-order-list
+{
+    margin-top: 0.5rem;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+
+
+/* ===============================
+   Chart
+   =============================== */
+
+.chart-wrapper
+{
+    width: 100%;
+    height: 300px;
+}
+
+@media (min-width: 900px)
+{
+    .chart-wrapper
+    {
+        height: 350px;
+    }
+}
+
+
+
+/* ===============================
+   Schedule Table
+   =============================== */
+
+.schedule-wrapper
+{
+    overflow-x: auto;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+}
+
+.schedule-wrapper.is-expanded
+{
+    max-height: 600px;
+}
+
+.schedule-table
+{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.schedule-table th,
+.schedule-table td
+{
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.schedule-table th
+{
+    background: var(--surface-alt);
+    font-weight: 600;
+}
+
+
+
+/* ===============================
+   Modal Dialog
+   =============================== */
+
+.debt-dialog
+{
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+}
+
+.debt-dialog-content
+{
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.debt-dialog-header h3
+{
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.debt-dialog-body
+{
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.debt-dialog-footer
+{
+    display: flex;
+    justify-content: flex-end;
+}
+
+
+
+/* ===============================
+   Buttons (inherits your toolkit)
+   =============================== */
+
+.btn
+{
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.primary-btn
+{
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.primary-btn:hover
+{
+    background: var(--primary-hover);
+}
+
+.secondary-btn
+{
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+}
+
+.ghost-btn
+{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.ghost-btn:hover
+{
+    background: var(--surface-alt);
+}

@@ -1,0 +1,162 @@
+<section id="debt-tool" class="tool-section debt-tool">
+    <header class="tool-header">
+        <h2>Debt Snowball &amp; Avalanche Planner</h2>
+        <p class="tool-intro">
+            Enter your debts, choose a payoff method, and see how quickly you can become debt-free.
+        </p>
+    </header>
+
+    <!-- INPUT PANEL -->
+    <div class="tool-grid">
+        <div class="tool-card debt-input-card">
+            <h3 class="card-title">Debts</h3>
+
+            <div class="debt-table-wrapper">
+                <table class="debt-table" aria-describedby="debt-table-caption">
+                    <caption id="debt-table-caption" class="visually-hidden">
+                        Enter each debt with balance, interest rate, term, and minimum payment.
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Balance</th>
+                            <th scope="col">APR (%)</th>
+                            <th scope="col">Term (months)</th>
+                            <th scope="col">Min Payment</th>
+                            <th scope="col" class="debt-actions-col">Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody id="debt-rows">
+                        <!-- JS will inject debt rows here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button" id="add-debt-btn" class="btn secondary-btn">
+                + Add Debt
+            </button>
+        </div>
+
+        <!-- SETTINGS PANEL -->
+        <div class="tool-card debt-settings-card">
+            <h3 class="card-title">Payoff Settings</h3>
+
+            <form id="debt-settings-form" class="debt-settings-form">
+                <div class="form-row">
+                    <label for="monthly-budget">Monthly amount available</label>
+                    <div class="input-with-prefix">
+                        <span class="input-prefix">$</span>
+                        <input type="number" id="monthly-budget" name="monthlyBudget" min="0" step="10" required
+                            inputmode="decimal" />
+                    </div>
+                </div>
+
+                <fieldset class="form-row">
+                    <legend>Payoff method</legend>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="payoffMethod" value="snowball" checked />
+                            <span>Snowball (smallest balance first)</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="payoffMethod" value="avalanche" />
+                            <span>Avalanche (highest APR first)</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="form-row">
+                    <button type="button" id="run-simulation-btn" class="btn primary-btn">
+                        Run payoff simulation
+                    </button>
+                </div>
+
+                <p id="debt-error-message" class="form-error" aria-live="polite"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <section id="debt-results" class="tool-results" aria-live="polite">
+        <div class="tool-grid results-grid">
+            <!-- SUMMARY CARD -->
+            <article class="tool-card results-summary-card">
+                <h3 class="card-title">Payoff Summary</h3>
+                <dl class="results-summary-list">
+                    <div class="results-row">
+                        <dt>Method</dt>
+                        <dd id="results-method">—</dd>
+                    </div>
+                    <div class="results-row">
+                        <dt>Months to debt-free</dt>
+                        <dd id="results-months">—</dd>
+                    </div>
+                    <div class="results-row">
+                        <dt>Total interest paid</dt>
+                        <dd id="results-interest">—</dd>
+                    </div>
+                    <div class="results-row">
+                        <dt>Estimated payoff date</dt>
+                        <dd id="results-payoff-date">—</dd>
+                    </div>
+                </dl>
+
+                <h4 class="subheading">Payoff order</h4>
+                <ol id="results-payoff-order" class="payoff-order-list">
+                    <!-- JS will inject payoff order items -->
+                </ol>
+            </article>
+
+            <!-- CHART CARD -->
+            <article class="tool-card results-chart-card">
+                <h3 class="card-title">Debt balance over time</h3>
+                <div class="chart-wrapper">
+                    <canvas id="debt-balance-chart" aria-label="Debt balance over time"></canvas>
+                </div>
+            </article>
+        </div>
+
+        <!-- AMORTIZATION TABLE -->
+        <article class="tool-card results-table-card">
+            <header class="results-table-header">
+                <h3 class="card-title">Monthly payoff schedule</h3>
+                <button type="button" id="toggle-schedule-btn" class="btn ghost-btn">
+                    Show / hide schedule
+                </button>
+            </header>
+
+            <div id="schedule-wrapper" class="schedule-wrapper is-collapsed">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Month</th>
+                            <th scope="col">Total balance</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-rows">
+                        <!-- JS will inject schedule rows -->
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <!-- OPTIONAL: MODAL FOR MONTH DETAIL -->
+    <dialog id="debt-month-detail-dialog" class="debt-dialog">
+        <form method="dialog" class="debt-dialog-content">
+            <header class="debt-dialog-header">
+                <h3 id="debt-dialog-title">Month details</h3>
+            </header>
+
+            <div id="debt-dialog-body" class="debt-dialog-body">
+                <!-- JS will inject per-debt details for a selected month -->
+            </div>
+
+            <footer class="debt-dialog-footer">
+                <button type="submit" class="btn primary-btn">Close</button>
+            </footer>
+        </form>
+    </dialog>
+</section>
+  
