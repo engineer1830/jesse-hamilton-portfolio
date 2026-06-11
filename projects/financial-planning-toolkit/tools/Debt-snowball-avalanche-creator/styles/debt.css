@@ -257,6 +257,13 @@
     font-size: 0.9rem;
 }
 
+.debt-term:disabled,
+.debt-start:disabled
+{
+    background: var(--surface-alt);
+    cursor: not-allowed;
+}
+
 
 
 /* ===============================

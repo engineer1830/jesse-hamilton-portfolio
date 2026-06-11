@@ -50,9 +50,11 @@ function addDebtRow() {
 
     row.innerHTML = `
     <td><input type="text" class="debt-name" placeholder="Debt name"></td>
+    <td><select class="debt-type"><option value="fixed">Fixed-Term</option><option value="revolving">Revolving</option></select></td>
     <td><input type="number" class="debt-balance" min="0" step="0.01"></td>
     <td><input type="number" class="debt-rate" min="0" step="0.01"></td>
     <td><input type="number" class="debt-term" min="0" step="1" placeholder="—"></td>
+    <td><input type="date" class="debt-start"></td>
     <td><input type="number" class="debt-min" min="0" step="1"></td>
     <td>
       <button class="remove-debt-btn">✕</button>
@@ -61,10 +63,38 @@ function addDebtRow() {
 
     debtRows.appendChild(row);
 
+    attachTypeBehavior(row);
+
     row.querySelector(".remove-debt-btn").addEventListener("click", () => {
         row.remove();
     });
 }
+
+function attachTypeBehavior(row) {
+    const typeSelect = row.querySelector(".debt-type");
+    const termInput = row.querySelector(".debt-term");
+    const startInput = row.querySelector(".debt-start");
+
+    function updateVisibility() {
+        if (typeSelect.value === "revolving") {
+            termInput.value = "";
+            startInput.value = "";
+            termInput.disabled = true;
+            startInput.disabled = true;
+            termInput.parentElement.style.opacity = 0.4;
+            startInput.parentElement.style.opacity = 0.4;
+        } else {
+            termInput.disabled = false;
+            startInput.disabled = false;
+            termInput.parentElement.style.opacity = 1;
+            startInput.parentElement.style.opacity = 1;
+        }
+    }
+
+    typeSelect.addEventListener("change", updateVisibility);
+    updateVisibility();
+}
+  
 
 addDebtBtn.addEventListener("click", addDebtRow);
 
@@ -78,28 +108,61 @@ function readDebts() {
     const rows = [...document.querySelectorAll("#debt-rows tr")];
 
     const parsed = rows.map(row => {
+        const type = row.querySelector(".debt-type").value;
         const principal = Number(row.querySelector(".debt-balance").value);
         const rate = Number(row.querySelector(".debt-rate").value) / 100;
-        const term = Number(row.querySelector(".debt-term").value) || null;
+
+        // Fixed-term fields
+        const term = type === "fixed"
+            ? Number(row.querySelector(".debt-term").value) || null
+            : null;
+
+        const startDateValue = type === "fixed"
+            ? row.querySelector(".debt-start").value
+            : null;
+
+        const startDate = startDateValue ? new Date(startDateValue) : null;
+
+        // Compute remaining term for fixed loans
+        let remainingTerm = term;
+        if (type === "fixed" && term && startDate) {
+            const today = new Date();
+            const monthsElapsed =
+                (today.getFullYear() - startDate.getFullYear()) * 12 +
+                (today.getMonth() - startDate.getMonth());
+
+            remainingTerm = Math.max(1, term - monthsElapsed);
+        }
+
+        // Minimum payment
         let minPayment = Number(row.querySelector(".debt-min").value);
 
-        // Auto-calc minimum payment if term is provided and minPayment is blank
-        if ((!minPayment || minPayment === 0) && term) {
-            minPayment = computeMonthlyPayment(principal, rate, term);
+        if (type === "fixed") {
+            if ((!minPayment || minPayment === 0) && remainingTerm) {
+                minPayment = computeMonthlyPayment(principal, rate, remainingTerm);
+            }
+        } else {
+            // Revolving debt → no amortized payment
+            if (!minPayment || minPayment === 0) {
+                minPayment = 0; // user must enter one
+            }
         }
 
         return {
             id: row.dataset.id,
+            type,
             name: row.querySelector(".debt-name").value.trim() || "Debt",
             principal,
             interestRate: rate,
-            termMonths: term,
+            termMonths: remainingTerm,
+            startDate,
             minPayment
         };
     });
 
     return parsed.filter(d => d.principal > 0);
 }
+  
 
 
 
