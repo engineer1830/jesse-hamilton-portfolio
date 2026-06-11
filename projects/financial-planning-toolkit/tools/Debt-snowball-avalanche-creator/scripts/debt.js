@@ -228,6 +228,71 @@ function renderResults(method, simulation) {
     resultsSection.style.display = "block";
 }
 
+function renderComparison(snowball, avalanche) {
+    // Snowball
+    document.querySelector("#snowball-months").textContent = snowball.totalMonths;
+    document.querySelector("#snowball-interest").textContent = `$${snowball.totalInterest.toFixed(2)}`;
+
+    const snowballDate = new Date();
+    snowballDate.setMonth(snowballDate.getMonth() + snowball.totalMonths);
+    document.querySelector("#snowball-date").textContent = snowballDate.toLocaleDateString();
+
+    const snowballOrder = [...snowball.schedule[0].debts]
+        .sort((a, b) => a.balance - b.balance)
+        .map(d => d.name);
+
+    const snowballList = document.querySelector("#snowball-order");
+    snowballList.innerHTML = "";
+    snowballOrder.forEach(name => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        snowballList.appendChild(li);
+    });
+
+    // Avalanche
+    document.querySelector("#avalanche-months").textContent = avalanche.totalMonths;
+    document.querySelector("#avalanche-interest").textContent = `$${avalanche.totalInterest.toFixed(2)}`;
+
+    const avalancheDate = new Date();
+    avalancheDate.setMonth(avalancheDate.getMonth() + avalanche.totalMonths);
+    document.querySelector("#avalanche-date").textContent = avalancheDate.toLocaleDateString();
+
+    const avalancheOrder = [...avalanche.schedule[0].debts]
+        .sort((a, b) => a.balance - b.balance)
+        .map(d => d.name);
+
+    const avalancheList = document.querySelector("#avalanche-order");
+    avalancheList.innerHTML = "";
+    avalancheOrder.forEach(name => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        avalancheList.appendChild(li);
+    });
+
+    // Summary
+    const summary = document.querySelector("#comparison-summary-text");
+
+    const monthDiff = snowball.totalMonths - avalanche.totalMonths;
+    const interestDiff = snowball.totalInterest - avalanche.totalInterest;
+
+    let text = "";
+
+    if (monthDiff > 0) {
+        text += `Avalanche pays off ${monthDiff} months faster. `;
+    } else if (monthDiff < 0) {
+        text += `Snowball pays off ${Math.abs(monthDiff)} months faster. `;
+    }
+
+    if (interestDiff > 0) {
+        text += `Avalanche saves $${interestDiff.toFixed(2)} in interest.`;
+    } else if (interestDiff < 0) {
+        text += `Snowball saves $${Math.abs(interestDiff).toFixed(2)} in interest.`;
+    }
+
+    summary.textContent = text || "Both methods produce identical results.";
+}
+  
+
 
 
 // ===============================
@@ -292,7 +357,16 @@ runBtn.addEventListener("click", () => {
         return;
     }
 
-    const simulation = simulateDebtPayoff(debts, monthlyBudget, method);
-    renderResults(method, simulation);
+    // Run both simulations
+    const snowball = simulateDebtPayoff(debts, monthlyBudget, "snowball");
+    const avalanche = simulateDebtPayoff(debts, monthlyBudget, "avalanche");
+
+    // Render the selected method in the main summary
+    const selected = method === "snowball" ? snowball : avalanche;
+    renderResults(method, selected);
+
+    // Render the side-by-side comparison
+    renderComparison(snowball, avalanche);
 });
+  
 
