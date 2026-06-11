@@ -358,8 +358,12 @@ runBtn.addEventListener("click", () => {
     }
 
     // Run both simulations
-    const snowball = simulateDebtPayoff(debts, monthlyBudget, "snowball");
-    const avalanche = simulateDebtPayoff(debts, monthlyBudget, "avalanche");
+    // const snowball = simulateDebtPayoff(debts, monthlyBudget, "snowball");
+    // const avalanche = simulateDebtPayoff(debts, monthlyBudget, "avalanche");
+
+    const snowball = simulateDebtPayoff(structuredClone(debts), monthlyBudget, "snowball");
+    const avalanche = simulateDebtPayoff(structuredClone(debts), monthlyBudget, "avalanche");
+
 
     // Render the selected method in the main summary
     const selected = method === "snowball" ? snowball : avalanche;
