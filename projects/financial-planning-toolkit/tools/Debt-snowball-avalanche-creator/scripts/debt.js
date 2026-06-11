@@ -26,6 +26,19 @@ let debtChart = null;
 
 
 // ===============================
+// 0. PAYMENT CALCULATION (NEW)
+// ===============================
+
+function computeMonthlyPayment(principal, annualRate, termMonths) {
+    const r = annualRate / 12;
+    if (termMonths === null || termMonths <= 0) return 0;
+    if (r === 0) return principal / termMonths;
+    return (r * principal) / (1 - Math.pow(1 + r, -termMonths));
+}
+
+
+
+// ===============================
 // 1. ADD / REMOVE DEBT ROWS
 // ===============================
 
@@ -65,13 +78,23 @@ function readDebts() {
     const rows = [...document.querySelectorAll("#debt-rows tr")];
 
     const parsed = rows.map(row => {
+        const principal = Number(row.querySelector(".debt-balance").value);
+        const rate = Number(row.querySelector(".debt-rate").value) / 100;
+        const term = Number(row.querySelector(".debt-term").value) || null;
+        let minPayment = Number(row.querySelector(".debt-min").value);
+
+        // Auto-calc minimum payment if term is provided and minPayment is blank
+        if ((!minPayment || minPayment === 0) && term) {
+            minPayment = computeMonthlyPayment(principal, rate, term);
+        }
+
         return {
             id: row.dataset.id,
             name: row.querySelector(".debt-name").value.trim() || "Debt",
-            principal: Number(row.querySelector(".debt-balance").value),
-            interestRate: Number(row.querySelector(".debt-rate").value) / 100,
-            termMonths: Number(row.querySelector(".debt-term").value) || null,
-            minPayment: Number(row.querySelector(".debt-min").value) || 0
+            principal,
+            interestRate: rate,
+            termMonths: term,
+            minPayment
         };
     });
 
@@ -177,10 +200,7 @@ function renderResults(method, simulation) {
 
     // Payoff order
     resultsPayoffOrder.innerHTML = "";
-    const firstMonth = schedule[0];
-    const lastMonth = schedule[schedule.length - 1];
-
-    const payoffOrder = [...firstMonth.debts]
+    const payoffOrder = [...schedule[0].debts]
         .sort((a, b) => a.balance - b.balance)
         .map(d => d.name);
 
@@ -275,3 +295,4 @@ runBtn.addEventListener("click", () => {
     const simulation = simulateDebtPayoff(debts, monthlyBudget, method);
     renderResults(method, simulation);
 });
+
