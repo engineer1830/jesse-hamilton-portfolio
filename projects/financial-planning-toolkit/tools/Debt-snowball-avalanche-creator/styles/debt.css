@@ -1,3 +1,39 @@
+:root
+{
+    /* ===============================
+       Color Palette — Harmonious + Soft
+       =============================== */
+
+    /* Surfaces */
+    --surface: #ffffff;
+    --surface-alt: #f7f9fc;
+
+    /* Borders */
+    --border: #d6d9e0;
+    --border-strong: #b8bcc6;
+
+    /* Text */
+    --text-strong: #1f2937;
+    --text-muted: #6b7280;
+
+    /* Primary (buttons, accents, chart line) */
+    --primary: #2563eb;
+    --primary-hover: #1e4fc7;
+
+    /* Danger (remove buttons, errors) */
+    --danger-bg: #fee2e2;
+    --danger-bg-hover: #fecaca;
+    --danger-text: #b91c1c;
+
+    /* Shadows */
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+    /* Radii */
+    --radius-sm: 4px;
+    --radius-lg: 10px;
+}
+
 /* ===============================
    Debt Tool — Layout & Structure
    =============================== */
@@ -49,7 +85,55 @@
     max-width: 60ch;
 }
 
+/* ===============================
+   Section Grouping Enhancements
+   =============================== */
 
+/* Shared grouping style */
+.debt-group
+{
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    background: var(--surface-alt);
+}
+
+/* Debts entry section */
+.debt-input-card
+{
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-alt);
+    padding: 1.5rem;
+}
+
+/* Payoff settings section */
+.debt-settings-card
+{
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-alt);
+    padding: 1.5rem;
+}
+
+/* Payoff summary section */
+.results-summary-card
+{
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-alt);
+    padding: 1.5rem;
+}
+
+/* Optional: Chart and schedule grouping for consistency */
+.results-chart-card,
+.results-table-card
+{
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    padding: 1.5rem;
+}
 
 /* ===============================
    Debt Table
