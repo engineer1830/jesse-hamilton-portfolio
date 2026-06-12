@@ -291,6 +291,38 @@ function renderResults(method, simulation) {
     resultsSection.style.display = "block";
 }
 
+function exportScheduleToCSV(schedule) {
+    if (!schedule || schedule.length === 0) return;
+
+    // Build header row
+    const debtNames = schedule[0].debts.map(d => d.name);
+    const header = ["Month", "Total Balance", ...debtNames.map(n => `${n} Balance`)].join(",");
+
+    // Build data rows
+    const rows = schedule.map(row => {
+        const debtBalances = row.debts.map(d => d.balance.toFixed(2));
+        return [
+            row.month,
+            row.totalBalance.toFixed(2),
+            ...debtBalances
+        ].join(",");
+    });
+
+    const csvContent = [header, ...rows].join("\n");
+
+    // Create a downloadable file
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "debt_payoff_schedule.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+  
+
 function renderComparison(snowball, avalanche) {
     // Snowball
     document.querySelector("#snowball-months").textContent = snowball.totalMonths;
@@ -421,8 +453,6 @@ runBtn.addEventListener("click", () => {
     }
 
     // Run both simulations
-    // const snowball = simulateDebtPayoff(debts, monthlyBudget, "snowball");
-    // const avalanche = simulateDebtPayoff(debts, monthlyBudget, "avalanche");
 
     const snowball = simulateDebtPayoff(structuredClone(debts), monthlyBudget, "snowball");
     const avalanche = simulateDebtPayoff(structuredClone(debts), monthlyBudget, "avalanche");
@@ -434,6 +464,11 @@ runBtn.addEventListener("click", () => {
 
     // Render the side-by-side comparison
     renderComparison(snowball, avalanche);
+
+    document.querySelector("#download-csv-btn").onclick = () => {
+        exportScheduleToCSV(selected.schedule);
+    };
+      
 });
   
 
